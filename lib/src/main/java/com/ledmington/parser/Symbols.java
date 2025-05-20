@@ -17,10 +17,8 @@
  */
 package com.ledmington.parser;
 
-import java.util.List;
-
-public record Grammar(List<ProductionSet> productions) {
-	public Grammar(final ProductionSet... productions) {
-		this(List.of(productions));
-	}
+public enum Symbols implements Token {
+	SEMICOLON,
+	COMMA,
+	EQUAL_SIGN
 }

@@ -19,8 +19,8 @@ package com.ledmington.parser;
 
 import java.util.List;
 
-public record Grammar(List<ProductionSet> productions) {
-	public Grammar(final ProductionSet... productions) {
-		this(List.of(productions));
+public record ProductionSet(NonTerminal start, List<Node> productions) implements Node {
+	public ProductionSet(final NonTerminal start, final Node... productions) {
+		this(start, List.of(productions));
 	}
 }

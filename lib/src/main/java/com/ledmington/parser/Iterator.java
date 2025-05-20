@@ -18,9 +18,33 @@
 package com.ledmington.parser;
 
 import java.util.List;
+import java.util.Objects;
 
-public record Grammar(List<ProductionSet> productions) {
-	public Grammar(final ProductionSet... productions) {
-		this(List.of(productions));
+// TODO: find a better name to avoid clash
+public final class Iterator<X> {
+
+	private final List<X> list;
+	private final int n;
+	private int index = 0;
+
+	public Iterator(final List<X> list) {
+		this.list = Objects.requireNonNull(list);
+		this.n = list.size();
+	}
+
+	public boolean hasNext() {
+		return index >= 0 && index < n;
+	}
+
+	public void move() {
+		index++;
+	}
+
+	public X current() {
+		return list.get(index);
+	}
+
+	public void moveBack() {
+		index--;
 	}
 }

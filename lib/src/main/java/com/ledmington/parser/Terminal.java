@@ -17,10 +17,4 @@
  */
 package com.ledmington.parser;
 
-import java.util.List;
-
-public record Grammar(List<ProductionSet> productions) {
-	public Grammar(final ProductionSet... productions) {
-		this(List.of(productions));
-	}
-}
+public record Terminal(String literal) implements Node {}

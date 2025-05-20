@@ -30,11 +30,48 @@ import org.junit.jupiter.params.provider.MethodSource;
 public final class TestParser {
 
 	private static final List<Arguments> CORRECT_TEST_CASES = List.of(
-			Arguments.of(new Grammar("a", "S"), "grammar a;start S;"),
-			Arguments.of(new Grammar("a", "S"), " grammar a;start S;"),
-			Arguments.of(new Grammar("a", "S"), "grammar a ;start S;"));
+			Arguments.of(
+					"a=\"a\";", new Grammar(new ProductionSet(new NonTerminal("a"), new Sequence(new Terminal("a"))))),
+			Arguments.of(
+					"(**)a=\"a\";",
+					new Grammar(new ProductionSet(new NonTerminal("a"), new Sequence(new Terminal("a"))))),
+			Arguments.of(
+					"a(**)=\"a\";",
+					new Grammar(new ProductionSet(new NonTerminal("a"), new Sequence(new Terminal("a"))))),
+			Arguments.of(
+					"a=(**)\"a\";",
+					new Grammar(new ProductionSet(new NonTerminal("a"), new Sequence(new Terminal("a"))))),
+			Arguments.of(
+					"a=\"a\"(**);",
+					new Grammar(new ProductionSet(new NonTerminal("a"), new Sequence(new Terminal("a"))))),
+			Arguments.of(
+					"a=\"a\";(**)",
+					new Grammar(new ProductionSet(new NonTerminal("a"), new Sequence(new Terminal("a"))))),
+			Arguments.of(
+					"my symbol = \"a\";",
+					new Grammar(new ProductionSet(new NonTerminal("my symbol"), new Sequence(new Terminal("a"))))),
+			Arguments.of(
+					"a = \"a\", \"b\";",
+					new Grammar(new ProductionSet(
+							new NonTerminal("a"), new Sequence(new Terminal("a"), new Terminal("b"))))),
+			Arguments.of(
+					"a=\"a\";b=\"b\";",
+					new Grammar(
+							new ProductionSet(new NonTerminal("a"), new Sequence(new Terminal("a"))),
+							new ProductionSet(new NonTerminal("b"), new Sequence(new Terminal("b"))))),
+			Arguments.of(
+					"a=\"a\";b=a;",
+					new Grammar(
+							new ProductionSet(new NonTerminal("a"), new Sequence(new Terminal("a"))),
+							new ProductionSet(new NonTerminal("b"), new Sequence(new NonTerminal("a"))))),
+			Arguments.of(
+					"a=b;b=a;",
+					new Grammar(
+							new ProductionSet(new NonTerminal("a"), new Sequence(new NonTerminal("b"))),
+							new ProductionSet(new NonTerminal("b"), new Sequence(new NonTerminal("a"))))));
 
-	private static final List<String> INVALID_TEST_CASES = List.of("grammara;", "grammar a", "gramma a;");
+	private static final List<String> INVALID_TEST_CASES =
+			List.of("=", ";", "a", "a=\";", "a=\"a\",;", "a=,\"a\";", "a=\"a\",,\"a\";");
 
 	private static Stream<Arguments> correctTestCases() {
 		return CORRECT_TEST_CASES.stream();
@@ -42,7 +79,7 @@ public final class TestParser {
 
 	@ParameterizedTest
 	@MethodSource("correctTestCases")
-	void correct(final Grammar expected, final String input) {
+	void correct(final String input, final Grammar expected) {
 		assertEquals(expected, Parser.parse(input));
 	}
 
