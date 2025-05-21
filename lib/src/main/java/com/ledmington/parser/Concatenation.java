@@ -17,9 +17,25 @@
  */
 package com.ledmington.parser;
 
-public record NonTerminal(String name) implements Expression {
+import java.util.List;
+
+public record Concatenation(List<Expression> nodes) implements Expression {
+	public Concatenation(final Expression... nodes) {
+		this(List.of(nodes));
+	}
+
 	@Override
 	public String prettyPrint(final String indent) {
-		return indent + "NonTerminal { " + name + " }";
+		final StringBuilder sb = new StringBuilder();
+		sb.append(indent).append("Concatenation {\n");
+		if (!nodes.isEmpty()) {
+			sb.append(nodes.getFirst().prettyPrint(indent + "  "));
+			for (int i = 1; i < nodes.size(); i++) {
+				sb.append('\n').append(nodes.get(i).prettyPrint(indent + "  "));
+			}
+			sb.append('\n');
+		}
+		sb.append(indent).append("}");
+		return sb.toString();
 	}
 }

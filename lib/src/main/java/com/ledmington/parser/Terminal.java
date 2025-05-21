@@ -17,4 +17,9 @@
  */
 package com.ledmington.parser;
 
-public record Terminal(String literal) implements Node {}
+public record Terminal(String literal) implements Expression {
+	@Override
+	public String prettyPrint(final String indent) {
+		return indent + "Terminal { " + literal + " }";
+	}
+}

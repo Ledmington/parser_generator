@@ -17,4 +17,6 @@
  */
 package com.ledmington.parser;
 
-public interface Node {}
+public interface Node {
+	String prettyPrint(final String indent);
+}

@@ -20,5 +20,10 @@ package com.ledmington.parser;
 public enum Symbols implements Token {
 	SEMICOLON,
 	COMMA,
+	VERTICAL_LINE,
+	LEFT_SQUARE_BRACKET,
+	RIGHT_SQUARE_BRACKET,
+	LEFT_CURLY_BRACKET,
+	RIGHT_CURLY_BRACKET,
 	EQUAL_SIGN
 }

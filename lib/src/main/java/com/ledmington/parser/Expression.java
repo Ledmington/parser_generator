@@ -17,9 +17,4 @@
  */
 package com.ledmington.parser;
 
-public record NonTerminal(String name) implements Expression {
-	@Override
-	public String prettyPrint(final String indent) {
-		return indent + "NonTerminal { " + name + " }";
-	}
-}
+public interface Expression extends Node {}

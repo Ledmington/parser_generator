@@ -17,10 +17,9 @@
  */
 package com.ledmington.parser;
 
-import java.util.List;
-
-public record ProductionSet(NonTerminal start, List<Node> productions) implements Node {
-	public ProductionSet(final NonTerminal start, final Node... productions) {
-		this(start, List.of(productions));
+public record Repetition(Expression inner) implements Expression {
+	@Override
+	public String prettyPrint(final String indent) {
+		return indent + "Repetition {\n" + inner.prettyPrint(indent + "  ") + '\n' + indent + "}";
 	}
 }

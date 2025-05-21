@@ -17,9 +17,9 @@
  */
 package com.ledmington.parser;
 
-public record NonTerminal(String name) implements Expression {
+public record Optional(Expression inner) implements Expression {
 	@Override
 	public String prettyPrint(final String indent) {
-		return indent + "NonTerminal { " + name + " }";
+		return indent + "Optional {\n" + inner.prettyPrint(indent + "  ") + indent + "}";
 	}
 }

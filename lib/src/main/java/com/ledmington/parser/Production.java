@@ -17,9 +17,13 @@
  */
 package com.ledmington.parser;
 
-public record NonTerminal(String name) implements Expression {
+public record Production(NonTerminal start, Expression result) implements Node {
 	@Override
 	public String prettyPrint(final String indent) {
-		return indent + "NonTerminal { " + name + " }";
+		return indent + "Production {\n"
+				+ start.prettyPrint(indent + "  ")
+				+ "\n"
+				+ result.prettyPrint(indent + "  ")
+				+ "\n" + indent + "}";
 	}
 }

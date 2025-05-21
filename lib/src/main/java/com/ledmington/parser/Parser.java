@@ -21,6 +21,9 @@ import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public final class Parser {
 
@@ -30,8 +33,7 @@ public final class Parser {
 		try {
 			final String stripped = removeComments(input);
 			final List<Token> tokens = tokenize(stripped);
-			final List<ProductionSet> productions = parse(tokens);
-			return new Grammar(productions);
+			return parse(tokens);
 		} catch (final IndexOutOfBoundsException ioobe) {
 			throw new ParsingException(ioobe);
 		}
@@ -76,6 +78,21 @@ public final class Parser {
 			} else if (ch == ',') {
 				tokens.add(Symbols.COMMA);
 				it.next();
+			} else if (ch == '|') {
+				tokens.add(Symbols.VERTICAL_LINE);
+				it.next();
+			} else if (ch == '[') {
+				tokens.add(Symbols.LEFT_SQUARE_BRACKET);
+				it.next();
+			} else if (ch == ']') {
+				tokens.add(Symbols.RIGHT_SQUARE_BRACKET);
+				it.next();
+			} else if (ch == '{') {
+				tokens.add(Symbols.LEFT_CURLY_BRACKET);
+				it.next();
+			} else if (ch == '}') {
+				tokens.add(Symbols.RIGHT_CURLY_BRACKET);
+				it.next();
 			} else if (ch == '\"') {
 				tokens.add(readStringLiteral(it));
 			} else {
@@ -92,7 +109,17 @@ public final class Parser {
 		it.next();
 		final StringBuilder sb = new StringBuilder();
 		while (it.current() != CharacterIterator.DONE && it.current() != '\"') {
-			sb.append(it.current());
+			final int idx = it.getIndex();
+			if (it.current() == '\\') {
+				it.next();
+				if (it.current() == '\"') {
+					sb.append('\"');
+				} else {
+					it.setIndex(idx);
+				}
+			} else {
+				sb.append(it.current());
+			}
 			it.next();
 		}
 		it.next();
@@ -115,79 +142,129 @@ public final class Parser {
 		}
 	}
 
-	private static List<ProductionSet> parse(final List<Token> tokens) {
-		final List<ProductionSet> productions = new ArrayList<>();
-		final Iterator<Token> it = new Iterator<>(tokens);
-		while (it.hasNext()) {
-			productions.add(parseProductionSet(it));
-		}
-		return productions;
-	}
+	private static Grammar parse(final List<Token> tokens) {
+		// ugly method: the alternative is to manually convert the EBNF grammar for EBNF grammars to be left-recursive
+		// and then implement it that way
+		final List<Object> v = new ArrayList<>(tokens);
 
-	private static ProductionSet parseProductionSet(final Iterator<Token> it) {
-		final NonTerminal id = parseId(it);
-		if (!it.current().equals(Symbols.EQUAL_SIGN)) {
-			throw new ParsingException("Expected '='.");
-		}
-		it.move();
-		final List<Node> productions = new ArrayList<>();
-		while (it.hasNext() && !it.current().equals(Symbols.SEMICOLON)) {
-			productions.add(parseProduction(it));
-		}
-		if (!it.hasNext()) {
-			throw new ParsingException("Expected semicolon but found early end of file.");
-		}
-		if (!it.current().equals(Symbols.SEMICOLON)) {
-			throw new ParsingException(String.format("Expected a semicolon but found '%s'.", it.current()));
-		}
-		it.move();
-		return new ProductionSet(id, productions);
-	}
-
-	private static Node parseProduction(final Iterator<Token> it) {
-		final List<Node> nodes = new ArrayList<>();
-		boolean commaFound = false;
-		while (it.hasNext() && !it.current().equals(Symbols.SEMICOLON)) {
-			if (it.current() instanceof StringLiteral(final String literal)) {
-				if (nodes.size() > 1 && !commaFound) {
-					throw new ParsingException("Expected a comma.");
-				}
-				commaFound = false;
-				nodes.add(new Terminal(literal));
-			} else if (it.current().equals(Symbols.COMMA)) {
-				if (nodes.isEmpty()) {
-					throw new ParsingException("Extra comma at the beginning of a production.");
-				}
-				if (commaFound) {
-					throw new ParsingException("Extra comma in the middle of a production.");
-				}
-				commaFound = true;
-			} else if (it.current() instanceof Word) {
-				nodes.add(parseId(it));
-				// TODO: ugly, remove this
-				it.moveBack();
-			} else {
-				throw new ParsingException(String.format("Unknown token: '%s'.", it.current()));
+		// First hard-coded pass: convert all string literals into terminal symbols
+		for (int i = 0; i < v.size(); i++) {
+			if (v.get(i) instanceof StringLiteral(final String literal)) {
+				v.set(i, new Terminal(literal));
 			}
-			it.move();
 		}
-		if (commaFound) {
-			throw new ParsingException("Extra comma at the end of production.");
-		}
-		return new Sequence(nodes);
-	}
 
-	private static NonTerminal parseId(final Iterator<Token> it) {
-		if (!(it.current() instanceof Word(final String w))) {
-			throw new ParsingException(String.format("Expected a word but found '%s'.", it.current()));
+		// Second hard-coded pass: concatenate all successive words into a single non-terminal symbol
+		for (int i = 0; i < v.size(); i++) {
+			if (v.get(i) instanceof Word(final String word)) {
+				// concatenate all successive words into a single NonTerminal
+				final StringBuilder sb = new StringBuilder();
+				sb.append(word);
+				v.remove(i);
+				while (v.get(i) instanceof Word(final String word2)) {
+					sb.append(' ').append(word2);
+					v.remove(i);
+				}
+				v.add(i, new NonTerminal(sb.toString()));
+			}
 		}
-		final StringBuilder sb = new StringBuilder();
-		sb.append(w);
-		it.move();
-		while (it.hasNext() && it.current() instanceof Word(final String word)) {
-			sb.append(' ').append(word);
-			it.move();
+
+		while (v.size() > 1) {
+			// do one pass
+			final int initialSize = v.size();
+			for (int i = 0; i < v.size(); i++) {
+				if (i + 3 < v.size()
+						&& v.get(i) instanceof final NonTerminal start
+						&& v.get(i + 1).equals(Symbols.EQUAL_SIGN)
+						&& v.get(i + 2) instanceof final Expression n
+						&& v.get(i + 3).equals(Symbols.SEMICOLON)) {
+					v.remove(i);
+					v.remove(i);
+					v.remove(i);
+					v.set(i, new Production(start, n));
+				}
+				if (i + 1 < v.size()
+						&& v.get(i) instanceof final Production first
+						&& v.get(i + 1) instanceof final Production second) {
+					v.remove(i);
+					v.set(i, new Grammar(first, second));
+				}
+				if (i + 1 < v.size()
+						&& v.get(i) instanceof final Grammar first
+						&& v.get(i + 1) instanceof final Production second) {
+					v.remove(i);
+					v.set(
+							i,
+							new Grammar(Stream.concat(first.productions().stream(), Stream.of(second))
+									.toList()));
+				}
+				if (i + 1 < v.size()
+						&& v.get(i) instanceof final Grammar first
+						&& v.get(i + 1) instanceof final Grammar second) {
+					v.remove(i);
+					v.set(
+							i,
+							new Grammar(Stream.concat(first.productions().stream(), second.productions().stream())
+									.toList()));
+				}
+				if (i + 2 < v.size()
+						&& v.get(i) instanceof final Expression first
+						&& v.get(i + 1).equals(Symbols.COMMA)
+						&& v.get(i + 2) instanceof final Expression second) {
+					v.remove(i);
+					v.remove(i);
+					v.set(i, new Concatenation(first, second));
+				}
+				if (i + 2 < v.size()
+						&& v.get(i) instanceof final Expression first
+						&& v.get(i + 1).equals(Symbols.VERTICAL_LINE)
+						&& v.get(i + 2) instanceof final Expression second) {
+					v.remove(i);
+					v.remove(i);
+					v.set(i, new Alternation(first, second));
+				}
+				if (i + 2 < v.size()
+						&& v.get(i).equals(Symbols.LEFT_SQUARE_BRACKET)
+						&& v.get(i + 1) instanceof final Expression n
+						&& v.get(i + 2).equals(Symbols.RIGHT_SQUARE_BRACKET)) {
+					v.remove(i);
+					v.remove(i);
+					v.set(i, new Optional(n));
+				}
+				if (i + 2 < v.size()
+						&& v.get(i).equals(Symbols.LEFT_CURLY_BRACKET)
+						&& v.get(i + 1) instanceof final Expression n
+						&& v.get(i + 2).equals(Symbols.RIGHT_CURLY_BRACKET)) {
+					v.remove(i);
+					v.remove(i);
+					v.set(i, new Repetition(n));
+				}
+			}
+			if (v.size() == initialSize) {
+				throw new ParsingException(String.format(
+						"Unknown parsing state:%n%s",
+						IntStream.range(0, v.size())
+								.mapToObj(i -> String.format(
+										" %3d : %n%s",
+										i,
+										v.get(i) instanceof Token
+												? v.get(i).toString()
+												: ((Node) v.get(i)).prettyPrint("       ")))
+								.collect(Collectors.joining("\n"))));
+			}
 		}
-		return new NonTerminal(sb.toString());
+
+		if (v.size() != 1) {
+			throw new AssertionError();
+		}
+		if (v.getFirst() instanceof final Production p) {
+			return new Grammar(p);
+		}
+		if (!(v.getFirst() instanceof final Grammar g)) {
+			throw new ParsingException(
+					String.format("Expected root element to be a grammar but was '%s'.", v.getFirst()));
+		}
+
+		return g;
 	}
 }
