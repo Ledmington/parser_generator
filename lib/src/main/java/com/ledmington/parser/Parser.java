@@ -21,11 +21,136 @@ import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public final class Parser {
+
+	private static final List<BiPredicate<List<Object>, Integer>> TRANSFORMATIONS = List.of(
+			(v, i) -> {
+				if (i + 3 >= v.size()) {
+					return false;
+				}
+				if (v.get(i) instanceof final NonTerminal start
+						&& v.get(i + 1).equals(Symbols.EQUAL_SIGN)
+						&& v.get(i + 2) instanceof final Expression n
+						&& v.get(i + 3).equals(Symbols.SEMICOLON)) {
+					v.subList(i, i + 4).clear();
+					v.add(i, new Production(start, n));
+					return true;
+				}
+				return false;
+			},
+			(v, i) -> {
+				if (i + 1 < v.size()
+						&& v.get(i) instanceof final Production first
+						&& v.get(i + 1) instanceof final Production second) {
+					v.subList(i, i + 2).clear();
+					v.add(i, new Grammar(first, second));
+					return true;
+				}
+				return false;
+			},
+			(v, i) -> {
+				if (i + 1 < v.size()
+						&& v.get(i) instanceof Grammar(final List<Production> productions)
+						&& v.get(i + 1) instanceof final Production second) {
+					v.subList(i, i + 2).clear();
+					v.add(
+							i,
+							new Grammar(Stream.concat(productions.stream(), Stream.of(second))
+									.toList()));
+					return true;
+				}
+				return false;
+			},
+			(v, i) -> {
+				if (i + 1 < v.size()
+						&& v.get(i) instanceof Grammar(final List<Production> productions)
+						&& v.get(i + 1) instanceof Grammar(final List<Production> productions1)) {
+					v.subList(i, i + 2).clear();
+					v.add(
+							i,
+							new Grammar(Stream.concat(productions.stream(), productions1.stream())
+									.toList()));
+					return true;
+				}
+				return false;
+			},
+			(v, i) -> {
+				if (i + 2 < v.size()
+						&& v.get(i) instanceof final Expression first
+						&& v.get(i + 1).equals(Symbols.COMMA)
+						&& v.get(i + 2) instanceof final Expression second) {
+					v.subList(i, i + 3).clear();
+					v.add(i, new Concatenation(first, second));
+					return true;
+				}
+				return false;
+			},
+			(v, i) -> {
+				if (v.get(i) instanceof Concatenation(final List<Expression> nodes)
+						&& nodes.stream().anyMatch(exp -> exp instanceof Concatenation)) {
+					v.set(
+							i,
+							new Concatenation(nodes.stream()
+									.flatMap(exp -> exp instanceof Concatenation(final List<Expression> nodes1)
+											? nodes1.stream()
+											: Stream.of(exp))
+									.toList()));
+					return true;
+				}
+				return false;
+			},
+			(v, i) -> {
+				if (i + 2 < v.size()
+						&& v.get(i) instanceof final Expression first
+						&& v.get(i + 1).equals(Symbols.VERTICAL_LINE)
+						&& v.get(i + 2) instanceof final Expression second) {
+					v.subList(i, i + 3).clear();
+					v.add(i, new Alternation(first, second));
+					return true;
+				}
+				return false;
+			},
+			(v, i) -> {
+				if (v.get(i) instanceof Alternation(final List<Expression> nodes)
+						&& nodes.stream().anyMatch(exp -> exp instanceof Alternation)) {
+					v.set(
+							i,
+							new Alternation(nodes.stream()
+									.flatMap(exp -> exp instanceof Alternation(final List<Expression> nodes1)
+											? nodes1.stream()
+											: Stream.of(exp))
+									.toList()));
+					return true;
+				}
+				return false;
+			},
+			(v, i) -> {
+				if (i + 2 < v.size()
+						&& v.get(i).equals(Symbols.LEFT_SQUARE_BRACKET)
+						&& v.get(i + 1) instanceof final Expression n
+						&& v.get(i + 2).equals(Symbols.RIGHT_SQUARE_BRACKET)) {
+					v.subList(i, i + 3).clear();
+					v.add(i, new Optional(n));
+					return true;
+				}
+				return false;
+			},
+			(v, i) -> {
+				if (i + 2 < v.size()
+						&& v.get(i).equals(Symbols.LEFT_CURLY_BRACKET)
+						&& v.get(i + 1) instanceof final Expression n
+						&& v.get(i + 2).equals(Symbols.RIGHT_CURLY_BRACKET)) {
+					v.subList(i, i + 3).clear();
+					v.add(i, new Repetition(n));
+					return true;
+				}
+				return false;
+			});
 
 	private Parser() {}
 
@@ -114,6 +239,10 @@ public final class Parser {
 				it.next();
 				if (it.current() == '\"') {
 					sb.append('\"');
+				} else if (it.current() == 'n') {
+					sb.append("\\n");
+				} else if (it.current() == 't') {
+					sb.append("\\t");
 				} else {
 					it.setIndex(idx);
 				}
@@ -172,72 +301,17 @@ public final class Parser {
 		while (v.size() > 1) {
 			// do one pass
 			final int initialSize = v.size();
-			for (int i = 0; i < v.size(); i++) {
-				if (i + 3 < v.size()
-						&& v.get(i) instanceof final NonTerminal start
-						&& v.get(i + 1).equals(Symbols.EQUAL_SIGN)
-						&& v.get(i + 2) instanceof final Expression n
-						&& v.get(i + 3).equals(Symbols.SEMICOLON)) {
-					v.remove(i);
-					v.remove(i);
-					v.remove(i);
-					v.set(i, new Production(start, n));
+			for (int i = 0; i < v.size(); ) {
+				boolean atLeastOneMatch = false;
+				for (final BiPredicate<List<Object>, Integer> bp : TRANSFORMATIONS) {
+					if (bp.test(v, i)) {
+						atLeastOneMatch = true;
+						break;
+					}
 				}
-				if (i + 1 < v.size()
-						&& v.get(i) instanceof final Production first
-						&& v.get(i + 1) instanceof final Production second) {
-					v.remove(i);
-					v.set(i, new Grammar(first, second));
-				}
-				if (i + 1 < v.size()
-						&& v.get(i) instanceof final Grammar first
-						&& v.get(i + 1) instanceof final Production second) {
-					v.remove(i);
-					v.set(
-							i,
-							new Grammar(Stream.concat(first.productions().stream(), Stream.of(second))
-									.toList()));
-				}
-				if (i + 1 < v.size()
-						&& v.get(i) instanceof final Grammar first
-						&& v.get(i + 1) instanceof final Grammar second) {
-					v.remove(i);
-					v.set(
-							i,
-							new Grammar(Stream.concat(first.productions().stream(), second.productions().stream())
-									.toList()));
-				}
-				if (i + 2 < v.size()
-						&& v.get(i) instanceof final Expression first
-						&& v.get(i + 1).equals(Symbols.COMMA)
-						&& v.get(i + 2) instanceof final Expression second) {
-					v.remove(i);
-					v.remove(i);
-					v.set(i, new Concatenation(first, second));
-				}
-				if (i + 2 < v.size()
-						&& v.get(i) instanceof final Expression first
-						&& v.get(i + 1).equals(Symbols.VERTICAL_LINE)
-						&& v.get(i + 2) instanceof final Expression second) {
-					v.remove(i);
-					v.remove(i);
-					v.set(i, new Alternation(first, second));
-				}
-				if (i + 2 < v.size()
-						&& v.get(i).equals(Symbols.LEFT_SQUARE_BRACKET)
-						&& v.get(i + 1) instanceof final Expression n
-						&& v.get(i + 2).equals(Symbols.RIGHT_SQUARE_BRACKET)) {
-					v.remove(i);
-					v.remove(i);
-					v.set(i, new Optional(n));
-				}
-				if (i + 2 < v.size()
-						&& v.get(i).equals(Symbols.LEFT_CURLY_BRACKET)
-						&& v.get(i + 1) instanceof final Expression n
-						&& v.get(i + 2).equals(Symbols.RIGHT_CURLY_BRACKET)) {
-					v.remove(i);
-					v.remove(i);
-					v.set(i, new Repetition(n));
+				// move only if we didn't apply any transformation
+				if (!atLeastOneMatch) {
+					i++;
 				}
 			}
 			if (v.size() == initialSize) {
@@ -249,7 +323,7 @@ public final class Parser {
 										i,
 										v.get(i) instanceof Token
 												? v.get(i).toString()
-												: ((Node) v.get(i)).prettyPrint("       ")))
+												: ((Node) v.get(i)).prettyPrint(" ".repeat(6))))
 								.collect(Collectors.joining("\n"))));
 			}
 		}
