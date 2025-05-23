@@ -1,155 +1,18 @@
 plugins {
     id 'java-library'
-    id 'jacoco'
-    id 'com.adarshr.test-logger' version '4.0.0'
-    id 'com.diffplug.spotless' version '7.0.3'
+    id 'info.solidsoft.pitest' version '1.15.0'
 }
 
-static def path(String... args) {
-    return String.join(File.separator, args)
-}
+dependencies {}
 
-// Tunables
-ext.basePackage = 'com.ledmington'
-def version = '0.1.0'
-String appDescription = 'Parser Generator'
-String author = 'Filippo Barbari'
-String authorMail = 'filippo.barbari@gmail.com'
-String appName = 'parser-gen'
-ext.appNameLowerCase = appName.toLowerCase(Locale.US)
-
-ext.junitVersion = '5.12.0'
-ext.junitLauncherVersion = '1.12.0'
-ext.jacocoVersion = '0.8.12'
-ext.palantirVersion = '2.67.0'
-
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
-    testImplementation "org.junit.jupiter:junit-jupiter-params:${junitVersion}"
-    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
-    testRuntimeOnly "org.junit.platform:junit-platform-launcher:${junitLauncherVersion}"
-}
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
-
-tasks.withType(JavaCompile).configureEach {
-    options.compilerArgs << '-Xdiags:verbose'
-    options.compilerArgs << '-Xlint:all'
-    options.compilerArgs << '-Werror'
-    options.deprecation = true
-    options.encoding = 'UTF-8'
-}
-
-javadoc {
-    failOnError = true
-    title = "parser-gen-doc"
-    options.encoding = 'UTF-8'
-    options.addBooleanOption('Werror', true)
-}
-
-test {
-    useJUnitPlatform()
-    finalizedBy jacocoTestReport
-}
-
-jacocoTestReport {
-    dependsOn test // tests are required to run before generating the report
-    reports {
-        html.required = true
-        html.outputLocation = layout.buildDirectory.dir('jacoco')
-    }
-}
-
-jacoco {
-    toolVersion = "${jacocoVersion}"
-    reportsDirectory = layout.buildDirectory.dir('jacoco')
-}
-
-testlogger {
-    theme = 'standard-parallel'
-
-    showExceptions = true
-    showStackTraces = true
-    showFullStackTraces = false
-    showCauses = true
-
-    slowThreshold = 2000
-
-    showSummary = true
-    showSimpleNames = false
-    showPassed = false // enable for verbose tests
-    showSkipped = true
-    showFailed = true
-    showOnlySlow = false
-
-    showStandardStreams = true
-    showPassedStandardStreams = false
-    showSkippedStandardStreams = true
-    showFailedStandardStreams = true
-
-    logLevel = 'lifecycle'
-}
-
-tasks.named('test') {
-    useJUnitPlatform()
-}
-
-spotless {
-    format 'misc', {
-        target '*.md', '.gitignore', '.gitattributes'
-        trimTrailingWhitespace()
-        leadingSpacesToTabs()
-        endWithNewline()
-        setEncoding('utf-8')
-    }
-
-    java {
-        target fileTree('.') {
-            include path('**', '*.java')
-            exclude path('**', 'build', '**'), path('**', 'build-*', '**'), path('**', 'bin', '**')
-        }
-        setEncoding('utf-8')
-        removeUnusedImports()
-        palantirJavaFormat("${palantirVersion}").formatJavadoc(true)
-        leadingSpacesToTabs()
-        formatAnnotations()
-        trimTrailingWhitespace()
-        endWithNewline()
-
-        // check https://javadoc.io/doc/com.diffplug.spotless/spotless-plugin-gradle/latest/com/diffplug/gradle/spotless/JavaExtension.html
-        importOrder('java', 'javax', 'javafx', 'org.junit', 'org.openjdk', 'com', 'com.ledmington', 'org', group as String)
-
-        licenseHeader String.join("\n",
-                "/*",
-                " * ${appName} - ${appDescription}",
-                " * Copyright (C) 2023-${new Date().format('yyyy')} ${author} <${authorMail}>",
-                " *",
-                " * This program is free software: you can redistribute it and/or modify",
-                " * it under the terms of the GNU General Public License as published by",
-                " * the Free Software Foundation, either version 3 of the License, or",
-                " * (at your option) any later version.",
-                " *",
-                " * This program is distributed in the hope that it will be useful,",
-                " * but WITHOUT ANY WARRANTY; without even the implied warranty of",
-                " * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the",
-                " * GNU General Public License for more details.",
-                " *",
-                " * You should have received a copy of the GNU General Public License",
-                " * along with this program.  If not, see <http://www.gnu.org/licenses/>.",
-                " */",
-        )
-    }
-}
-
-allprojects.each {
-    it.tasks.compileJava.dependsOn(spotlessApply)
-    it.tasks.build.dependsOn(it.tasks.javadoc)
+pitest {
+    targetClasses.set(['com.ledmington.ebnf.*'])
+    targetTests.set(['com.ledmington.ebnf.*'])
+    pitestVersion = '1.19.2'
+    junit5PluginVersion = '1.2.2'
+    threads = 4
+    outputFormats.set(['XML', 'HTML'])
+    useClasspathFile = true     // useful with bigger projects on Windows
+    verbose = true
+    timestampedReports = false
 }
