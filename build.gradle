@@ -29,7 +29,6 @@ ext.palantirVersion = '2.67.0'
 allprojects {
     apply plugin: 'java'
     apply plugin: 'jacoco'
-    apply plugin: 'pmd'
     apply plugin: 'com.adarshr.test-logger'
     apply plugin: 'com.github.ben-manes.versions'
 
