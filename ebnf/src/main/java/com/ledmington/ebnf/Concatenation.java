@@ -15,11 +15,27 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.parser;
+package com.ledmington.ebnf;
 
-public record NonTerminal(String name) implements Expression {
+import java.util.List;
+
+public record Concatenation(List<Expression> nodes) implements Expression {
+	public Concatenation(final Expression... nodes) {
+		this(List.of(nodes));
+	}
+
 	@Override
 	public String prettyPrint(final String indent) {
-		return indent + "NonTerminal { " + name + " }";
+		final StringBuilder sb = new StringBuilder();
+		sb.append(indent).append("Concatenation {\n");
+		if (!nodes.isEmpty()) {
+			sb.append(nodes.getFirst().prettyPrint(indent + "  "));
+			for (int i = 1; i < nodes.size(); i++) {
+				sb.append('\n').append(nodes.get(i).prettyPrint(indent + "  "));
+			}
+			sb.append('\n');
+		}
+		sb.append(indent).append("}");
+		return sb.toString();
 	}
 }

@@ -15,6 +15,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.parser;
+package com.ledmington.ebnf;
 
-public record Word(String word) implements Token {}
+import java.io.Serial;
+
+public final class ParsingException extends RuntimeException {
+
+	@Serial
+	private static final long serialVersionUID = -5819885757375952885L;
+
+	public ParsingException(final String message) {
+		super(message);
+	}
+
+	public ParsingException(final RuntimeException cause) {
+		super(cause);
+	}
+}

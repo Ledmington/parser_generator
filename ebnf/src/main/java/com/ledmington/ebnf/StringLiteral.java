@@ -15,8 +15,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.parser;
+package com.ledmington.ebnf;
 
-public interface Node {
-	String prettyPrint(final String indent);
-}
+public record StringLiteral(String literal) implements Token {}

@@ -15,15 +15,27 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.parser;
+package com.ledmington.ebnf;
 
-public enum Symbols implements Token {
-	SEMICOLON,
-	COMMA,
-	VERTICAL_LINE,
-	LEFT_SQUARE_BRACKET,
-	RIGHT_SQUARE_BRACKET,
-	LEFT_CURLY_BRACKET,
-	RIGHT_CURLY_BRACKET,
-	EQUAL_SIGN
+import java.util.List;
+
+public record Alternation(List<Expression> nodes) implements Expression {
+	public Alternation(final Expression... nodes) {
+		this(List.of(nodes));
+	}
+
+	@Override
+	public String prettyPrint(final String indent) {
+		final StringBuilder sb = new StringBuilder();
+		sb.append(indent).append("Alternation {\n");
+		if (!nodes.isEmpty()) {
+			sb.append(nodes.getFirst().prettyPrint(indent + "  "));
+			for (int i = 1; i < nodes.size(); i++) {
+				sb.append('\n').append(nodes.get(i).prettyPrint(indent + "  "));
+			}
+			sb.append('\n');
+		}
+		sb.append(indent).append("}");
+		return sb.toString();
+	}
 }

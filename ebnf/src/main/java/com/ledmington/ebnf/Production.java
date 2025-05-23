@@ -15,6 +15,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.parser;
+package com.ledmington.ebnf;
 
-public interface Token {}
+public record Production(NonTerminal start, Expression result) implements Node {
+	@Override
+	public String prettyPrint(final String indent) {
+		return indent + "Production {\n"
+				+ start.prettyPrint(indent + "  ")
+				+ "\n"
+				+ result.prettyPrint(indent + "  ")
+				+ "\n" + indent + "}";
+	}
+}

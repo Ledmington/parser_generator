@@ -15,11 +15,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.parser;
+package com.ledmington.ebnf;
 
-public record Terminal(String literal) implements Expression {
-	@Override
-	public String prettyPrint(final String indent) {
-		return indent + "Terminal { " + literal + " }";
-	}
-}
+public interface Expression extends Node {}
