@@ -3,4 +3,4 @@ plugins {
 }
 
 rootProject.name = 'parser_gen'
-include('lib')
+include('ebnf')
