@@ -21,26 +21,41 @@ package com.ledmington.ebnf;
 public enum Symbols implements Token {
 
 	/** The semicolon symbol (U+003B). */
-	SEMICOLON,
+	SEMICOLON(';'),
 
 	/** The comma symbol (U+002C). */
-	COMMA,
+	COMMA(','),
 
 	/** The vertical line (or pipe?) symbol (U+007C). */
-	VERTICAL_LINE,
+	VERTICAL_LINE('|'),
 
 	/** The left square bracket symbol (U+005B). */
-	LEFT_SQUARE_BRACKET,
+	LEFT_SQUARE_BRACKET('['),
 
 	/** The right square bracket symbol (U+005D). */
-	RIGHT_SQUARE_BRACKET,
+	RIGHT_SQUARE_BRACKET(']'),
 
 	/** The left curly bracket symbol (U+007B). */
-	LEFT_CURLY_BRACKET,
+	LEFT_CURLY_BRACKET('{'),
 
 	/** The right curly bracket symbol (U+07D). */
-	RIGHT_CURLY_BRACKET,
+	RIGHT_CURLY_BRACKET('}'),
 
 	/** The equal sign symbol (U+003D). */
-	EQUAL_SIGN
+	EQUAL_SIGN('=');
+
+	private final char character;
+
+	Symbols(final char ch) {
+		this.character = ch;
+	}
+
+	/**
+	 * Returns the character representing this symbol.
+	 *
+	 * @return The character representing this symbol.
+	 */
+	public char getCharacter() {
+		return character;
+	}
 }

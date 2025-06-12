@@ -29,6 +29,7 @@ import java.util.stream.Stream;
 /** A parser of EBNF grammars. */
 public final class Parser {
 
+	private static final char DOUBLE_QUOTES = '\"';
 	private static final List<BiPredicate<List<Object>, Integer>> TRANSFORMATIONS = List.of(
 			(v, i) -> {
 				if (i + 3 >= v.size()) {
@@ -201,31 +202,31 @@ public final class Parser {
 				skipWhitespaces(it);
 			} else if (Character.isAlphabetic(ch)) {
 				tokens.add(readWord(it));
-			} else if (ch == '=') {
+			} else if (ch == Symbols.EQUAL_SIGN.getCharacter()) {
 				tokens.add(Symbols.EQUAL_SIGN);
 				it.next();
-			} else if (ch == ';') {
+			} else if (ch == Symbols.SEMICOLON.getCharacter()) {
 				tokens.add(Symbols.SEMICOLON);
 				it.next();
-			} else if (ch == ',') {
+			} else if (ch == Symbols.COMMA.getCharacter()) {
 				tokens.add(Symbols.COMMA);
 				it.next();
-			} else if (ch == '|') {
+			} else if (ch == Symbols.VERTICAL_LINE.getCharacter()) {
 				tokens.add(Symbols.VERTICAL_LINE);
 				it.next();
-			} else if (ch == '[') {
+			} else if (ch == Symbols.LEFT_SQUARE_BRACKET.getCharacter()) {
 				tokens.add(Symbols.LEFT_SQUARE_BRACKET);
 				it.next();
-			} else if (ch == ']') {
+			} else if (ch == Symbols.RIGHT_SQUARE_BRACKET.getCharacter()) {
 				tokens.add(Symbols.RIGHT_SQUARE_BRACKET);
 				it.next();
-			} else if (ch == '{') {
+			} else if (ch == Symbols.LEFT_CURLY_BRACKET.getCharacter()) {
 				tokens.add(Symbols.LEFT_CURLY_BRACKET);
 				it.next();
-			} else if (ch == '}') {
+			} else if (ch == Symbols.RIGHT_CURLY_BRACKET.getCharacter()) {
 				tokens.add(Symbols.RIGHT_CURLY_BRACKET);
 				it.next();
-			} else if (ch == '\"') {
+			} else if (ch == DOUBLE_QUOTES) {
 				tokens.add(readStringLiteral(it));
 			} else {
 				throw new ParsingException(String.format("Unknown character: '%c' (U+%04X).", ch, (int) ch));
@@ -235,17 +236,17 @@ public final class Parser {
 	}
 
 	private static StringLiteral readStringLiteral(final StringCharacterIterator it) {
-		if (it.current() != '\"') {
+		if (it.current() != DOUBLE_QUOTES) {
 			throw new AssertionError("Expected string literal to start with '\"'.");
 		}
 		it.next();
 		final StringBuilder sb = new StringBuilder();
-		while (it.current() != CharacterIterator.DONE && it.current() != '\"') {
+		while (it.current() != CharacterIterator.DONE && it.current() != DOUBLE_QUOTES) {
 			final int idx = it.getIndex();
 			if (it.current() == '\\') {
 				it.next();
-				if (it.current() == '\"') {
-					sb.append('\"');
+				if (it.current() == DOUBLE_QUOTES) {
+					sb.append(DOUBLE_QUOTES);
 				} else if (it.current() == 'n') {
 					sb.append("\\n");
 				} else if (it.current() == 't') {
