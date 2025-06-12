@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+/** A parser of EBNF grammars. */
 public final class Parser {
 
 	private static final List<BiPredicate<List<Object>, Integer>> TRANSFORMATIONS = List.of(
@@ -154,6 +155,12 @@ public final class Parser {
 
 	private Parser() {}
 
+	/**
+	 * Parses the given String as an EBNF grammar.
+	 *
+	 * @param input A String which contains an EBNF grammar. May contain comments.
+	 * @return A new Grammar object representing the parsed grammar.
+	 */
 	public static Grammar parse(final String input) {
 		try {
 			final String stripped = removeComments(input);

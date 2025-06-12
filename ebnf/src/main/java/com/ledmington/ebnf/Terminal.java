@@ -17,6 +17,11 @@
  */
 package com.ledmington.ebnf;
 
+/**
+ * An element of the EBNF grammar which represents a symbol which cannot be expanded into other symbols.
+ *
+ * @param literal The content of the terminal symbol.c
+ */
 public record Terminal(String literal) implements Expression {
 	@Override
 	public String prettyPrint(final String indent) {

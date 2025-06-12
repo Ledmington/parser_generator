@@ -17,4 +17,9 @@
  */
 package com.ledmington.ebnf;
 
+/**
+ * A sequence of alphabetic characters.
+ *
+ * @param word The content of this word.
+ */
 public record Word(String word) implements Token {}

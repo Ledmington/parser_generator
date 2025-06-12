@@ -17,6 +17,12 @@
  */
 package com.ledmington.ebnf;
 
+/**
+ * An element of an EBNF grammar which represents the ability to repeat a given expression as many times as needed (even
+ * zero).
+ *
+ * @param inner The repeated Expression.
+ */
 public record Repetition(Expression inner) implements Expression {
 	@Override
 	public String prettyPrint(final String indent) {

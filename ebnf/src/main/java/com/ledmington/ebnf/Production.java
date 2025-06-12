@@ -17,6 +17,14 @@
  */
 package com.ledmington.ebnf;
 
+/**
+ * The most important element of an EBNF grammar, maps a non-terminal symbol to an expression which represents the
+ * possible expansions.
+ *
+ * @param start The non-terminal symbol which can be substituted with the expression on the right-hand side of this
+ *     production.
+ * @param result The expression to replace the non-terminal.c
+ */
 public record Production(NonTerminal start, Expression result) implements Node {
 	@Override
 	public String prettyPrint(final String indent) {

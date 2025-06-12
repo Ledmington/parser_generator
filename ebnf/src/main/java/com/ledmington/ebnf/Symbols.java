@@ -17,13 +17,30 @@
  */
 package com.ledmington.ebnf;
 
+/** A set of tokens represented by single characters. */
 public enum Symbols implements Token {
+
+	/** The semicolon symbol (U+003B). */
 	SEMICOLON,
+
+	/** The comma symbol (U+002C). */
 	COMMA,
+
+	/** The vertical line (or pipe?) symbol (U+007C). */
 	VERTICAL_LINE,
+
+	/** The left square bracket symbol (U+005B). */
 	LEFT_SQUARE_BRACKET,
+
+	/** The right square bracket symbol (U+005D). */
 	RIGHT_SQUARE_BRACKET,
+
+	/** The left curly bracket symbol (U+007B). */
 	LEFT_CURLY_BRACKET,
+
+	/** The right curly bracket symbol (U+07D). */
 	RIGHT_CURLY_BRACKET,
+
+	/** The equal sign symbol (U+003D). */
 	EQUAL_SIGN
 }

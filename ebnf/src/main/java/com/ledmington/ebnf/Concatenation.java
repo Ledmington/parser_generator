@@ -19,7 +19,18 @@ package com.ledmington.ebnf;
 
 import java.util.List;
 
+/**
+ * An element of an EBNF grammar which represents an ordered sequence of expressions.
+ *
+ * @param nodes The ordered sequence of expressions.
+ */
 public record Concatenation(List<Expression> nodes) implements Expression {
+
+	/**
+	 * Creates a new Concatenation Node with given expressions.
+	 *
+	 * @param nodes The concatenated expressions.
+	 */
 	public Concatenation(final Expression... nodes) {
 		this(List.of(nodes));
 	}

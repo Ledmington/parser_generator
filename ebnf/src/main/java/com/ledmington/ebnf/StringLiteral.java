@@ -17,4 +17,9 @@
  */
 package com.ledmington.ebnf;
 
+/**
+ * A sequence of any characters delimited by double quotes.
+ *
+ * @param literal The content of this literal.c
+ */
 public record StringLiteral(String literal) implements Token {}

@@ -17,6 +17,11 @@
  */
 package com.ledmington.ebnf;
 
+/**
+ * An element of an EBNF grammar representing an expression which may or may not be present.
+ *
+ * @param inner The optional Expression.
+ */
 public record Optional(Expression inner) implements Expression {
 	@Override
 	public String prettyPrint(final String indent) {

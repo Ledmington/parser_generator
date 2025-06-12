@@ -17,4 +17,5 @@
  */
 package com.ledmington.ebnf;
 
+/** A common type for all tokens. */
 public interface Token {}

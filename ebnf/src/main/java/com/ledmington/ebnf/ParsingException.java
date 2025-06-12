@@ -19,15 +19,26 @@ package com.ledmington.ebnf;
 
 import java.io.Serial;
 
+/** A common type for all exception which may occur during the parsing of a grammar. */
 public final class ParsingException extends RuntimeException {
 
 	@Serial
 	private static final long serialVersionUID = -5819885757375952885L;
 
+	/**
+	 * Creates a new ParsingException with the given message.
+	 *
+	 * @param message The message of the exception.
+	 */
 	public ParsingException(final String message) {
 		super(message);
 	}
 
+	/**
+	 * Creates a new ParsingException with the given RuntimeException as the cause.
+	 *
+	 * @param cause The exception which caused this ParsingException to be thrown.
+	 */
 	public ParsingException(final RuntimeException cause) {
 		super(cause);
 	}

@@ -17,4 +17,5 @@
  */
 package com.ledmington.ebnf;
 
+/** A common type for all nodes which can be found only on the right-hand side of an EBNF grammar production. */
 public interface Expression extends Node {}

@@ -19,7 +19,18 @@ package com.ledmington.ebnf;
 
 import java.util.List;
 
+/**
+ * An element of an EBNF grammar which represents different possibilities of expressions.
+ *
+ * @param nodes The alternated expressions.
+ */
 public record Alternation(List<Expression> nodes) implements Expression {
+
+	/**
+	 * Creates a new Alternation Node with the given expressions.
+	 *
+	 * @param nodes The expressions to be alternated.
+	 */
 	public Alternation(final Expression... nodes) {
 		this(List.of(nodes));
 	}
