@@ -1,3 +1,6 @@
 * text=auto eol=lf
 *.bat eol=crlf
 *.jar binary
+
+# Grammar files
+*.g text eol=lf
