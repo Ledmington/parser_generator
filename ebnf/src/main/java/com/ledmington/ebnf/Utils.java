@@ -17,6 +17,8 @@
  */
 package com.ledmington.ebnf;
 
+import java.util.List;
+
 public final class Utils {
 
 	private Utils() {}
@@ -49,35 +51,10 @@ public final class Utils {
 				prettyPrint(sb, p.result(), indentString + indent, indent);
 				sb.append('\n').append(indentString).append("}");
 			}
-			case Concatenation c -> {
-				sb.append(indentString).append("Concatenation {\n");
-				if (!c.nodes().isEmpty()) {
-					prettyPrint(sb, c.nodes().getFirst(), indentString + indent, indent);
-					sb.append('\n');
-					for (int i = 1; i < c.nodes().size(); i++) {
-						prettyPrint(sb, c.nodes().get(i), indentString + indent, indent);
-						sb.append('\n');
-					}
-				}
-				sb.append(indentString).append("}");
-			}
-			case Alternation a -> {
-				sb.append(indentString).append("Alternation {\n");
-				if (!a.nodes().isEmpty()) {
-					prettyPrint(sb, a.nodes().getFirst(), indentString + indent, indent);
-					sb.append('\n');
-					for (int i = 1; i < a.nodes().size(); i++) {
-						prettyPrint(sb, a.nodes().get(i), indentString + indent, indent);
-						sb.append('\n');
-					}
-				}
-				sb.append(indentString).append("}");
-			}
-			case Repetition r -> {
-				sb.append(indentString).append("Repetition {\n");
-				prettyPrint(sb, r.inner(), indentString + indent, indent);
-				sb.append('\n').append(indentString).append("}");
-			}
+			case Concatenation c -> prettyPrintList(sb, "Concatenation", c.nodes(), indentString, indent);
+			case Alternation a -> prettyPrintList(sb, "Alternation", a.nodes(), indentString, indent);
+			case Repetition r -> prettyPrintContainer(sb, "Repetition", r.inner(), indentString, indent);
+			case Optional o -> prettyPrintContainer(sb, "Optional", o.inner(), indentString, indent);
 			case NonTerminal n ->
 				sb.append(indentString)
 						.append("NonTerminal { ")
@@ -92,5 +69,32 @@ public final class Utils {
 				throw new IllegalArgumentException(String.format(
 						"Unknown Node of type %s.", root.getClass().getSimpleName()));
 		}
+	}
+
+	private static void prettyPrintContainer(
+			final StringBuilder sb,
+			final String nodeName,
+			final Expression inner,
+			final String indentString,
+			final String indent) {
+		prettyPrintList(sb, nodeName, List.of(inner), indentString, indent);
+	}
+
+	private static void prettyPrintList(
+			final StringBuilder sb,
+			final String nodeName,
+			final List<Expression> nodes,
+			final String indentString,
+			final String indent) {
+		sb.append(indentString).append(nodeName).append(" {\n");
+		if (!nodes.isEmpty()) {
+			prettyPrint(sb, nodes.getFirst(), indentString + indent, indent);
+			sb.append('\n');
+			for (int i = 1; i < nodes.size(); i++) {
+				prettyPrint(sb, nodes.get(i), indentString + indent, indent);
+				sb.append('\n');
+			}
+		}
+		sb.append(indentString).append("}");
 	}
 }

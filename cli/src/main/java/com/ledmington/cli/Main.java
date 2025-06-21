@@ -41,32 +41,35 @@ public class Main {
 		String outputFile = null;
 
 		for (int i = 0; i < args.length; i++) {
-			if (args[i].equals("-h") || args[i].equals("--help")) {
-				System.out.println(String.join(
-						"\n",
-						"",
-						" Parser Generator - A zero-dependency parser generator",
-						"",
-						" -h, --help  Displays this message and exits.",
-						" -g GRAMMAR  Reads the EBNF grammar from the given GRAMMAR file.",
-						" -o OUTPUT   Writes the resulting parser in the given OUTPUT file.",
-						""));
-				System.exit(0);
-				return;
-			} else if (args[i].equals("-g")) {
-				i++;
-				if (grammarFile != null) {
-					die("Cannot set grammar file twice, was already '%s'.%n", grammarFile);
+			switch (args[i]) {
+				case "-h", "--help" -> {
+					System.out.println(String.join(
+							"\n",
+							"",
+							" Parser Generator - A zero-dependency parser generator",
+							"",
+							" -h, --help  Displays this message and exits.",
+							" -g GRAMMAR  Reads the EBNF grammar from the given GRAMMAR file.",
+							" -o OUTPUT   Writes the resulting parser in the given OUTPUT file.",
+							""));
+					System.exit(0);
+					return;
 				}
-				grammarFile = args[i];
-			} else if (args[i].equals("-o")) {
-				i++;
-				if (outputFile != null) {
-					die("Cannot set output file twice, was already '%s'.%n", outputFile);
+				case "-g" -> {
+					i++;
+					if (grammarFile != null) {
+						die("Cannot set grammar file twice, was already '%s'.%n", grammarFile);
+					}
+					grammarFile = args[i];
 				}
-				outputFile = args[i];
-			} else {
-				die("Unknown command-line argument: '%s'.%n", args[i]);
+				case "-o" -> {
+					i++;
+					if (outputFile != null) {
+						die("Cannot set output file twice, was already '%s'.%n", outputFile);
+					}
+					outputFile = args[i];
+				}
+				default -> die("Unknown command-line argument: '%s'.%n", args[i]);
 			}
 		}
 
@@ -77,16 +80,22 @@ public class Main {
 			die("No output file was set.%n");
 		}
 
+		Objects.requireNonNull(grammarFile);
+		Objects.requireNonNull(outputFile);
+
+		final Node root;
 		try {
-			final Node root = Parser.parse(Files.readString(Path.of(Objects.requireNonNull(grammarFile))));
+			root = Parser.parse(Files.readString(Path.of(grammarFile)));
 			System.out.println(Utils.prettyPrint(root, "  "));
 		} catch (final IOException e) {
 			throw new RuntimeException(e);
 		}
 
-		final Path outputPath = Path.of(Objects.requireNonNull(outputFile) + ".java")
-				.normalize()
-				.toAbsolutePath();
+		if (outputFile.endsWith(".java")) {
+			outputFile = outputFile.substring(0, outputFile.length() - 5);
+		}
+
+		final Path outputPath = Path.of(outputFile + ".java").normalize().toAbsolutePath();
 		try (final BufferedWriter bw = Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8)) {
 			final int idx = outputFile.lastIndexOf(File.separator);
 			final String className = idx < 0 ? outputFile : outputFile.substring(idx + 1);
@@ -99,7 +108,8 @@ public class Main {
 					"",
 					"public final class " + className + " {",
 					"",
-					indent + "public record Node() {}",
+					indent + "public interface Node {}",
+					indent + "public interface Expression {}",
 					"",
 					indent + "private " + className + "() {}",
 					"",
