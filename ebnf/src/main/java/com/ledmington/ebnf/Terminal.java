@@ -22,9 +22,4 @@ package com.ledmington.ebnf;
  *
  * @param literal The content of the terminal symbol.c
  */
-public record Terminal(String literal) implements Expression {
-	@Override
-	public String prettyPrint(final String indent) {
-		return indent + "Terminal { " + literal + " }";
-	}
-}
+public record Terminal(String literal) implements Expression {}

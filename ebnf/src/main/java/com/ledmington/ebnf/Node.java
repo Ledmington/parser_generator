@@ -18,15 +18,4 @@
 package com.ledmington.ebnf;
 
 /** A common type for all elements in an EBNF grammar. */
-public interface Node {
-
-	/**
-	 * Returns an indented String for easier analysis of the contents of the given Node. Note: pass a String with
-	 * whitespaces and/or tabs as indentation.
-	 *
-	 * @param indent The String to be placed for each indentation level.
-	 * @return An indented multi-line String representing the contents of this Node.
-	 */
-	// TODO: do we really need the user to pass an arbitrary string as the indentation?
-	String prettyPrint(final String indent);
-}
+public interface Node {}

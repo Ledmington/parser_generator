@@ -22,9 +22,4 @@ package com.ledmington.ebnf;
  *
  * @param inner The optional Expression.
  */
-public record Optional(Expression inner) implements Expression {
-	@Override
-	public String prettyPrint(final String indent) {
-		return indent + "Optional {\n" + inner.prettyPrint(indent + "  ") + indent + "}";
-	}
-}
+public record Optional(Expression inner) implements Expression {}

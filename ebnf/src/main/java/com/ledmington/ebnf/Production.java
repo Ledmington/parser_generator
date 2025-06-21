@@ -25,13 +25,4 @@ package com.ledmington.ebnf;
  *     production.
  * @param result The expression to replace the non-terminal.c
  */
-public record Production(NonTerminal start, Expression result) implements Node {
-	@Override
-	public String prettyPrint(final String indent) {
-		return indent + "Production {\n"
-				+ start.prettyPrint(indent + "  ")
-				+ "\n"
-				+ result.prettyPrint(indent + "  ")
-				+ "\n" + indent + "}";
-	}
-}
+public record Production(NonTerminal start, Expression result) implements Node {}

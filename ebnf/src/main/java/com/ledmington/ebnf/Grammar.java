@@ -35,19 +35,4 @@ public record Grammar(List<Production> productions) implements Node {
 	public Grammar(final Production... productions) {
 		this(List.of(productions));
 	}
-
-	@Override
-	public String prettyPrint(final String indent) {
-		final StringBuilder sb = new StringBuilder();
-		sb.append(indent).append("Grammar {\n");
-		if (!productions.isEmpty()) {
-			sb.append(productions.getFirst().prettyPrint(indent + "  "));
-			for (int i = 1; i < productions.size(); i++) {
-				sb.append('\n').append(productions.get(i).prettyPrint(indent + "  "));
-			}
-			sb.append('\n');
-		}
-		sb.append(indent).append("}");
-		return sb.toString();
-	}
 }

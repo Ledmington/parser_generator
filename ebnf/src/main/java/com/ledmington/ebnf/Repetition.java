@@ -23,9 +23,4 @@ package com.ledmington.ebnf;
  *
  * @param inner The repeated Expression.
  */
-public record Repetition(Expression inner) implements Expression {
-	@Override
-	public String prettyPrint(final String indent) {
-		return indent + "Repetition {\n" + inner.prettyPrint(indent + "  ") + '\n' + indent + "}";
-	}
-}
+public record Repetition(Expression inner) implements Expression {}

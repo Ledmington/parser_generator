@@ -22,9 +22,4 @@ package com.ledmington.ebnf;
  *
  * @param name The name used in the grammar to refer to this non-terminal symbol.
  */
-public record NonTerminal(String name) implements Expression {
-	@Override
-	public String prettyPrint(final String indent) {
-		return indent + "NonTerminal { " + name + " }";
-	}
-}
+public record NonTerminal(String name) implements Expression {}
