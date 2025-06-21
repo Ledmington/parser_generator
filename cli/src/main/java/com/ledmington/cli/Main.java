@@ -23,11 +23,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.Objects;
 
 import com.ledmington.ebnf.Node;
 import com.ledmington.ebnf.Parser;
+import com.ledmington.ebnf.Utils;
 
 public class Main {
 
@@ -41,7 +41,19 @@ public class Main {
 		String outputFile = null;
 
 		for (int i = 0; i < args.length; i++) {
-			if (args[i].equals("-g")) {
+			if (args[i].equals("-h") || args[i].equals("--help")) {
+				System.out.println(String.join(
+						"\n",
+						"",
+						" Parser Generator - A zero-dependency parser generator",
+						"",
+						" -h, --help  Displays this message and exits.",
+						" -g GRAMMAR  Reads the EBNF grammar from the given GRAMMAR file.",
+						" -o OUTPUT   Writes the resulting parser in the given OUTPUT file.",
+						""));
+				System.exit(0);
+				return;
+			} else if (args[i].equals("-g")) {
 				i++;
 				if (grammarFile != null) {
 					die("Cannot set grammar file twice, was already '%s'.%n", grammarFile);
@@ -67,6 +79,7 @@ public class Main {
 
 		try {
 			final Node root = Parser.parse(Files.readString(Path.of(Objects.requireNonNull(grammarFile))));
+			System.out.println(Utils.prettyPrint(root, "  "));
 		} catch (final IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -74,22 +87,29 @@ public class Main {
 		final Path outputPath = Path.of(Objects.requireNonNull(outputFile) + ".java")
 				.normalize()
 				.toAbsolutePath();
-		try (final BufferedWriter bw =
-				Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW)) {
+		try (final BufferedWriter bw = Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8)) {
 			final int idx = outputFile.lastIndexOf(File.separator);
 			final String className = idx < 0 ? outputFile : outputFile.substring(idx + 1);
 			final String packageName =
-					idx < 0 ? "UnknownPackage" : outputFile.substring(0, idx).replace(File.separator, ".");
+					idx < 0 ? "unknown" : outputFile.substring(0, idx).replace(File.separator, ".");
+			final String indent = "\t";
 			bw.write(String.join(
 					"\n",
 					"package " + packageName + ";",
+					"",
 					"public final class " + className + " {",
-					"public record Node() {}",
-					"private " + className + "(){}",
-					"public static Node parse(final String input) {",
-					"if(input.equals(\"a\")){return new Node();}",
-					"else {return null;}",
-					"}",
+					"",
+					indent + "public record Node() {}",
+					"",
+					indent + "private " + className + "() {}",
+					"",
+					indent + "public static Node parse(final String input) {",
+					indent + indent + "if (input.equals(\"a\")) {",
+					indent + indent + indent + "return new Node();",
+					indent + indent + "} else {",
+					indent + indent + indent + "return null;",
+					indent + indent + "}",
+					indent + "}",
 					"}"));
 		} catch (final IOException e) {
 			throw new RuntimeException(e);

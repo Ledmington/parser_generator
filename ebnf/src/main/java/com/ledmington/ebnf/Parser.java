@@ -331,7 +331,7 @@ public final class Parser {
 										i,
 										v.get(i) instanceof Token
 												? v.get(i).toString()
-												: ((Node) v.get(i)).prettyPrint(" ".repeat(6))))
+												: Utils.prettyPrint((Node) v.get(i), " ".repeat(6))))
 								.collect(Collectors.joining("\n"))));
 			}
 		}
