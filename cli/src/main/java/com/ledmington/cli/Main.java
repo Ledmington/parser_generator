@@ -102,25 +102,7 @@ public class Main {
 			final String packageName =
 					idx < 0 ? "unknown" : outputFile.substring(0, idx).replace(File.separator, ".");
 			final String indent = "\t";
-			bw.write(String.join(
-					"\n",
-					"package " + packageName + ";",
-					"",
-					"public final class " + className + " {",
-					"",
-					indent + "public interface Node {}",
-					indent + "public interface Expression {}",
-					"",
-					indent + "private " + className + "() {}",
-					"",
-					indent + "public static Node parse(final String input) {",
-					indent + indent + "if (input.equals(\"a\")) {",
-					indent + indent + indent + "return new Node();",
-					indent + indent + "} else {",
-					indent + indent + indent + "return null;",
-					indent + indent + "}",
-					indent + "}",
-					"}"));
+			bw.write(Serializer.serialize(root, className, packageName, indent));
 		} catch (final IOException e) {
 			throw new RuntimeException(e);
 		}
