@@ -26,9 +26,13 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.NonTerminal;
@@ -61,9 +65,14 @@ public final class TestSerializer {
 		return absolutePath;
 	}
 
-	@Test
-	void simple() throws IOException {
-		final Grammar g = new Grammar(new Production(new NonTerminal("S"), new Terminal("a")));
+	private static Stream<Arguments> examples() {
+		return Stream.of(
+				Arguments.of(new Grammar(new Production(new NonTerminal("S"), new Terminal("a"))), List.of("a")));
+	}
+
+	@ParameterizedTest
+	@MethodSource("examples")
+	void simple(final Grammar g, final List<String> correctCases) throws IOException {
 		final Path tempFilePath;
 		tempFilePath = Files.createTempFile(tempDir, "TestSerializer_", "_simple.java");
 		final String filename = getFileName(tempFilePath.toString());
@@ -104,36 +113,38 @@ public final class TestSerializer {
 			throw new RuntimeException(e);
 		}
 
-		final Process p = new ProcessBuilder()
-				.command("java", "-cp", tempDir.toString(), "Main.java", "a")
-				.directory(tempDir.toFile())
-				.start();
-		try {
-			assertEquals(0, p.waitFor(), () -> {
-				String line;
-				final StringBuilder sbOut;
-				final StringBuilder sbErr;
+		for (final String input : correctCases) {
+			final Process p = new ProcessBuilder()
+					.command("java", "-cp", tempDir.toString(), "Main.java", input)
+					.directory(tempDir.toFile())
+					.start();
+			try {
+				assertEquals(0, p.waitFor(), () -> {
+					String line;
+					final StringBuilder sbOut;
+					final StringBuilder sbErr;
 
-				try {
-					final BufferedReader outReader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-					sbOut = new StringBuilder();
-					while ((line = outReader.readLine()) != null) {
-						sbOut.append(line).append('\n');
+					try {
+						final BufferedReader outReader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+						sbOut = new StringBuilder();
+						while ((line = outReader.readLine()) != null) {
+							sbOut.append(line).append('\n');
+						}
+
+						final BufferedReader errReader = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+						sbErr = new StringBuilder();
+						while ((line = errReader.readLine()) != null) {
+							sbErr.append(line).append('\n');
+						}
+					} catch (final IOException e) {
+						throw new RuntimeException(e);
 					}
 
-					final BufferedReader errReader = new BufferedReader(new InputStreamReader(p.getErrorStream()));
-					sbErr = new StringBuilder();
-					while ((line = errReader.readLine()) != null) {
-						sbErr.append(line).append('\n');
-					}
-				} catch (final IOException e) {
-					throw new RuntimeException(e);
-				}
-
-				return String.format(" --- STDOUT --- \n%s\n --- \n --- STDERR --- \n%s\n ---", sbOut, sbErr);
-			});
-		} catch (final InterruptedException e) {
-			throw new RuntimeException(e);
+					return String.format(" --- STDOUT --- \n%s\n --- \n --- STDERR --- \n%s\n ---", sbOut, sbErr);
+				});
+			} catch (final InterruptedException e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
 }
