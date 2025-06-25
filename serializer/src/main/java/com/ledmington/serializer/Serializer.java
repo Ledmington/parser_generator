@@ -25,24 +25,27 @@ public final class Serializer {
 
 	public static String serialize(
 			final Node root, final String className, final String packageName, final String indent) {
-		return String.join(
-				"\n",
-				"package " + packageName + ";",
-				"",
-				"public final class " + className + " {",
-				"",
-				indent + "public interface Node {}",
-				indent + "public interface Expression {}",
-				"",
-				indent + "private " + className + "() {}",
-				"",
-				indent + "public static Node parse(final String input) {",
-				indent + indent + "if (input.equals(\"a\")) {",
-				indent + indent + indent + "return new Node();",
-				indent + indent + "} else {",
-				indent + indent + indent + "return null;",
-				indent + indent + "}",
-				indent + "}",
-				"}");
+		final StringBuilder sb = new StringBuilder();
+		if (packageName != null && !packageName.isBlank()) {
+			sb.append("package ").append(packageName).append(";\n\n");
+		}
+		return sb.append(String.join(
+						"\n",
+						"public final class " + className + " {",
+						"",
+						indent + "public interface Node {}",
+						indent + "public interface Expression {}",
+						"",
+						indent + "private " + className + "() {}",
+						"",
+						indent + "public static Node parse(final String input) {",
+						indent + indent + "if (input.equals(\"a\")) {",
+						indent + indent + indent + "return new Node(){};",
+						indent + indent + "} else {",
+						indent + indent + indent + "return null;",
+						indent + indent + "}",
+						indent + "}",
+						"}"))
+				.toString();
 	}
 }
