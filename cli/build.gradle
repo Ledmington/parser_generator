@@ -15,6 +15,7 @@ String mainClassName = "${basePackage}.cli.Main"
 
 dependencies {
     implementation project(':ebnf')
+    implementation project(':serializer')
 }
 
 application {
