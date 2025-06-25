@@ -65,19 +65,63 @@ public final class TestSerializer {
 		return absolutePath;
 	}
 
+	private static void tryCase(final int expectedExitCode, final String input) throws IOException {
+		final Process p = new ProcessBuilder()
+				.command("java", "-cp", tempDir.toString(), "Main.java", input)
+				.directory(tempDir.toFile())
+				.start();
+		try {
+			assertEquals(expectedExitCode, p.waitFor(), () -> {
+				String line;
+				final StringBuilder sbOut;
+				final StringBuilder sbErr;
+
+				try {
+					final BufferedReader outReader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+					sbOut = new StringBuilder();
+					while ((line = outReader.readLine()) != null) {
+						sbOut.append(line).append('\n');
+					}
+
+					final BufferedReader errReader = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+					sbErr = new StringBuilder();
+					while ((line = errReader.readLine()) != null) {
+						sbErr.append(line).append('\n');
+					}
+				} catch (final IOException e) {
+					throw new RuntimeException(e);
+				}
+
+				return String.format(" --- STDOUT --- \n%s\n --- \n --- STDERR --- \n%s\n ---", sbOut, sbErr);
+			});
+		} catch (final InterruptedException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private static void tryCorrect(final String input) throws IOException {
+		tryCase(0, input);
+	}
+
+	private static void tryWrong(final String input) throws IOException {
+		tryCase(-1, input);
+	}
+
 	private static Stream<Arguments> examples() {
-		return Stream.of(
-				Arguments.of(new Grammar(new Production(new NonTerminal("S"), new Terminal("a"))), List.of("a")));
+		return Stream.of(Arguments.of(
+				new Grammar(new Production(new NonTerminal("S"), new Terminal("a"))),
+				List.of("a"),
+				List.of("", "b", "aa")));
 	}
 
 	@ParameterizedTest
 	@MethodSource("examples")
-	void simple(final Grammar g, final List<String> correctCases) throws IOException {
+	void simple(final Grammar g, final List<String> correctCases, final List<String> wrongCases) throws IOException {
 		final Path tempFilePath;
 		tempFilePath = Files.createTempFile(tempDir, "TestSerializer_", "_simple.java");
 		final String filename = getFileName(tempFilePath.toString());
 
-		final String text = Serializer.serialize(g, filename, "", "  ");
+		final String text = Serializer.serialize(g, filename, "", "\t");
 		Files.writeString(tempFilePath, text, StandardCharsets.UTF_8);
 
 		try {
@@ -114,37 +158,11 @@ public final class TestSerializer {
 		}
 
 		for (final String input : correctCases) {
-			final Process p = new ProcessBuilder()
-					.command("java", "-cp", tempDir.toString(), "Main.java", input)
-					.directory(tempDir.toFile())
-					.start();
-			try {
-				assertEquals(0, p.waitFor(), () -> {
-					String line;
-					final StringBuilder sbOut;
-					final StringBuilder sbErr;
+			tryCorrect(input);
+		}
 
-					try {
-						final BufferedReader outReader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-						sbOut = new StringBuilder();
-						while ((line = outReader.readLine()) != null) {
-							sbOut.append(line).append('\n');
-						}
-
-						final BufferedReader errReader = new BufferedReader(new InputStreamReader(p.getErrorStream()));
-						sbErr = new StringBuilder();
-						while ((line = errReader.readLine()) != null) {
-							sbErr.append(line).append('\n');
-						}
-					} catch (final IOException e) {
-						throw new RuntimeException(e);
-					}
-
-					return String.format(" --- STDOUT --- \n%s\n --- \n --- STDERR --- \n%s\n ---", sbOut, sbErr);
-				});
-			} catch (final InterruptedException e) {
-				throw new RuntimeException(e);
-			}
+		for (final String input : wrongCases) {
+			tryWrong(input);
 		}
 	}
 }
