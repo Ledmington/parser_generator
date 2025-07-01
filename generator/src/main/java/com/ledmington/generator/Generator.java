@@ -40,6 +40,7 @@ public final class Generator {
 				.append(className)
 				.append("() {}")
 				.append('\n')
+				.append("private interface Node {}")
 				.append('\n');
 
 		final Grammar g = (Grammar) root;

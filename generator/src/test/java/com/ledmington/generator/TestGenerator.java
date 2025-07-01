@@ -17,17 +17,34 @@
  */
 package com.ledmington.generator;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.BufferedReader;
-import java.io.File;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import javax.tools.DiagnosticCollector;
+import javax.tools.FileObject;
+import javax.tools.ForwardingJavaFileManager;
+import javax.tools.JavaCompiler;
+import javax.tools.JavaCompiler.CompilationTask;
+import javax.tools.JavaFileManager;
+import javax.tools.JavaFileObject;
+import javax.tools.SimpleJavaFileObject;
+import javax.tools.StandardJavaFileManager;
+import javax.tools.ToolProvider;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -39,77 +56,74 @@ import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.Optional;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Terminal;
-import com.ledmington.ebnf.Utils;
 
 public final class TestGenerator {
 
-	private static final Path JAVAC_PATH = Path.of(System.getProperty("java.home"), "bin", "javac");
-	private static Path tempDir = null;
+	private TestGenerator() {}
+
+	private static final JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+	private static final DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
+	private static final MemoryClassLoader classLoader = new MemoryClassLoader();
+	private static final StandardJavaFileManager standardFileManager =
+			compiler.getStandardFileManager(diagnostics, Locale.US, StandardCharsets.UTF_8);
 
 	@BeforeAll
 	static void setup() {
-		try {
-			tempDir = Files.createTempDirectory("TestGenerator-");
-		} catch (final IOException e) {
-			throw new RuntimeException(e);
+		if (compiler == null) {
+			throw new RuntimeException("No compiler available. Run with a JDK.");
 		}
 	}
 
-	private static String getFileName(String absolutePath) {
-		if (absolutePath.contains(File.separator)) {
-			final int idx = absolutePath.lastIndexOf(File.separator);
-			absolutePath = absolutePath.substring(idx + 1);
+	private static final class JavaSourceFromString extends SimpleJavaFileObject {
+
+		private final String code;
+
+		JavaSourceFromString(final String className, final String code) {
+			super(URI.create("string:///" + className.replace('.', '/') + Kind.SOURCE.extension), Kind.SOURCE);
+			this.code = code;
 		}
-		if (absolutePath.contains(".")) {
-			final int idx = absolutePath.lastIndexOf(".");
-			absolutePath = absolutePath.substring(0, idx);
-		}
-		return absolutePath;
-	}
 
-	private static void tryCase(final Grammar g, final String input, final boolean correct) throws IOException {
-		final Process p = new ProcessBuilder()
-				.command("java", "-cp", tempDir.toString(), "Main.java", input)
-				.directory(tempDir.toFile())
-				.start();
-		final int expectedExitCode = correct ? 0 : 255;
-		try {
-			assertEquals(expectedExitCode, p.waitFor(), () -> {
-				String line;
-				final StringBuilder sbOut;
-				final StringBuilder sbErr;
-
-				try {
-					final BufferedReader outReader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-					sbOut = new StringBuilder();
-					while ((line = outReader.readLine()) != null) {
-						sbOut.append(line).append('\n');
-					}
-
-					final BufferedReader errReader = new BufferedReader(new InputStreamReader(p.getErrorStream()));
-					sbErr = new StringBuilder();
-					while ((line = errReader.readLine()) != null) {
-						sbErr.append(line).append('\n');
-					}
-				} catch (final IOException e) {
-					throw new RuntimeException(e);
-				}
-
-				return String.format(
-						"Expected grammar\n%s\nto%s be able to parse '%s'.\n --- STDOUT --- \n%s\n --- \n --- STDERR --- \n%s\n ---",
-						Utils.prettyPrint(g, "  "), correct ? "" : " NOT", input, sbOut, sbErr);
-			});
-		} catch (final InterruptedException e) {
-			throw new RuntimeException(e);
+		@Override
+		public CharSequence getCharContent(final boolean ignoreEncodingErrors) {
+			return code;
 		}
 	}
 
-	private static void tryCorrect(final Grammar g, final String input) throws IOException {
-		tryCase(g, input, true);
+	private static final class JavaClassObject extends SimpleJavaFileObject {
+
+		private final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+		public JavaClassObject(final String name, final Kind kind) {
+			super(URI.create("bytes:///" + name), kind);
+		}
+
+		@Override
+		public OutputStream openOutputStream() {
+			return baos;
+		}
+
+		public byte[] getBytes() {
+			return baos.toByteArray();
+		}
 	}
 
-	private static void tryWrong(final Grammar g, final String input) throws IOException {
-		tryCase(g, input, false);
+	private static final class MemoryClassLoader extends ClassLoader {
+
+		private final Map<String, JavaClassObject> classes = new HashMap<>();
+
+		public void addClass(final String name, final JavaClassObject jco) {
+			classes.put(name, jco);
+		}
+
+		@Override
+		protected Class<?> findClass(final String name) throws ClassNotFoundException {
+			final JavaClassObject jco = classes.get(name);
+			if (jco == null) {
+				return super.findClass(name);
+			}
+			final byte[] bytes = jco.getBytes();
+			return defineClass(name, bytes, 0, bytes.length);
+		}
 	}
 
 	private static Stream<Arguments> examples() {
@@ -126,53 +140,63 @@ public final class TestGenerator {
 
 	@ParameterizedTest
 	@MethodSource("examples")
-	void simple(final Grammar g, final List<String> correctCases, final List<String> wrongCases) throws IOException {
-		final Path tempFilePath;
-		tempFilePath = Files.createTempFile(tempDir, "TestGenerator_", "_simple.java");
-		final String filename = getFileName(tempFilePath.toString());
+	void simple(final Grammar g, final List<String> correctInputs, final List<String> wrongInputs)
+			throws IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException,
+					IllegalAccessException {
+		final String className = "MyParser";
+		final String sourceCode = Generator.generate(g, className, "", "\t");
+		System.out.println(sourceCode);
 
-		final String text = Generator.generate(g, filename, "", "\t");
-		Files.writeString(tempFilePath, text, StandardCharsets.UTF_8);
+		// Prepare source file object
+		final JavaSourceFromString sourceObject = new JavaSourceFromString(className, sourceCode);
 
-		try {
-			new ProcessBuilder()
-					.command(JAVAC_PATH.toString(), tempDir + File.separator + filename + ".java")
-					.start()
-					.waitFor();
-		} catch (final InterruptedException e) {
-			throw new RuntimeException(e);
+		final JavaFileManager fileManager = new ForwardingJavaFileManager<>(standardFileManager) {
+			@Override
+			public JavaFileObject getJavaFileForOutput(
+					final Location location,
+					final String className,
+					final JavaFileObject.Kind kind,
+					final FileObject sibling) {
+				final JavaClassObject jclassObject = new JavaClassObject(className, kind);
+				classLoader.addClass(className, jclassObject);
+				return jclassObject;
+			}
+		};
+
+		// Compile the source code
+		final CompilationTask task =
+				compiler.getTask(null, fileManager, diagnostics, null, null, List.of(sourceObject));
+		final boolean success = task.call();
+		fileManager.close();
+
+		assertTrue(
+				success,
+				() -> String.format(
+						"Compilation failed.%n%s%n",
+						diagnostics.getDiagnostics().stream()
+								.map(d -> String.format(
+										"Error at line %,d, column %,d: %s%n",
+										d.getLineNumber(), d.getColumnNumber(), d.getMessage(Locale.US)))
+								.collect(Collectors.joining("\n"))));
+
+		final Method entrypoint = classLoader.loadClass(className).getMethod("parse", String.class);
+
+		for (final String correct : correctInputs) {
+			final Object obj = entrypoint.invoke(null, correct);
+			assertNotNull(
+					obj,
+					() -> String.format(
+							"Expected the following source code to be able to parse the input '%s' but it did not.%n%s%n",
+							correct, sourceCode));
 		}
 
-		Files.writeString(
-				Path.of(tempDir.toString(), "Main.java"),
-				String.join(
-						"\n",
-						"public final class Main {",
-						"    public static void main(final String[] args) {",
-						"        if (args.length != 1) {",
-						"            throw new RuntimeException(\"Expected only 1 argument.\");",
-						"        }",
-						"        System.exit(" + filename + ".parse(args[0])==null?-1:0);",
-						"        return;",
-						"    }",
-						"}"),
-				StandardCharsets.UTF_8);
-
-		try {
-			new ProcessBuilder()
-					.command(JAVAC_PATH.toString(), "Main.java", tempFilePath.toString())
-					.start()
-					.waitFor();
-		} catch (final InterruptedException e) {
-			throw new RuntimeException(e);
-		}
-
-		for (final String input : correctCases) {
-			tryCorrect(g, input);
-		}
-
-		for (final String input : wrongCases) {
-			tryWrong(g, input);
+		for (final String wrong : wrongInputs) {
+			final Object obj = entrypoint.invoke(null, wrong);
+			assertNull(
+					obj,
+					() -> String.format(
+							"Expected the following source code to NOT be able to parse the input '%s' but it did.%n%s%n",
+							wrong, sourceCode));
 		}
 	}
 }
