@@ -17,7 +17,10 @@
  */
 package com.ledmington.serializer;
 
+import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Node;
+import com.ledmington.ebnf.Production;
+import com.ledmington.ebnf.Utils;
 
 public final class Serializer {
 
@@ -29,15 +32,29 @@ public final class Serializer {
 		if (packageName != null && !packageName.isBlank()) {
 			sb.append("package ").append(packageName).append(";\n\n");
 		}
+		sb.append("public final class ")
+				.append(className)
+				.append(" {")
+				.append('\n')
+				.append("private ")
+				.append(className)
+				.append("() {}")
+				.append('\n')
+				.append('\n');
+
+		final Grammar g = (Grammar) root;
+		for (final Production p : g.productions()) {
+			sb.append("private static Node parse_")
+					.append(p.start().name())
+					.append("(final String input) {\n")
+					.append("// ")
+					.append(String.join(
+							"\n// ", Utils.prettyPrint(p.result(), "  ").split("\n")))
+					.append("\nreturn null;\n}\n");
+		}
+
 		return sb.append(String.join(
 						"\n",
-						"public final class " + className + " {",
-						"",
-						indent + "public interface Node {}",
-						indent + "public interface Expression {}",
-						"",
-						indent + "private " + className + "() {}",
-						"",
 						indent + "public static Node parse(final String input) {",
 						indent + indent + "if (input.equals(\"a\")) {",
 						indent + indent + indent + "return new Node(){};",
