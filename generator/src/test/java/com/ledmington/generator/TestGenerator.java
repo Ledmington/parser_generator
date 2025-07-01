@@ -63,7 +63,6 @@ public final class TestGenerator {
 
 	private static final JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
 	private static final DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
-	private static final MemoryClassLoader classLoader = new MemoryClassLoader();
 	private static final StandardJavaFileManager standardFileManager =
 			compiler.getStandardFileManager(diagnostics, Locale.US, StandardCharsets.UTF_8);
 
@@ -79,6 +78,10 @@ public final class TestGenerator {
 					new Grammar(new Production(new NonTerminal("S"), new Terminal("a"))),
 					List.of("a"),
 					List.of("", "b", "aa")),
+			Arguments.of(
+					new Grammar(new Production(new NonTerminal("S"), new Terminal("abc"))),
+					List.of("abc"),
+					List.of("", "a", "b", "c", "ab", "bc", "cba")),
 			Arguments.of(
 					new Grammar(new Production(new NonTerminal("S"), new Optional(new Terminal("a")))),
 					List.of("", "a"),
@@ -144,9 +147,12 @@ public final class TestGenerator {
 		}
 	}
 
-	private static void compileJavaSource(final String className, final String sourceCode) {
+	private static Class<?> compileJavaSource(final String className, final String sourceCode) {
 		// Prepare source file object
 		final JavaSourceFromString sourceObject = new JavaSourceFromString(className, sourceCode);
+
+		// Special class loader to enable output bytecode in memory
+		final MemoryClassLoader classLoader = new MemoryClassLoader();
 
 		try (final JavaFileManager fileManager = new ForwardingJavaFileManager<>(standardFileManager) {
 			@Override
@@ -162,9 +168,15 @@ public final class TestGenerator {
 		}) {
 
 			// Compile the source code
-			final CompilationTask task =
-					compiler.getTask(null, fileManager, diagnostics, null, null, List.of(sourceObject));
+			final CompilationTask task = compiler.getTask(
+					null,
+					fileManager,
+					diagnostics,
+					List.of("-Xdiags:verbose", "-Xlint:all", "-Werror"),
+					null,
+					List.of(sourceObject));
 			final boolean success = task.call();
+			System.out.println(sourceCode);
 
 			assertTrue(
 					success,
@@ -175,7 +187,9 @@ public final class TestGenerator {
 											"Error at line %,d, column %,d: %s%n",
 											d.getLineNumber(), d.getColumnNumber(), d.getMessage(Locale.US)))
 									.collect(Collectors.joining("\n"))));
-		} catch (final IOException e) {
+
+			return classLoader.loadClass(className);
+		} catch (final IOException | ClassNotFoundException e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -183,16 +197,15 @@ public final class TestGenerator {
 	@ParameterizedTest
 	@MethodSource("correctCases")
 	void correctParsing(final Grammar g, final List<String> correctInputs)
-			throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+			throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
 		final String className = "MyCorrectParser";
 		final String sourceCode = Generator.generate(g, className, "", "\t");
 
-		compileJavaSource(className, sourceCode);
-
-		final Method entrypoint = classLoader.loadClass(className).getMethod("parse", String.class);
+		final Class<?> klass = compileJavaSource(className, sourceCode);
+		final Method entrypoint = klass.getMethod("parse", String.class);
 
 		for (final String correct : correctInputs) {
-			final Object obj = entrypoint.invoke(null, correct);
+			final Object obj = entrypoint.invoke(klass.getConstructors()[0].newInstance(), correct);
 			assertNotNull(
 					obj,
 					// TODO: print parsed object
@@ -205,17 +218,16 @@ public final class TestGenerator {
 	@ParameterizedTest
 	@MethodSource("wrongCases")
 	void incorrectParsing(final Grammar g, final List<String> wrongInputs)
-			throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+			throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
 		final String className = "MyWrongParser";
 		final String sourceCode = Generator.generate(g, className, "", "\t");
 
-		compileJavaSource(className, sourceCode);
-
-		final Method entrypoint = classLoader.loadClass(className).getMethod("parse", String.class);
+		final Class<?> klass = compileJavaSource(className, sourceCode);
+		final Method entrypoint = klass.getMethod("parse", String.class);
 
 		for (final String wrong : wrongInputs) {
 			// TODO: print parsed object
-			final Object obj = entrypoint.invoke(null, wrong);
+			final Object obj = entrypoint.invoke(klass.getConstructors()[0].newInstance(), wrong);
 			assertNull(
 					obj,
 					() -> String.format(
