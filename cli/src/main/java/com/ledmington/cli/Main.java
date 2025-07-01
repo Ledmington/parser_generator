@@ -28,7 +28,7 @@ import java.util.Objects;
 import com.ledmington.ebnf.Node;
 import com.ledmington.ebnf.Parser;
 import com.ledmington.ebnf.Utils;
-import com.ledmington.serializer.Serializer;
+import com.ledmington.generator.Generator;
 
 public class Main {
 
@@ -103,7 +103,7 @@ public class Main {
 			final String packageName =
 					idx < 0 ? "unknown" : outputFile.substring(0, idx).replace(File.separator, ".");
 			final String indent = "\t";
-			bw.write(Serializer.serialize(root, className, packageName, indent));
+			bw.write(Generator.generate(root, className, packageName, indent));
 		} catch (final IOException e) {
 			throw new RuntimeException(e);
 		}

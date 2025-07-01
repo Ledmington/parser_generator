@@ -8,8 +8,8 @@ dependencies {
 }
 
 pitest {
-    targetClasses.set(['com.ledmington.ebnf.*'])
-    targetTests.set(['com.ledmington.ebnf.*'])
+    targetClasses.set(['com.ledmington.generator.*'])
+    targetTests.set(['com.ledmington.generator.*'])
     pitestVersion = '1.19.5'
     junit5PluginVersion = '1.2.2'
     threads = 4

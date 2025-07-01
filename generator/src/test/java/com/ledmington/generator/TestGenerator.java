@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.serializer;
+package com.ledmington.generator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -41,7 +41,7 @@ import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.Utils;
 
-public final class TestSerializer {
+public final class TestGenerator {
 
 	private static final Path JAVAC_PATH = Path.of(System.getProperty("java.home"), "bin", "javac");
 	private static Path tempDir = null;
@@ -49,7 +49,7 @@ public final class TestSerializer {
 	@BeforeAll
 	static void setup() {
 		try {
-			tempDir = Files.createTempDirectory("TestSerializer-");
+			tempDir = Files.createTempDirectory("TestGenerator-");
 		} catch (final IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -128,10 +128,10 @@ public final class TestSerializer {
 	@MethodSource("examples")
 	void simple(final Grammar g, final List<String> correctCases, final List<String> wrongCases) throws IOException {
 		final Path tempFilePath;
-		tempFilePath = Files.createTempFile(tempDir, "TestSerializer_", "_simple.java");
+		tempFilePath = Files.createTempFile(tempDir, "TestGenerator_", "_simple.java");
 		final String filename = getFileName(tempFilePath.toString());
 
-		final String text = Serializer.serialize(g, filename, "", "\t");
+		final String text = Generator.generate(g, filename, "", "\t");
 		Files.writeString(tempFilePath, text, StandardCharsets.UTF_8);
 
 		try {

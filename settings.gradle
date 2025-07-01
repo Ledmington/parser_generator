@@ -4,5 +4,5 @@ plugins {
 
 rootProject.name = 'parser_gen'
 include('ebnf')
-include('serializer')
+include('generator')
 include('cli')

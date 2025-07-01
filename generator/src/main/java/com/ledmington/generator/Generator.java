@@ -15,18 +15,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.serializer;
+package com.ledmington.generator;
 
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Node;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Utils;
 
-public final class Serializer {
+public final class Generator {
 
-	private Serializer() {}
+	private Generator() {}
 
-	public static String serialize(
+	public static String generate(
 			final Node root, final String className, final String packageName, final String indent) {
 		final StringBuilder sb = new StringBuilder();
 		if (packageName != null && !packageName.isBlank()) {
