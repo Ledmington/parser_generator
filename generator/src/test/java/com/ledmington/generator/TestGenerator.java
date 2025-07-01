@@ -74,6 +74,24 @@ public final class TestGenerator {
 		}
 	}
 
+	private static final List<Arguments> TEST_CASES = List.of(
+			Arguments.of(
+					new Grammar(new Production(new NonTerminal("S"), new Terminal("a"))),
+					List.of("a"),
+					List.of("", "b", "aa")),
+			Arguments.of(
+					new Grammar(new Production(new NonTerminal("S"), new Optional(new Terminal("a")))),
+					List.of("", "a"),
+					List.of("b", "aa")));
+
+	private static Stream<Arguments> correctCases() {
+		return TEST_CASES.stream().map(tc -> Arguments.of(tc.get()[0], tc.get()[1]));
+	}
+
+	private static Stream<Arguments> wrongCases() {
+		return TEST_CASES.stream().map(tc -> Arguments.of(tc.get()[0], tc.get()[2]));
+	}
+
 	private static final class JavaSourceFromString extends SimpleJavaFileObject {
 
 		private final String code;
@@ -126,31 +144,11 @@ public final class TestGenerator {
 		}
 	}
 
-	private static Stream<Arguments> examples() {
-		return Stream.of(
-				Arguments.of(
-						new Grammar(new Production(new NonTerminal("S"), new Terminal("a"))),
-						List.of("a"),
-						List.of("", "b", "aa")),
-				Arguments.of(
-						new Grammar(new Production(new NonTerminal("S"), new Optional(new Terminal("a")))),
-						List.of("", "a"),
-						List.of("b", "aa")));
-	}
-
-	@ParameterizedTest
-	@MethodSource("examples")
-	void simple(final Grammar g, final List<String> correctInputs, final List<String> wrongInputs)
-			throws IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException,
-					IllegalAccessException {
-		final String className = "MyParser";
-		final String sourceCode = Generator.generate(g, className, "", "\t");
-		System.out.println(sourceCode);
-
+	private static void compileJavaSource(final String className, final String sourceCode) {
 		// Prepare source file object
 		final JavaSourceFromString sourceObject = new JavaSourceFromString(className, sourceCode);
 
-		final JavaFileManager fileManager = new ForwardingJavaFileManager<>(standardFileManager) {
+		try (final JavaFileManager fileManager = new ForwardingJavaFileManager<>(standardFileManager) {
 			@Override
 			public JavaFileObject getJavaFileForOutput(
 					final Location location,
@@ -161,23 +159,35 @@ public final class TestGenerator {
 				classLoader.addClass(className, jclassObject);
 				return jclassObject;
 			}
-		};
+		}) {
 
-		// Compile the source code
-		final CompilationTask task =
-				compiler.getTask(null, fileManager, diagnostics, null, null, List.of(sourceObject));
-		final boolean success = task.call();
-		fileManager.close();
+			// Compile the source code
+			final CompilationTask task =
+					compiler.getTask(null, fileManager, diagnostics, null, null, List.of(sourceObject));
+			final boolean success = task.call();
 
-		assertTrue(
-				success,
-				() -> String.format(
-						"Compilation failed.%n%s%n",
-						diagnostics.getDiagnostics().stream()
-								.map(d -> String.format(
-										"Error at line %,d, column %,d: %s%n",
-										d.getLineNumber(), d.getColumnNumber(), d.getMessage(Locale.US)))
-								.collect(Collectors.joining("\n"))));
+			assertTrue(
+					success,
+					() -> String.format(
+							"Compilation failed.%n%s%n",
+							diagnostics.getDiagnostics().stream()
+									.map(d -> String.format(
+											"Error at line %,d, column %,d: %s%n",
+											d.getLineNumber(), d.getColumnNumber(), d.getMessage(Locale.US)))
+									.collect(Collectors.joining("\n"))));
+		} catch (final IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@ParameterizedTest
+	@MethodSource("correctCases")
+	void correctParsing(final Grammar g, final List<String> correctInputs)
+			throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+		final String className = "MyCorrectParser";
+		final String sourceCode = Generator.generate(g, className, "", "\t");
+
+		compileJavaSource(className, sourceCode);
 
 		final Method entrypoint = classLoader.loadClass(className).getMethod("parse", String.class);
 
@@ -185,12 +195,26 @@ public final class TestGenerator {
 			final Object obj = entrypoint.invoke(null, correct);
 			assertNotNull(
 					obj,
+					// TODO: print parsed object
 					() -> String.format(
 							"Expected the following source code to be able to parse the input '%s' but it did not.%n%s%n",
 							correct, sourceCode));
 		}
+	}
+
+	@ParameterizedTest
+	@MethodSource("wrongCases")
+	void incorrectParsing(final Grammar g, final List<String> wrongInputs)
+			throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+		final String className = "MyWrongParser";
+		final String sourceCode = Generator.generate(g, className, "", "\t");
+
+		compileJavaSource(className, sourceCode);
+
+		final Method entrypoint = classLoader.loadClass(className).getMethod("parse", String.class);
 
 		for (final String wrong : wrongInputs) {
+			// TODO: print parsed object
 			final Object obj = entrypoint.invoke(null, wrong);
 			assertNull(
 					obj,
