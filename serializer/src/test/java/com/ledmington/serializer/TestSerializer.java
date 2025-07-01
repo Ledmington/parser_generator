@@ -104,7 +104,7 @@ public final class TestSerializer {
 	}
 
 	private static void tryWrong(final String input) throws IOException {
-		tryCase(-1, input);
+		tryCase(255, input);
 	}
 
 	private static Stream<Arguments> examples() {
