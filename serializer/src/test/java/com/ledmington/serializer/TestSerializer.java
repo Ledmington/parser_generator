@@ -36,8 +36,10 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.NonTerminal;
+import com.ledmington.ebnf.Optional;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Terminal;
+import com.ledmington.ebnf.Utils;
 
 public final class TestSerializer {
 
@@ -65,11 +67,12 @@ public final class TestSerializer {
 		return absolutePath;
 	}
 
-	private static void tryCase(final int expectedExitCode, final String input) throws IOException {
+	private static void tryCase(final Grammar g, final String input, final boolean correct) throws IOException {
 		final Process p = new ProcessBuilder()
 				.command("java", "-cp", tempDir.toString(), "Main.java", input)
 				.directory(tempDir.toFile())
 				.start();
+		final int expectedExitCode = correct ? 0 : 255;
 		try {
 			assertEquals(expectedExitCode, p.waitFor(), () -> {
 				String line;
@@ -92,26 +95,33 @@ public final class TestSerializer {
 					throw new RuntimeException(e);
 				}
 
-				return String.format(" --- STDOUT --- \n%s\n --- \n --- STDERR --- \n%s\n ---", sbOut, sbErr);
+				return String.format(
+						"Expected grammar\n%s\nto%s be able to parse '%s'.\n --- STDOUT --- \n%s\n --- \n --- STDERR --- \n%s\n ---",
+						Utils.prettyPrint(g, "  "), correct ? "" : " NOT", input, sbOut, sbErr);
 			});
 		} catch (final InterruptedException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	private static void tryCorrect(final String input) throws IOException {
-		tryCase(0, input);
+	private static void tryCorrect(final Grammar g, final String input) throws IOException {
+		tryCase(g, input, true);
 	}
 
-	private static void tryWrong(final String input) throws IOException {
-		tryCase(255, input);
+	private static void tryWrong(final Grammar g, final String input) throws IOException {
+		tryCase(g, input, false);
 	}
 
 	private static Stream<Arguments> examples() {
-		return Stream.of(Arguments.of(
-				new Grammar(new Production(new NonTerminal("S"), new Terminal("a"))),
-				List.of("a"),
-				List.of("", "b", "aa")));
+		return Stream.of(
+				Arguments.of(
+						new Grammar(new Production(new NonTerminal("S"), new Terminal("a"))),
+						List.of("a"),
+						List.of("", "b", "aa")),
+				Arguments.of(
+						new Grammar(new Production(new NonTerminal("S"), new Optional(new Terminal("a")))),
+						List.of("", "a"),
+						List.of("b", "aa")));
 	}
 
 	@ParameterizedTest
@@ -158,11 +168,11 @@ public final class TestSerializer {
 		}
 
 		for (final String input : correctCases) {
-			tryCorrect(input);
+			tryCorrect(g, input);
 		}
 
 		for (final String input : wrongCases) {
-			tryWrong(input);
+			tryWrong(g, input);
 		}
 	}
 }
