@@ -52,6 +52,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.ledmington.ebnf.Concatenation;
+import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.Optional;
@@ -64,41 +65,40 @@ public final class TestGenerator {
 	private TestGenerator() {}
 
 	private static final List<Arguments> TEST_CASES = List.of(
+			Arguments.of(g(p(nt("S"), t("a"))), List.of("a"), List.of("", "b", "aa")),
+			Arguments.of(g(p(nt("S"), t("abc"))), List.of("abc"), List.of("", "a", "b", "c", "ab", "bc", "cba")),
+			Arguments.of(g(p(nt("S"), opt(t("a")))), List.of("", "a"), List.of("b", "aa")),
+			Arguments.of(g(p(nt("S"), nt("T")), p(nt("T"), t("a"))), List.of("a"), List.of("", "b", "aa")),
+			Arguments.of(g(p(nt("S"), nt("T")), p(nt("T"), opt(t("a")))), List.of("", "a"), List.of("b", "aa")),
+			Arguments.of(g(p(nt("S"), cat(t("a"), t("b")))), List.of("ab"), List.of("", "a", "b", "aab", "abb", "c")),
 			Arguments.of(
-					new Grammar(new Production(new NonTerminal("S"), new Terminal("a"))),
-					List.of("a"),
-					List.of("", "b", "aa")),
-			Arguments.of(
-					new Grammar(new Production(new NonTerminal("S"), new Terminal("abc"))),
-					List.of("abc"),
-					List.of("", "a", "b", "c", "ab", "bc", "cba")),
-			Arguments.of(
-					new Grammar(new Production(new NonTerminal("S"), new Optional(new Terminal("a")))),
-					List.of("", "a"),
-					List.of("b", "aa")),
-			Arguments.of(
-					new Grammar(
-							new Production(new NonTerminal("S"), new NonTerminal("T")),
-							new Production(new NonTerminal("T"), new Terminal("a"))),
-					List.of("a"),
-					List.of("", "b", "aa")),
-			Arguments.of(
-					new Grammar(
-							new Production(new NonTerminal("S"), new NonTerminal("T")),
-							new Production(new NonTerminal("T"), new Optional(new Terminal("a")))),
-					List.of("", "a"),
-					List.of("b", "aa")),
-			Arguments.of(
-					new Grammar(new Production(
-							new NonTerminal("S"), new Concatenation(new Terminal("a"), new Terminal("b")))),
-					List.of("ab"),
-					List.of("", "a", "b", "aab", "abb", "c")),
-			Arguments.of(
-					new Grammar(new Production(
-							new NonTerminal("S"),
-							new Concatenation(new Terminal("a"), new Optional(new Terminal("b")), new Terminal("c")))),
+					g(p(nt("S"), cat(t("a"), opt(t("b")), t("c")))),
 					List.of("ac", "abc"),
 					List.of("", "a", "c", "ab", "bc")));
+
+	private static Grammar g(final Production... productions) {
+		return new Grammar(productions);
+	}
+
+	private static Production p(final NonTerminal nt, final Expression exp) {
+		return new Production(nt, exp);
+	}
+
+	private static NonTerminal nt(final String name) {
+		return new NonTerminal(name);
+	}
+
+	private static Terminal t(final String literal) {
+		return new Terminal(literal);
+	}
+
+	private static Concatenation cat(final Expression... expressions) {
+		return new Concatenation(expressions);
+	}
+
+	private static Optional opt(final Expression inner) {
+		return new Optional(inner);
+	}
 
 	private static Stream<Arguments> onlyGrammars() {
 		return TEST_CASES.stream().map(tc -> Arguments.of(tc.get()[0]));
