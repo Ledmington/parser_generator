@@ -47,12 +47,13 @@ public final class Generator {
 
 		final boolean atLeastOneOptional = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Optional);
 		final boolean atLeastOneConcatenation = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Concatenation);
+		final boolean atLeastOneRepetition = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Repetition);
 
 		final IndentedStringBuilder sb = new IndentedStringBuilder(indent);
 		if (packageName != null && !packageName.isBlank()) {
 			sb.append("package ").append(packageName).append(";\n\n");
 		}
-		if (atLeastOneConcatenation) {
+		if (atLeastOneConcatenation || atLeastOneRepetition) {
 			sb.append("import java.util.List;\n").append("import java.util.ArrayList;\n");
 		}
 		sb.append("import java.util.Stack;\n")
@@ -70,6 +71,9 @@ public final class Generator {
 		}
 		if (atLeastOneConcatenation) {
 			sb.append("private record Sequence(List<Node> nodes) implements Node {}\n");
+		}
+		if (atLeastOneRepetition) {
+			sb.append("private record Repetition(List<Node> nodes) implements Node {};\n");
 		}
 		sb.append("public Node parse(final String input) {\n")
 				.indent()
@@ -120,7 +124,7 @@ public final class Generator {
 					q.addAll(c.nodes());
 				}
 				case Repetition r -> {
-					generateRepetition(sb,NODE_NAMES.get(r), r);
+					generateRepetition(sb, NODE_NAMES.get(r), r);
 					q.add(r.inner());
 				}
 				default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
@@ -130,8 +134,23 @@ public final class Generator {
 		return sb.deindent().append("}").toString();
 	}
 
-	private static void generateRepetition(final IndentedStringBuilder sb,final String name,final Repetition r) {
-	sb.append("private Node parse_"+name+"() {\n").indent().append("return null;\n").deindent().append("}\n");
+	private static void generateRepetition(final IndentedStringBuilder sb, final String name, final Repetition r) {
+		sb.append("private Node parse_" + name + "() {\n")
+				.indent()
+				.append("final List<Node> nodes = new ArrayList<>();\n")
+				.append("while (true) {\n")
+				.indent()
+				.append("final Node n = parse_" + NODE_NAMES.get(r.inner()) + "();\n")
+				.append("if (n == null) {\n")
+				.indent()
+				.append("break;\n")
+				.deindent()
+				.append("}\n")
+				.deindent()
+				.append("}\n")
+				.append("return new Repetition(nodes);\n")
+				.deindent()
+				.append("}\n");
 	}
 
 	private static void generateConcatenation(
