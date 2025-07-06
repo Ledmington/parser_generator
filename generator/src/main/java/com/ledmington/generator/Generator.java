@@ -17,8 +17,14 @@
  */
 package com.ledmington.generator;
 
+import java.util.ArrayDeque;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Queue;
+
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Node;
+import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.Optional;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Terminal;
@@ -26,12 +32,14 @@ import com.ledmington.ebnf.Utils;
 
 public final class Generator {
 
-	private static int OPTIONAL_COUNTER = 0;
+	private static final Map<Node, String> NODE_NAMES = new HashMap<>();
 
 	private Generator() {}
 
 	public static String generate(
 			final Node root, final String className, final String packageName, final String indent) {
+		generateNames(root);
+
 		final StringBuilder sb = new StringBuilder();
 		if (packageName != null && !packageName.isBlank()) {
 			sb.append("package ").append(packageName).append(";\n\n");
@@ -60,40 +68,73 @@ public final class Generator {
 				indent + indent + "return (pos < v.length) ? null : result;",
 				indent + "}\n"));
 
-		final Grammar g = (Grammar) root;
-		for (final Production p : g.productions()) {
-			sb.append(indent + "private Node parse_")
-					.append(p.start().name())
-					.append("() {\n")
-					.append(indent + indent + "// ")
-					.append(String.join(
-							"\n" + indent + indent + "// ",
-							Utils.prettyPrint(p.result(), "  ").split("\n")))
-					.append("\n");
+		final Queue<Node> q = new ArrayDeque<>();
+		q.add(root);
 
-			switch (p.result()) {
-				case Terminal t -> generateTerminal(sb, indent + indent, t);
-				case Optional o -> generateOptional(sb, indent + indent, o);
-				default -> sb.append(indent + indent + "return null;\n");
+		while (!q.isEmpty()) {
+			final Node n = q.remove();
+			switch (n) {
+				case Grammar g -> {
+					for (final Production p : g.productions()) {
+						sb.append(indent + "private Node parse_")
+								.append(NODE_NAMES.get(p.start()))
+								.append("() {\n")
+								.append(indent + indent + "// ")
+								.append(String.join(
+										"\n" + indent + indent + "// ",
+										Utils.prettyPrint(p.result(), "  ").split("\n")))
+								.append("\n")
+								.append(indent + indent + "return parse_" + NODE_NAMES.get(p.result()) + "();\n")
+								.append(indent + "}\n");
+						q.add(p.result());
+					}
+				}
+				case Terminal t -> generateTerminal(sb, indent, NODE_NAMES.get(t), t);
+				case Optional opt -> {
+					generateOptional(sb, indent, NODE_NAMES.get(opt), opt);
+					q.add(opt.inner());
+				}
+				default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
 			}
-
-			sb.append(indent + "}\n");
 		}
 
 		return sb.append("}").toString();
 	}
 
-	private static String getUniqueName(final Node n) {
-		return switch (n) {
-			case Terminal t -> "terminal_" + t.literal();
-			case Optional ignored -> "optional_" + (OPTIONAL_COUNTER++);
-			default -> throw new IllegalArgumentException(String.format("Unknown Node '%s'.", n));
-		};
+	private static void generateNames(final Node root) {
+		final Queue<Node> q = new ArrayDeque<>();
+		q.add(root);
+
+		int terminalCounter = 0;
+		int optionalCounter = 0;
+		while (!q.isEmpty()) {
+			final Node n = q.remove();
+			switch (n) {
+				case Grammar g -> {
+					for (final Production p : g.productions()) {
+						q.add(p.start());
+						q.add(p.result());
+					}
+				}
+				case Terminal t -> {
+					NODE_NAMES.put(t, "terminal_" + terminalCounter);
+					terminalCounter++;
+				}
+				case NonTerminal nt -> NODE_NAMES.put(nt, nt.name().replace(' ', '_'));
+				case Optional opt -> {
+					NODE_NAMES.put(opt, "optional_" + optionalCounter);
+					optionalCounter++;
+				}
+				default -> throw new IllegalArgumentException(String.format("Unknown Node '%s'.", n));
+			}
+		}
 	}
 
-	private static void generateTerminal(final StringBuilder sb, final String indent, final Terminal t) {
+	private static void generateTerminal(
+			final StringBuilder sb, final String indent, final String name, final Terminal t) {
+		sb.append(indent + "private Node parse_" + name + "() {\n");
 		final String literal = t.literal();
-		sb.append(indent + "if (pos ");
+		sb.append(indent + indent + "if (pos ");
 		if (literal.length() > 1) {
 			sb.append("+ ").append(literal.length() - 1).append(" ");
 		}
@@ -106,19 +147,23 @@ public final class Generator {
 					.append("'");
 		}
 		sb.append(") {\n")
-				.append(indent + indent + "this.pos += ")
+				.append(indent + indent + indent + "this.pos += ")
 				.append(literal.length())
 				.append(";\n")
-				.append(indent + indent + "return new Terminal(\"")
+				.append(indent + indent + indent + "return new Terminal(\"")
 				.append(literal)
 				.append("\");\n")
-				.append(indent + "} else {\n")
-				.append(indent + indent + "return null;\n")
+				.append(indent + indent + "} else {\n")
+				.append(indent + indent + indent + "return null;\n")
+				.append(indent + indent + "}\n")
 				.append(indent + "}\n");
 	}
 
-	private static void generateOptional(final StringBuilder sb, final String indent, final Optional o) {
-		sb.append(indent + "final Node inner = parse_" + getUniqueName(o.inner()) + "();\n")
-				.append(indent + "return new Optional(inner);\n");
+	private static void generateOptional(
+			final StringBuilder sb, final String indent, final String name, final Optional o) {
+		sb.append(indent + "private Node parse_" + name + "() {\n")
+				.append(indent + indent + "final Node inner = parse_" + NODE_NAMES.get(o.inner()) + "();\n")
+				.append(indent + indent + "return new Optional(inner);\n")
+				.append(indent + "}\n");
 	}
 }
