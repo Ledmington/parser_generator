@@ -48,12 +48,14 @@ public final class Generator {
 		}
 		sb.append("import java.util.List;\n")
 				.append("import java.util.ArrayList;\n")
+				.append("import java.util.Stack;\n")
 				.append("public final class ")
 				.append(className)
 				.append(" {\n")
 				.indent()
 				.append("private char[] v = null;\n")
 				.append("private int pos = 0;\n")
+				.append("private Stack<Integer> stack = new Stack<>();\n")
 				.append("private interface Node {}\n")
 				.append("private record Terminal(String literal) implements Node {}\n")
 				.append("private record Optional(Node inner) implements Node {}\n")
@@ -72,7 +74,7 @@ public final class Generator {
 				.append("return null;\n")
 				.deindent()
 				.append("}\n")
-				.append("return (pos < v.length) ? null : result;\n")
+				.append("return (pos < v.length || !stack.isEmpty()) ? null : result;\n")
 				.deindent()
 				.append("}\n");
 
@@ -112,7 +114,8 @@ public final class Generator {
 			final IndentedStringBuilder sb, final String name, final Concatenation c) {
 		sb.append("private Node parse_" + name + "() {\n")
 				.indent()
-				.append("final List<Node> nodes = new ArrayList<>();\n");
+				.append("final List<Node> nodes = new ArrayList<>();\n")
+				.append("stack.push(this.pos);\n");
 
 		final List<Expression> seq = c.nodes();
 		for (int i = 0; i < seq.size(); i++) {
@@ -120,13 +123,17 @@ public final class Generator {
 			sb.append("final Node " + nodeName + " = parse_" + NODE_NAMES.get(seq.get(i)) + "();\n")
 					.append("if (" + nodeName + " == null) {\n")
 					.indent()
+					.append("this.pos = stack.pop();")
 					.append("return null;\n")
 					.deindent()
 					.append("}\n")
 					.append("nodes.add(" + nodeName + ");\n");
 		}
 
-		sb.append("return new Sequence(nodes);\n").deindent().append("}\n");
+		sb.append("stack.pop();\n")
+				.append("return new Sequence(nodes);\n")
+				.deindent()
+				.append("}\n");
 	}
 
 	private static void generateNonTerminal(

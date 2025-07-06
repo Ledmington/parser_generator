@@ -74,7 +74,20 @@ public final class TestGenerator {
 			Arguments.of(
 					g(p(nt("S"), cat(t("a"), opt(t("b")), t("c")))),
 					List.of("ac", "abc"),
-					List.of("", "a", "c", "ab", "bc")));
+					List.of("", "a", "c", "ab", "bc")),
+			Arguments.of(
+					g(p(nt("S"), cat(opt(t("a")), opt(t("b")), opt(t("c"))))),
+					List.of("", "a", "b", "c", "ab", "ac", "bc", "abc"),
+					List.of("ba", "ca", "cb", "cba", "abb", "acb", "d")),
+			Arguments.of(
+					g(p(nt("S"), opt(cat(t("a"), t("b"))))), List.of("", "ab"), List.of("a", "b", "ba", "aa", "bb")),
+			Arguments.of(
+					g(
+							p(nt("S"), cat(opt(cat(nt("T"), t("b"))), opt(cat(t("c"), nt("U"))))),
+							p(nt("T"), t("a")),
+							p(nt("U"), t("d"))),
+					List.of("", "ab", "cd", "abcd"),
+					List.of("a", "b", "c", "d", "bc", "ad", "abc", "bcd")));
 
 	private static Grammar g(final Production... productions) {
 		return new Grammar(productions);
