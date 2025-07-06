@@ -31,7 +31,6 @@ import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.Optional;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Terminal;
-import com.ledmington.ebnf.Utils;
 
 public final class Generator {
 
@@ -136,9 +135,6 @@ public final class Generator {
 				.append(NODE_NAMES.get(start))
 				.append("() {\n")
 				.indent()
-				.append("// ")
-				.append(String.join("\n// ", Utils.prettyPrint(result, "  ").split("\n")))
-				.append("\n")
 				.append("return parse_" + NODE_NAMES.get(result) + "();\n")
 				.deindent()
 				.append("}\n");
