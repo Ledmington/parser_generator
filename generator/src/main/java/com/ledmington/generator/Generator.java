@@ -56,7 +56,7 @@ public final class Generator {
 		if (atLeastOneConcatenation || atLeastOneRepetition) {
 			sb.append("import java.util.List;\n").append("import java.util.ArrayList;\n");
 		}
-		sb.append("import java.util.Stack;\n")
+		sb.append("import java.util.Stack;\n\n")
 				.append("public final class ")
 				.append(className)
 				.append(" {\n")
@@ -73,7 +73,7 @@ public final class Generator {
 			sb.append("private record Sequence(List<Node> nodes) implements Node {}\n");
 		}
 		if (atLeastOneRepetition) {
-			sb.append("private record Repetition(List<Node> nodes) implements Node {};\n");
+			sb.append("private record Repetition(List<Node> nodes) implements Node {}\n");
 		}
 		sb.append("public Node parse(final String input) {\n")
 				.indent()
@@ -146,6 +146,7 @@ public final class Generator {
 				.append("break;\n")
 				.deindent()
 				.append("}\n")
+				.append("nodes.add(n);\n")
 				.deindent()
 				.append("}\n")
 				.append("return new Repetition(nodes);\n")
@@ -166,7 +167,7 @@ public final class Generator {
 			sb.append("final Node " + nodeName + " = parse_" + NODE_NAMES.get(seq.get(i)) + "();\n")
 					.append("if (" + nodeName + " == null) {\n")
 					.indent()
-					.append("this.pos = stack.pop();")
+					.append("this.pos = stack.pop();\n")
 					.append("return null;\n")
 					.deindent()
 					.append("}\n")
