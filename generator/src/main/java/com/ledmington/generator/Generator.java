@@ -163,6 +163,7 @@ public final class Generator {
 				case NonTerminal nt -> NODE_NAMES.put(nt, nt.name().replace(' ', '_'));
 				case Optional opt -> {
 					NODE_NAMES.put(opt, "optional_" + optionalCounter);
+					q.add(opt.inner());
 					optionalCounter++;
 				}
 				case Concatenation c -> {
