@@ -32,6 +32,7 @@ import com.ledmington.ebnf.Node;
 import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.Optional;
 import com.ledmington.ebnf.Production;
+import com.ledmington.ebnf.Repetition;
 import com.ledmington.ebnf.Terminal;
 
 public final class Generator {
@@ -118,11 +119,19 @@ public final class Generator {
 					generateConcatenation(sb, NODE_NAMES.get(c), c);
 					q.addAll(c.nodes());
 				}
+				case Repetition r -> {
+					generateRepetition(sb,NODE_NAMES.get(r), r);
+					q.add(r.inner());
+				}
 				default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
 			}
 		}
 
 		return sb.deindent().append("}").toString();
+	}
+
+	private static void generateRepetition(final IndentedStringBuilder sb,final String name,final Repetition r) {
+	sb.append("private Node parse_"+name+"() {\n").indent().append("return null;\n").deindent().append("}\n");
 	}
 
 	private static void generateConcatenation(
@@ -170,6 +179,7 @@ public final class Generator {
 		int terminalCounter = 0;
 		int optionalCounter = 0;
 		int concatenationCounter = 0;
+		int repetitionCounter = 0;
 		while (!q.isEmpty()) {
 			final Node n = q.remove();
 			if (visited.contains(n)) {
@@ -197,6 +207,11 @@ public final class Generator {
 					NODE_NAMES.put(c, "concatenation_" + concatenationCounter);
 					concatenationCounter++;
 					q.addAll(c.nodes());
+				}
+				case Repetition r -> {
+					NODE_NAMES.put(r, "repetition_" + repetitionCounter);
+					repetitionCounter++;
+					q.add(r.inner());
 				}
 				default -> throw new IllegalArgumentException(String.format("Unknown Node '%s'.", n));
 			}

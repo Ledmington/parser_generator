@@ -57,6 +57,7 @@ import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.Optional;
 import com.ledmington.ebnf.Production;
+import com.ledmington.ebnf.Repetition;
 import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.Utils;
 
@@ -97,7 +98,11 @@ public final class TestGenerator {
 					List.of("", "a", "b", "c", "ab", "ac", "bc", "abc"),
 					List.of("cb", "ca", "ba", "cba", "aba", "bcb", "aabc", "abd")),
 			Arguments.of(
-					g(p(nt("S"), cat(nt("T"), t("a"))), p(nt("T"), t("a"))), List.of("aa"), List.of("", "a", "aaa")));
+					g(p(nt("S"), cat(nt("T"), t("a"))), p(nt("T"), t("a"))), List.of("aa"), List.of("", "a", "aaa")),
+			Arguments.of(
+					g(p(nt("S"), rep(t("a")))),
+					List.of("", "a", "aa", "aaa", "aaaa", "aaaaa"),
+					List.of("b", "ab", "aba", "bab")));
 
 	private static Grammar g(final Production... productions) {
 		return new Grammar(productions);
@@ -121,6 +126,10 @@ public final class TestGenerator {
 
 	private static Optional opt(final Expression inner) {
 		return new Optional(inner);
+	}
+
+	private static Repetition rep(final Expression exp) {
+		return new Repetition(exp);
 	}
 
 	private static Stream<Arguments> onlyGrammars() {
