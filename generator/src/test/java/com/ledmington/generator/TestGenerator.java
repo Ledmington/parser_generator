@@ -17,6 +17,7 @@
  */
 package com.ledmington.generator;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -56,6 +57,7 @@ import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.Optional;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Terminal;
+import com.ledmington.ebnf.Utils;
 
 public final class TestGenerator {
 
@@ -86,6 +88,10 @@ public final class TestGenerator {
 					new Grammar(new Production(new NonTerminal("S"), new Optional(new Terminal("a")))),
 					List.of("", "a"),
 					List.of("b", "aa")));
+
+	private static Stream<Arguments> onlyGrammars() {
+		return TEST_CASES.stream().map(tc -> Arguments.of(tc.get()[0]));
+	}
 
 	private static Stream<Arguments> correctCases() {
 		return TEST_CASES.stream().map(tc -> Arguments.of(tc.get()[0], tc.get()[1]));
@@ -234,5 +240,18 @@ public final class TestGenerator {
 							"Expected the following source code to NOT be able to parse the input '%s' but it did.%n%s%n",
 							wrong, sourceCode));
 		}
+	}
+
+	@ParameterizedTest
+	@MethodSource("onlyGrammars")
+	void determinism(final Grammar g) {
+		final String text1 = Generator.generate(g, "MyParser", "", "\t");
+		final String text2 = Generator.generate(g, "MyParser", "", "\t");
+		assertEquals(
+				text1,
+				text2,
+				() -> String.format(
+						"The generator generated two different sources for the following grammar.\n%s\n\n --- Source 1 --- \n%s\n --- \n --- Source 2 --- \n%s\n --- ",
+						Utils.prettyPrint(g, "  "), text1, text2));
 	}
 }
