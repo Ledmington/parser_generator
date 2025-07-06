@@ -42,13 +42,17 @@ public final class Generator {
 			final Node root, final String className, final String packageName, final String indent) {
 		generateNames(root);
 
+		final boolean atLeastOneOptional = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Optional);
+		final boolean atLeastOneConcatenation = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Concatenation);
+
 		final IndentedStringBuilder sb = new IndentedStringBuilder(indent);
 		if (packageName != null && !packageName.isBlank()) {
 			sb.append("package ").append(packageName).append(";\n\n");
 		}
-		sb.append("import java.util.List;\n")
-				.append("import java.util.ArrayList;\n")
-				.append("import java.util.Stack;\n")
+		if (atLeastOneConcatenation) {
+			sb.append("import java.util.List;\n").append("import java.util.ArrayList;\n");
+		}
+		sb.append("import java.util.Stack;\n")
 				.append("public final class ")
 				.append(className)
 				.append(" {\n")
@@ -57,10 +61,14 @@ public final class Generator {
 				.append("private int pos = 0;\n")
 				.append("private Stack<Integer> stack = new Stack<>();\n")
 				.append("private interface Node {}\n")
-				.append("private record Terminal(String literal) implements Node {}\n")
-				.append("private record Optional(Node inner) implements Node {}\n")
-				.append("private record Sequence(List<Node> nodes) implements Node {}\n")
-				.append("public Node parse(final String input) {\n")
+				.append("private record Terminal(String literal) implements Node {}\n");
+		if (atLeastOneOptional) {
+			sb.append("private record Optional(Node inner) implements Node {}\n");
+		}
+		if (atLeastOneConcatenation) {
+			sb.append("private record Sequence(List<Node> nodes) implements Node {}\n");
+		}
+		sb.append("public Node parse(final String input) {\n")
 				.indent()
 				.append("this.v = input.toCharArray();\n")
 				.append("this.pos = 0;\n")
