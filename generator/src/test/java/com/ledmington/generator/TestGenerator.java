@@ -112,7 +112,26 @@ public final class TestGenerator {
 					g(p(nt("S"), rep(cat(t("a"), opt(t("b")), t("c"))))),
 					List.of("", "ac", "abc", "acac", "abcabc", "acabc", "abcac"),
 					List.of("a", "b", "c", "ab", "bc", "aac", "acc", "abbc")),
-			Arguments.of(g(p(nt("S"), alt(t("a"), t("b")))), List.of("a", "b"), List.of("", "ab", "aa", "bb", "ba")));
+			Arguments.of(g(p(nt("S"), alt(t("a"), t("b")))), List.of("a", "b"), List.of("", "ab", "aa", "bb", "ba")),
+			Arguments.of(
+					g(p(nt("S"), rep(alt(t("a"), t("b"))))),
+					List.of("", "a", "b", "aa", "ab", "bb", "ba", "aba", "bab", "aaa"),
+					List.of("c", "ac", "cb", "bc", "abc")),
+			Arguments.of(
+					g(
+							p(
+									nt("S"),
+									cat(
+											opt(nt("sign")),
+											alt(nt("zero"), cat(nt("digit excluding zero"), rep(nt("digit")))))),
+							p(nt("sign"), alt(t("+"), t("-"))),
+							p(nt("zero"), t("0")),
+							p(
+									nt("digit excluding zero"),
+									alt(t("1"), t("2"), t("3"), t("4"), t("5"), t("6"), t("7"), t("8"), t("9"))),
+							p(nt("digit"), alt(nt("zero"), nt("digit excluding zero")))),
+					List.of("0", "+0", "-0", "1", "+99", "-69", "123456789"),
+					List.of("", "01", "001", "1a", "1.0")));
 
 	private static Grammar g(final Production... productions) {
 		return new Grammar(productions);
