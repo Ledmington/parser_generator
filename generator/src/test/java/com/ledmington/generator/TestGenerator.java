@@ -105,7 +105,13 @@ public final class TestGenerator {
 					new Grammar(new Production(
 							new NonTerminal("S"), new Concatenation(new Terminal("a"), new Terminal("b")))),
 					List.of("ab"),
-					List.of("", "a", "b", "aab", "abb", "c")));
+					List.of("", "a", "b", "aab", "abb", "c")),
+			Arguments.of(
+					new Grammar(new Production(
+							new NonTerminal("S"),
+							new Concatenation(new Terminal("a"), new Optional(new Terminal("b")), new Terminal("c")))),
+					List.of("ac", "abc"),
+					List.of("", "a", "c", "ab", "bc")));
 
 	private static Stream<Arguments> onlyGrammars() {
 		return TEST_CASES.stream().map(tc -> Arguments.of(tc.get()[0]));
@@ -204,12 +210,13 @@ public final class TestGenerator {
 			assertTrue(
 					success,
 					() -> String.format(
-							"Compilation failed.%n%s%n",
+							"Compilation failed.%n%s%n%s%n",
 							diagnostics.getDiagnostics().stream()
 									.map(d -> String.format(
 											"Error at line %,d, column %,d: %s%n",
 											d.getLineNumber(), d.getColumnNumber(), d.getMessage(Locale.US)))
-									.collect(Collectors.joining("\n"))));
+									.collect(Collectors.joining("\n")),
+							sourceCode));
 
 			return classLoader.loadClass(className);
 		} catch (final IOException | ClassNotFoundException e) {
