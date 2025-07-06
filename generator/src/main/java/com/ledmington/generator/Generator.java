@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;
 
+import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Node;
 import com.ledmington.ebnf.NonTerminal;
@@ -79,18 +80,7 @@ public final class Generator {
 			switch (n) {
 				case Grammar g -> {
 					for (final Production p : g.productions()) {
-						sb.append("private Node parse_")
-								.append(NODE_NAMES.get(p.start()))
-								.append("() {\n")
-								.indent()
-								.append("// ")
-								.append(String.join(
-										"\n// ",
-										Utils.prettyPrint(p.result(), "  ").split("\n")))
-								.append("\n")
-								.append("return parse_" + NODE_NAMES.get(p.result()) + "();\n")
-								.deindent()
-								.append("}\n");
+						generateNonTerminal(sb, p.start(), p.result());
 						q.add(p.result());
 					}
 				}
@@ -99,11 +89,29 @@ public final class Generator {
 					generateOptional(sb, NODE_NAMES.get(opt), opt);
 					q.add(opt.inner());
 				}
+				case NonTerminal ignored -> {
+					// No need to generate anything here because we already handle non-terminals when visiting
+					// the grammar's productions
+				}
 				default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
 			}
 		}
 
 		return sb.deindent().append("}").toString();
+	}
+
+	private static void generateNonTerminal(
+			final IndentedStringBuilder sb, final NonTerminal start, final Expression result) {
+		sb.append("private Node parse_")
+				.append(NODE_NAMES.get(start))
+				.append("() {\n")
+				.indent()
+				.append("// ")
+				.append(String.join("\n// ", Utils.prettyPrint(result, "  ").split("\n")))
+				.append("\n")
+				.append("return parse_" + NODE_NAMES.get(result) + "();\n")
+				.deindent()
+				.append("}\n");
 	}
 
 	private static void generateNames(final Node root) {
