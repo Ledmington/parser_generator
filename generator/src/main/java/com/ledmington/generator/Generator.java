@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
+import com.ledmington.ebnf.Alternation;
 import com.ledmington.ebnf.Concatenation;
 import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
@@ -48,6 +49,7 @@ public final class Generator {
 		final boolean atLeastOneOptional = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Optional);
 		final boolean atLeastOneConcatenation = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Concatenation);
 		final boolean atLeastOneRepetition = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Repetition);
+		final boolean atLeastOneAlternation = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Alternation);
 
 		final IndentedStringBuilder sb = new IndentedStringBuilder(indent);
 		if (packageName != null && !packageName.isBlank()) {
@@ -74,6 +76,9 @@ public final class Generator {
 		}
 		if (atLeastOneRepetition) {
 			sb.append("private record Repetition(List<Node> nodes) implements Node {}\n");
+		}
+		if (atLeastOneAlternation) {
+			sb.append("private record Alternation(Node inner) implements Node {}\n");
 		}
 		sb.append("public Node parse(final String input) {\n")
 				.indent()
@@ -127,11 +132,30 @@ public final class Generator {
 					generateRepetition(sb, NODE_NAMES.get(r), r);
 					q.add(r.inner());
 				}
+				case Alternation a -> {
+					generateAlternation(sb, NODE_NAMES.get(a), a);
+					q.addAll(a.nodes());
+				}
 				default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
 			}
 		}
 
 		return sb.deindent().append("}").toString();
+	}
+
+	private static void generateAlternation(final IndentedStringBuilder sb, final String name, final Alternation a) {
+		sb.append("private Node parse_" + name + "() {\n").indent();
+		final List<Expression> nodes = a.nodes();
+		for (int i = 0; i < nodes.size(); i++) {
+			final String nodeName = "n_" + i;
+			sb.append("final Node " + nodeName + " = parse_" + NODE_NAMES.get(nodes.get(i)) + "();\n")
+					.append("if (" + nodeName + " != null) {\n")
+					.indent()
+					.append("return new Alternation(" + nodeName + ");\n")
+					.deindent()
+					.append("}\n");
+		}
+		sb.append("return null;\n").deindent().append("}\n");
 	}
 
 	private static void generateRepetition(final IndentedStringBuilder sb, final String name, final Repetition r) {
@@ -200,6 +224,7 @@ public final class Generator {
 		int optionalCounter = 0;
 		int concatenationCounter = 0;
 		int repetitionCounter = 0;
+		int alternationCounter = 0;
 		while (!q.isEmpty()) {
 			final Node n = q.remove();
 			if (visited.contains(n)) {
@@ -232,6 +257,11 @@ public final class Generator {
 					NODE_NAMES.put(r, "repetition_" + repetitionCounter);
 					repetitionCounter++;
 					q.add(r.inner());
+				}
+				case Alternation a -> {
+					NODE_NAMES.put(a, "alternation_" + alternationCounter);
+					alternationCounter++;
+					q.addAll(a.nodes());
 				}
 				default -> throw new IllegalArgumentException(String.format("Unknown Node '%s'.", n));
 			}

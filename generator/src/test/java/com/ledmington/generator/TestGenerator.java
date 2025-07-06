@@ -51,6 +51,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import com.ledmington.ebnf.Alternation;
 import com.ledmington.ebnf.Concatenation;
 import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
@@ -110,7 +111,8 @@ public final class TestGenerator {
 			Arguments.of(
 					g(p(nt("S"), rep(cat(t("a"), opt(t("b")), t("c"))))),
 					List.of("", "ac", "abc", "acac", "abcabc", "acabc", "abcac"),
-					List.of("a", "b", "c", "ab", "bc", "aac", "acc", "abbc")));
+					List.of("a", "b", "c", "ab", "bc", "aac", "acc", "abbc")),
+			Arguments.of(g(p(nt("S"), alt(t("a"), t("b")))), List.of("a", "b"), List.of("", "ab", "aa", "bb", "ba")));
 
 	private static Grammar g(final Production... productions) {
 		return new Grammar(productions);
@@ -138,6 +140,10 @@ public final class TestGenerator {
 
 	private static Repetition rep(final Expression exp) {
 		return new Repetition(exp);
+	}
+
+	private static Alternation alt(final Expression... expressions) {
+		return new Alternation(expressions);
 	}
 
 	private static Stream<Arguments> onlyGrammars() {
