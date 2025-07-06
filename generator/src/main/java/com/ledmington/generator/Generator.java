@@ -40,33 +40,36 @@ public final class Generator {
 			final Node root, final String className, final String packageName, final String indent) {
 		generateNames(root);
 
-		final StringBuilder sb = new StringBuilder();
+		final IndentedStringBuilder sb = new IndentedStringBuilder(indent);
 		if (packageName != null && !packageName.isBlank()) {
 			sb.append("package ").append(packageName).append(";\n\n");
 		}
 		sb.append("public final class ")
 				.append(className)
-				.append(" {")
-				.append('\n')
-				.append(indent + "private char[] v = null;\n")
-				.append(indent + "private int pos = 0;\n")
-				.append(indent + "private interface Node {}\n")
-				.append(indent + "private record Terminal(String literal) implements Node {}\n")
-				.append(indent + "private record Optional(Node inner) implements Node {}\n");
-
-		sb.append(String.join(
-				"\n",
-				indent + "public Node parse(final String input) {",
-				indent + indent + "this.v = input.toCharArray();",
-				indent + indent + "this.pos = 0;",
-				indent + indent + "final Node result;",
-				indent + indent + "try {",
-				indent + indent + indent + "result = parse_S();",
-				indent + indent + "} catch (final ArrayIndexOutOfBoundsException e) {",
-				indent + indent + indent + "return null;",
-				indent + indent + "}",
-				indent + indent + "return (pos < v.length) ? null : result;",
-				indent + "}\n"));
+				.append(" {\n")
+				.indent()
+				.append("private char[] v = null;\n")
+				.append("private int pos = 0;\n")
+				.append("private interface Node {}\n")
+				.append("private record Terminal(String literal) implements Node {}\n")
+				.append("private record Optional(Node inner) implements Node {}\n")
+				.append("public Node parse(final String input) {\n")
+				.indent()
+				.append("this.v = input.toCharArray();\n")
+				.append("this.pos = 0;\n")
+				.append("final Node result;\n")
+				.append("try {\n")
+				.indent()
+				.append("result = parse_S();\n")
+				.deindent()
+				.append("} catch (final ArrayIndexOutOfBoundsException e) {\n")
+				.indent()
+				.append("return null;\n")
+				.deindent()
+				.append("}\n")
+				.append("return (pos < v.length) ? null : result;\n")
+				.deindent()
+				.append("}\n");
 
 		final Queue<Node> q = new ArrayDeque<>();
 		q.add(root);
@@ -76,29 +79,31 @@ public final class Generator {
 			switch (n) {
 				case Grammar g -> {
 					for (final Production p : g.productions()) {
-						sb.append(indent + "private Node parse_")
+						sb.append("private Node parse_")
 								.append(NODE_NAMES.get(p.start()))
 								.append("() {\n")
-								.append(indent + indent + "// ")
+								.indent()
+								.append("// ")
 								.append(String.join(
-										"\n" + indent + indent + "// ",
+										"\n// ",
 										Utils.prettyPrint(p.result(), "  ").split("\n")))
 								.append("\n")
-								.append(indent + indent + "return parse_" + NODE_NAMES.get(p.result()) + "();\n")
-								.append(indent + "}\n");
+								.append("return parse_" + NODE_NAMES.get(p.result()) + "();\n")
+								.deindent()
+								.append("}\n");
 						q.add(p.result());
 					}
 				}
-				case Terminal t -> generateTerminal(sb, indent, NODE_NAMES.get(t), t);
+				case Terminal t -> generateTerminal(sb, NODE_NAMES.get(t), t);
 				case Optional opt -> {
-					generateOptional(sb, indent, NODE_NAMES.get(opt), opt);
+					generateOptional(sb, NODE_NAMES.get(opt), opt);
 					q.add(opt.inner());
 				}
 				default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
 			}
 		}
 
-		return sb.append("}").toString();
+		return sb.deindent().append("}").toString();
 	}
 
 	private static void generateNames(final Node root) {
@@ -130,11 +135,10 @@ public final class Generator {
 		}
 	}
 
-	private static void generateTerminal(
-			final StringBuilder sb, final String indent, final String name, final Terminal t) {
-		sb.append(indent + "private Node parse_" + name + "() {\n");
+	private static void generateTerminal(final IndentedStringBuilder sb, final String name, final Terminal t) {
+		sb.append("private Node parse_" + name + "() {\n");
 		final String literal = t.literal();
-		sb.append(indent + indent + "if (pos ");
+		sb.indent().append("if (pos ");
 		if (literal.length() > 1) {
 			sb.append("+ ").append(literal.length() - 1).append(" ");
 		}
@@ -147,23 +151,29 @@ public final class Generator {
 					.append("'");
 		}
 		sb.append(") {\n")
-				.append(indent + indent + indent + "this.pos += ")
+				.indent()
+				.append("this.pos += ")
 				.append(literal.length())
 				.append(";\n")
-				.append(indent + indent + indent + "return new Terminal(\"")
+				.append("return new Terminal(\"")
 				.append(literal)
 				.append("\");\n")
-				.append(indent + indent + "} else {\n")
-				.append(indent + indent + indent + "return null;\n")
-				.append(indent + indent + "}\n")
-				.append(indent + "}\n");
+				.deindent()
+				.append("} else {\n")
+				.indent()
+				.append("return null;\n")
+				.deindent()
+				.append("}\n")
+				.deindent()
+				.append("}\n");
 	}
 
-	private static void generateOptional(
-			final StringBuilder sb, final String indent, final String name, final Optional o) {
-		sb.append(indent + "private Node parse_" + name + "() {\n")
-				.append(indent + indent + "final Node inner = parse_" + NODE_NAMES.get(o.inner()) + "();\n")
-				.append(indent + indent + "return new Optional(inner);\n")
-				.append(indent + "}\n");
+	private static void generateOptional(final IndentedStringBuilder sb, final String name, final Optional o) {
+		sb.append("private Node parse_" + name + "() {\n")
+				.indent()
+				.append("final Node inner = parse_" + NODE_NAMES.get(o.inner()) + "();\n")
+				.append("return new Optional(inner);\n")
+				.deindent()
+				.append("}\n");
 	}
 }
