@@ -278,6 +278,10 @@ public final class Generator {
 		}
 	}
 
+	private static boolean needsEscaping(final char ch) {
+		return ch == '\'' || ch == '\\';
+	}
+
 	private static void generateTerminal(final IndentedStringBuilder sb, final String name, final Terminal t) {
 		sb.append("private Node parse_" + name + "() {\n");
 		final String literal = t.literal();
@@ -285,12 +289,14 @@ public final class Generator {
 		if (literal.length() > 1) {
 			sb.append("+ ").append(literal.length() - 1).append(" ");
 		}
-		sb.append("< v.length && v[pos] == '").append(literal.charAt(0)).append("'");
+		sb.append("< v.length && v[pos] == '")
+				.append((needsEscaping(literal.charAt(0)) ? "\\" : "") + literal.charAt(0))
+				.append("'");
 		for (int i = 1; i < literal.length(); i++) {
 			sb.append(" && v[pos+")
 					.append(i)
 					.append("] == '")
-					.append(literal.charAt(i))
+					.append((needsEscaping(literal.charAt(i)) ? "\\" : "") + literal.charAt(i))
 					.append("'");
 		}
 		sb.append(") {\n")
@@ -299,7 +305,7 @@ public final class Generator {
 				.append(literal.length())
 				.append(";\n")
 				.append("return new Terminal(\"")
-				.append(literal)
+				.append(((literal.length() == 1 && needsEscaping(literal.charAt(0))) ? "\\" : "") + literal)
 				.append("\");\n")
 				.deindent()
 				.append("} else {\n")

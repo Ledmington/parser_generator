@@ -131,7 +131,15 @@ public final class TestGenerator {
 									alt(t("1"), t("2"), t("3"), t("4"), t("5"), t("6"), t("7"), t("8"), t("9"))),
 							p(nt("digit"), alt(nt("zero"), nt("digit excluding zero")))),
 					List.of("0", "+0", "-0", "1", "+99", "-69", "123456789"),
-					List.of("", "01", "001", "1a", "1.0")));
+					List.of("", "01", "001", "1a", "1.0")),
+			Arguments.of(
+					g(p(nt("S"), cat(t("'"), alt(t("a"), t("b")), t("'")))),
+					List.of("'a'", "'b'"),
+					List.of("", "'a", "a'", "'''", "'a''", "'a'b'")),
+			Arguments.of(
+					g(p(nt("S"), cat(t("\\"), alt(t("n"), t("t"))))),
+					List.of("\\n", "\\t"),
+					List.of("", "\\", "\n", "\t", "n", "t")));
 
 	private static Grammar g(final Production... productions) {
 		return new Grammar(productions);
