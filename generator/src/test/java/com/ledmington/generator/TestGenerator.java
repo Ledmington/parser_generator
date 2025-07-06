@@ -47,7 +47,6 @@ import javax.tools.SimpleJavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -63,18 +62,6 @@ import com.ledmington.ebnf.Utils;
 public final class TestGenerator {
 
 	private TestGenerator() {}
-
-	private static final JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-	private static final DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
-	private static final StandardJavaFileManager standardFileManager =
-			compiler.getStandardFileManager(diagnostics, Locale.US, StandardCharsets.UTF_8);
-
-	@BeforeAll
-	static void setup() {
-		if (compiler == null) {
-			throw new RuntimeException("No compiler available. Run with a JDK.");
-		}
-	}
 
 	private static final List<Arguments> TEST_CASES = List.of(
 			Arguments.of(
@@ -178,6 +165,15 @@ public final class TestGenerator {
 	}
 
 	private static Class<?> compileJavaSource(final String className, final String sourceCode) {
+		final JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+		if (compiler == null) {
+			throw new RuntimeException("No compiler available. Run with a JDK.");
+		}
+
+		final DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
+		final StandardJavaFileManager standardFileManager =
+				compiler.getStandardFileManager(diagnostics, Locale.US, StandardCharsets.UTF_8);
+
 		// Prepare source file object
 		final JavaSourceFromString sourceObject = new JavaSourceFromString(className, sourceCode);
 
