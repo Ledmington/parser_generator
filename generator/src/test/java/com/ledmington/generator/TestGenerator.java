@@ -52,6 +52,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import com.ledmington.ebnf.Concatenation;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.Optional;
@@ -99,7 +100,12 @@ public final class TestGenerator {
 							new Production(new NonTerminal("S"), new NonTerminal("T")),
 							new Production(new NonTerminal("T"), new Optional(new Terminal("a")))),
 					List.of("", "a"),
-					List.of("b", "aa")));
+					List.of("b", "aa")),
+			Arguments.of(
+					new Grammar(new Production(
+							new NonTerminal("S"), new Concatenation(new Terminal("a"), new Terminal("b")))),
+					List.of("ab"),
+					List.of("", "a", "b", "aab", "abb", "c")));
 
 	private static Stream<Arguments> onlyGrammars() {
 		return TEST_CASES.stream().map(tc -> Arguments.of(tc.get()[0]));
@@ -194,7 +200,6 @@ public final class TestGenerator {
 					null,
 					List.of(sourceObject));
 			final boolean success = task.call();
-			System.out.println(sourceCode);
 
 			assertTrue(
 					success,

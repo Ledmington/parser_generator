@@ -19,9 +19,11 @@ package com.ledmington.generator;
 
 import java.util.ArrayDeque;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 
+import com.ledmington.ebnf.Concatenation;
 import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Node;
@@ -45,7 +47,9 @@ public final class Generator {
 		if (packageName != null && !packageName.isBlank()) {
 			sb.append("package ").append(packageName).append(";\n\n");
 		}
-		sb.append("public final class ")
+		sb.append("import java.util.List;\n")
+				.append("import java.util.ArrayList;\n")
+				.append("public final class ")
 				.append(className)
 				.append(" {\n")
 				.indent()
@@ -54,6 +58,7 @@ public final class Generator {
 				.append("private interface Node {}\n")
 				.append("private record Terminal(String literal) implements Node {}\n")
 				.append("private record Optional(Node inner) implements Node {}\n")
+				.append("private record Sequence(List<Node> nodes) implements Node {}\n")
 				.append("public Node parse(final String input) {\n")
 				.indent()
 				.append("this.v = input.toCharArray();\n")
@@ -93,11 +98,36 @@ public final class Generator {
 					// No need to generate anything here because we already handle non-terminals when visiting
 					// the grammar's productions
 				}
+				case Concatenation c -> {
+					generateConcatenation(sb, NODE_NAMES.get(c), c);
+					q.addAll(c.nodes());
+				}
 				default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
 			}
 		}
 
 		return sb.deindent().append("}").toString();
+	}
+
+	private static void generateConcatenation(
+			final IndentedStringBuilder sb, final String name, final Concatenation c) {
+		sb.append("private Node parse_" + name + "() {\n")
+				.indent()
+				.append("final List<Node> nodes = new ArrayList<>();\n");
+
+		final List<Expression> seq = c.nodes();
+		for (int i = 0; i < seq.size(); i++) {
+			final String nodeName = "n_" + i;
+			sb.append("final Node " + nodeName + " = parse_" + NODE_NAMES.get(seq.get(i)) + "();\n")
+					.append("if (" + nodeName + " == null) {\n")
+					.indent()
+					.append("return null;\n")
+					.deindent()
+					.append("}\n")
+					.append("nodes.add(" + nodeName + ");\n");
+		}
+
+		sb.append("return new Sequence(nodes);\n").deindent().append("}\n");
 	}
 
 	private static void generateNonTerminal(
@@ -120,6 +150,7 @@ public final class Generator {
 
 		int terminalCounter = 0;
 		int optionalCounter = 0;
+		int concatenationCounter = 0;
 		while (!q.isEmpty()) {
 			final Node n = q.remove();
 			switch (n) {
@@ -137,6 +168,11 @@ public final class Generator {
 				case Optional opt -> {
 					NODE_NAMES.put(opt, "optional_" + optionalCounter);
 					optionalCounter++;
+				}
+				case Concatenation c -> {
+					NODE_NAMES.put(c, "concatenation_" + concatenationCounter);
+					concatenationCounter++;
+					q.addAll(c.nodes());
 				}
 				default -> throw new IllegalArgumentException(String.format("Unknown Node '%s'.", n));
 			}
