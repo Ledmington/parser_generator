@@ -93,7 +93,13 @@ public final class TestGenerator {
 							new Production(new NonTerminal("S"), new NonTerminal("T")),
 							new Production(new NonTerminal("T"), new Terminal("a"))),
 					List.of("a"),
-					List.of("", "b", "aa")));
+					List.of("", "b", "aa")),
+			Arguments.of(
+					new Grammar(
+							new Production(new NonTerminal("S"), new NonTerminal("T")),
+							new Production(new NonTerminal("T"), new Optional(new Terminal("a")))),
+					List.of("", "a"),
+					List.of("b", "aa")));
 
 	private static Stream<Arguments> onlyGrammars() {
 		return TEST_CASES.stream().map(tc -> Arguments.of(tc.get()[0]));
