@@ -95,7 +95,9 @@ public final class TestGenerator {
 							p(nt("U"), opt(t("b"))),
 							p(nt("V"), opt(t("c")))),
 					List.of("", "a", "b", "c", "ab", "ac", "bc", "abc"),
-					List.of("cb", "ca", "ba", "cba", "aba", "bcb", "aabc", "abd")));
+					List.of("cb", "ca", "ba", "cba", "aba", "bcb", "aabc", "abd")),
+			Arguments.of(
+					g(p(nt("S"), cat(nt("T"), t("a"))), p(nt("T"), t("a"))), List.of("aa"), List.of("", "a", "aaa")));
 
 	private static Grammar g(final Production... productions) {
 		return new Grammar(productions);

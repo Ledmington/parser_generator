@@ -19,9 +19,11 @@ package com.ledmington.generator;
 
 import java.util.ArrayDeque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 
 import com.ledmington.ebnf.Concatenation;
 import com.ledmington.ebnf.Expression;
@@ -87,10 +89,15 @@ public final class Generator {
 				.append("}\n");
 
 		final Queue<Node> q = new ArrayDeque<>();
+		final Set<Node> visited = new HashSet<>();
 		q.add(root);
 
 		while (!q.isEmpty()) {
 			final Node n = q.remove();
+			if (visited.contains(n)) {
+				continue;
+			}
+			visited.add(n);
 			switch (n) {
 				case Grammar g -> {
 					for (final Production p : g.productions()) {
@@ -157,6 +164,7 @@ public final class Generator {
 
 	private static void generateNames(final Node root) {
 		final Queue<Node> q = new ArrayDeque<>();
+		final Set<Node> visited = new HashSet<>();
 		q.add(root);
 
 		int terminalCounter = 0;
@@ -164,6 +172,10 @@ public final class Generator {
 		int concatenationCounter = 0;
 		while (!q.isEmpty()) {
 			final Node n = q.remove();
+			if (visited.contains(n)) {
+				continue;
+			}
+			visited.add(n);
 			switch (n) {
 				case Grammar g -> {
 					for (final Production p : g.productions()) {
