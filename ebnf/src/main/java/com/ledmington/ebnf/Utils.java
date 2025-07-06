@@ -19,10 +19,18 @@ package com.ledmington.ebnf;
 
 import java.util.List;
 
+/** A collection of various utilities. */
 public final class Utils {
 
 	private Utils() {}
 
+	/**
+	 * Returns a String representing the given tree with the given level of indentation.
+	 *
+	 * @param root The root of the tree to be serialized.
+	 * @param indent The level of indentation to use.
+	 * @return An indented String representation of the tree.
+	 */
 	public static String prettyPrint(final Node root, final String indent) {
 		final StringBuilder sb = new StringBuilder();
 		prettyPrint(sb, root, "", indent);

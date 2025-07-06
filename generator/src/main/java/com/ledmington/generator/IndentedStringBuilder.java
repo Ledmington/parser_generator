@@ -19,12 +19,18 @@ package com.ledmington.generator;
 
 import java.util.Objects;
 
+/** A custom extension of the Java standard library's {@link StringBuilder} to easily handle indentation. */
 public final class IndentedStringBuilder {
 
 	private final String indent;
 	private int indentLevel = 0;
 	private final StringBuilder sb = new StringBuilder();
 
+	/**
+	 * Creates a new IndentedStringBuilder with the given level of indentation.
+	 *
+	 * @param indent The level of indentation.
+	 */
 	public IndentedStringBuilder(final String indent) {
 		this.indent = Objects.requireNonNull(indent);
 	}
@@ -48,28 +54,60 @@ public final class IndentedStringBuilder {
 		}
 	}
 
+	/**
+	 * Appends the given String and adds the proper indentation where needed.
+	 *
+	 * @param s The String to be appended.
+	 * @return This instance of IndentedStringBuilder.
+	 */
 	public IndentedStringBuilder append(final String s) {
 		add(s);
 		return this;
 	}
 
+	/**
+	 * Appends the given character and adds the proper indentation where needed.
+	 *
+	 * @param c The character to be appended.
+	 * @return This instance of IndentedStringBuilder.
+	 */
 	public IndentedStringBuilder append(final char c) {
 		add(String.valueOf(c));
 		return this;
 	}
 
+	/**
+	 * Appends the given integer and adds the proper indentation where needed.
+	 *
+	 * @param x The integer to be appended.
+	 * @return This instance of IndentedStringBuilder.
+	 */
 	public IndentedStringBuilder append(final int x) {
 		add(String.valueOf(x));
 		return this;
 	}
 
+	/**
+	 * Adds a single level of indentation.
+	 *
+	 * @return This instance of IndentedStringBuilder.c
+	 */
 	public IndentedStringBuilder indent() {
 		indentLevel++;
 		return this;
 	}
 
+	/**
+	 * Removes a single level of indentation.
+	 *
+	 * @return This instance of IndentedStringBuilder.
+	 * @throws IllegalStateException When calling this method with an indentation level of 0.
+	 */
 	public IndentedStringBuilder deindent() {
 		indentLevel--;
+		if (indentLevel < 0) {
+			throw new IllegalStateException("Negative indentation level.");
+		}
 		return this;
 	}
 

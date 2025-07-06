@@ -36,12 +36,22 @@ import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Repetition;
 import com.ledmington.ebnf.Terminal;
 
+/** Generates Java code to parse a specified EBNF grammar. */
 public final class Generator {
 
 	private static final Map<Node, String> NODE_NAMES = new HashMap<>();
 
 	private Generator() {}
 
+	/**
+	 * Generates a String containing Java source code to parse the given EBNF grammar.
+	 *
+	 * @param root The root of the Node tree representing the structure of the EBNF grammar.
+	 * @param className The name of the parser class produced.
+	 * @param packageName The name of the package to output.
+	 * @param indent The level of indentation to use when generating source code.
+	 * @return The indented Java source code of the parser of the given EBNF grammar.
+	 */
 	public static String generate(
 			final Node root, final String className, final String packageName, final String indent) {
 		generateNames(root);
