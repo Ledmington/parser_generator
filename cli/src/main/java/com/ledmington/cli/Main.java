@@ -40,6 +40,7 @@ public class Main {
 	public static void main(final String[] args) {
 		String grammarFile = null;
 		String outputFile = null;
+		boolean verbose = false;
 
 		for (int i = 0; i < args.length; i++) {
 			switch (args[i]) {
@@ -50,12 +51,14 @@ public class Main {
 							" Parser Generator - A zero-dependency parser generator",
 							"",
 							" -h, --help             Displays this message and exits.",
+							" -v, --verbose          Displays useful information while parsing the grammar.",
 							" -g, --grammar GRAMMAR  Reads the EBNF grammar from the given GRAMMAR file.",
 							" -o, --output OUTPUT    Writes the resulting parser in the given OUTPUT file.",
 							""));
 					System.exit(0);
 					return;
 				}
+				case "-v", "--verbose" -> verbose = true;
 				case "-g", "--grammar" -> {
 					i++;
 					if (grammarFile != null) {
@@ -87,7 +90,9 @@ public class Main {
 		final Grammar g;
 		try {
 			g = Parser.parse(Files.readString(Path.of(grammarFile)));
-			System.out.println(Utils.prettyPrint(g, "  "));
+			if (verbose) {
+				System.out.println(Utils.prettyPrint(g, "  "));
+			}
 		} catch (final IOException e) {
 			throw new RuntimeException(e);
 		}

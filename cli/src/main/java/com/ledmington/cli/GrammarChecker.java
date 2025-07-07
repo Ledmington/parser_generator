@@ -42,6 +42,9 @@ public final class GrammarChecker {
 
 	public static String check(final Grammar g) {
 		Objects.requireNonNull(g);
+		// TODO: check for non-terminals without a corresponding production
+		// TODO: check for duplicated non-terminals
+		// TODO: check for circular dependencies
 		return findStartSymbol(g);
 	}
 
