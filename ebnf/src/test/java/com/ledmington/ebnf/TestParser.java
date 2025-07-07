@@ -110,9 +110,9 @@ public final class TestParser {
 									nt("concatenation"),
 									cat(
 											nt("whitespace"),
-											nt("factor"),
+											nt("term"),
 											nt("whitespace"),
-											rep(cat(t(","), nt("whitespace"), nt("factor"), nt("whitespace"))))),
+											rep(cat(t(","), nt("whitespace"), nt("term"), nt("whitespace"))))),
 							p(
 									nt("alternation"),
 									cat(

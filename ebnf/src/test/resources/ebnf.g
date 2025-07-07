@@ -27,7 +27,7 @@ term = "[" , whitespace , rhs , whitespace , "]"
      | terminal
      | identifier ;
 
-concatenation = whitespace , factor , whitespace , { ",", whitespace , factor , whitespace } ;
+concatenation = whitespace , term , whitespace , { ",", whitespace , term , whitespace } ;
 alternation = whitespace , concatenation , whitespace , { "|" , whitespace , concatenation , whitespace } ;
 
 rhs = alternation ;
