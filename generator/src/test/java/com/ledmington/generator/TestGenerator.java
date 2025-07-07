@@ -137,6 +137,10 @@ public final class TestGenerator {
 					List.of("'a'", "'b'"),
 					List.of("", "'a", "a'", "'''", "'a''", "'a'b'")),
 			Arguments.of(
+					g(p(nt("S"), cat(t("\""), alt(t("a"), t("b")), t("\"")))),
+					List.of("\"a\"", "\"b\""),
+					List.of("", "\"a", "a\"", "\"\"\"", "\"a\"\"", "\"a\"b\"")),
+			Arguments.of(
 					g(p(nt("S"), cat(t("\\"), alt(t("n"), t("t"))))),
 					List.of("\\n", "\\t"),
 					List.of("", "\\", "\n", "\t", "n", "t")));

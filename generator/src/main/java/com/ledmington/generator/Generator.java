@@ -279,7 +279,7 @@ public final class Generator {
 	}
 
 	private static boolean needsEscaping(final char ch) {
-		return ch == '\'' || ch == '\\';
+		return ch == '\'' || ch == '\"' || ch == '\\';
 	}
 
 	private static void generateTerminal(final IndentedStringBuilder sb, final String name, final Terminal t) {
