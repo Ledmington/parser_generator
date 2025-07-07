@@ -53,7 +53,11 @@ public final class Generator {
 	 * @return The indented Java source code of the parser of the given EBNF grammar.
 	 */
 	public static String generate(
-			final Node root, final String className, final String packageName, final String indent) {
+			final Node root,
+			final String className,
+			final String packageName,
+			final String startSymbol,
+			final String indent) {
 		generateNames(root);
 
 		final boolean atLeastOneOptional = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Optional);
@@ -97,7 +101,7 @@ public final class Generator {
 				.append("final Node result;\n")
 				.append("try {\n")
 				.indent()
-				.append("result = parse_S();\n")
+				.append("result = parse_" + startSymbol + "();\n")
 				.deindent()
 				.append("} catch (final ArrayIndexOutOfBoundsException e) {\n")
 				.indent()

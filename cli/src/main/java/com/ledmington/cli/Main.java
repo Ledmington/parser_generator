@@ -25,7 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 
-import com.ledmington.ebnf.Node;
+import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Parser;
 import com.ledmington.ebnf.Utils;
 import com.ledmington.generator.Generator;
@@ -49,21 +49,21 @@ public class Main {
 							"",
 							" Parser Generator - A zero-dependency parser generator",
 							"",
-							" -h, --help  Displays this message and exits.",
-							" -g GRAMMAR  Reads the EBNF grammar from the given GRAMMAR file.",
-							" -o OUTPUT   Writes the resulting parser in the given OUTPUT file.",
+							" -h, --help             Displays this message and exits.",
+							" -g, --grammar GRAMMAR  Reads the EBNF grammar from the given GRAMMAR file.",
+							" -o, --output OUTPUT    Writes the resulting parser in the given OUTPUT file.",
 							""));
 					System.exit(0);
 					return;
 				}
-				case "-g" -> {
+				case "-g", "--grammar" -> {
 					i++;
 					if (grammarFile != null) {
 						die("Cannot set grammar file twice, was already '%s'.%n", grammarFile);
 					}
 					grammarFile = args[i];
 				}
-				case "-o" -> {
+				case "-o", "--output" -> {
 					i++;
 					if (outputFile != null) {
 						die("Cannot set output file twice, was already '%s'.%n", outputFile);
@@ -84,13 +84,15 @@ public class Main {
 		Objects.requireNonNull(grammarFile);
 		Objects.requireNonNull(outputFile);
 
-		final Node root;
+		final Grammar g;
 		try {
-			root = Parser.parse(Files.readString(Path.of(grammarFile)));
-			System.out.println(Utils.prettyPrint(root, "  "));
+			g = Parser.parse(Files.readString(Path.of(grammarFile)));
+			System.out.println(Utils.prettyPrint(g, "  "));
 		} catch (final IOException e) {
 			throw new RuntimeException(e);
 		}
+
+		final String startSymbol = GrammarChecker.check(g);
 
 		if (outputFile.endsWith(".java")) {
 			outputFile = outputFile.substring(0, outputFile.length() - 5);
@@ -103,7 +105,7 @@ public class Main {
 			final String packageName =
 					idx < 0 ? "unknown" : outputFile.substring(0, idx).replace(File.separator, ".");
 			final String indent = "\t";
-			bw.write(Generator.generate(root, className, packageName, indent));
+			bw.write(Generator.generate(g, className, packageName, startSymbol, indent));
 		} catch (final IOException e) {
 			throw new RuntimeException(e);
 		}
