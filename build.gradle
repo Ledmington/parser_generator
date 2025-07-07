@@ -140,7 +140,9 @@ spotless {
 
     java {
         target fileTree('.') {
-            include path('**', '*.java')
+            include path('cli', '**', '*.java')
+            include path('ebnf', '**', '*.java')
+            include path('generator', '**', '*.java')
             exclude path('**', 'build', '**'), path('**', 'build-*', '**'), path('**', 'bin', '**')
         }
         setEncoding('utf-8')
