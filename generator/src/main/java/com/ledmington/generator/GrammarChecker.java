@@ -42,32 +42,41 @@ public final class GrammarChecker {
 
 	public static String check(final Grammar g) {
 		Objects.requireNonNull(g);
-		// TODO: check for non-terminals without a corresponding production
+
+		// Gather all non-terminals
+		final Set<String> allNonTerminals = new HashSet<>();
+		for (final Production p : g.productions()) {
+			allNonTerminals.add(p.start().name());
+			allNonTerminals.addAll(findAllNonTerminals(p.result()));
+		}
+
+		for (final String name : allNonTerminals) {
+			if (g.productions().stream().noneMatch(p -> p.start().name().equals(name))) {
+				throw new UnusableNonTerminalException(name);
+			}
+		}
+
 		// TODO: check for duplicated non-terminals
 		// TODO: check for circular dependencies
-		return findStartSymbol(g);
+		return findStartSymbol(g, allNonTerminals);
 	}
 
-	private static String findStartSymbol(final Grammar g) {
+	private static String findStartSymbol(final Grammar g, final Set<String> nonTerminals) {
 		final Map<String, Set<String>> graph = new HashMap<>();
-		final Set<String> allNonTerminals = new HashSet<>();
 		for (final Production p : g.productions()) {
 			final String s = p.start().name();
 			final Set<String> outEdges = findAllNonTerminals(p.result());
 
 			graph.put(s, outEdges);
-
-			allNonTerminals.add(s);
-			allNonTerminals.addAll(outEdges);
 		}
 		for (final Map.Entry<String, Set<String>> e : graph.entrySet()) {
 			final String possibleStartSymbol = e.getKey();
 			final Set<String> visited = bfs(possibleStartSymbol, graph);
-			if (visited.equals(allNonTerminals)) {
+			if (visited.equals(nonTerminals)) {
 				return possibleStartSymbol;
 			}
 		}
-		throw new RuntimeException("No unique start symbol in grammar.");
+		throw new NoUniqueStartSymbolException();
 	}
 
 	private static Set<String> bfs(final String start, final Map<String, Set<String>> graph) {

@@ -17,29 +17,14 @@
  */
 package com.ledmington.generator;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import java.io.Serial;
 
-import org.junit.jupiter.api.Test;
+public final class UnusableNonTerminalException extends RuntimeException {
 
-import com.ledmington.ebnf.Grammar;
-import com.ledmington.ebnf.NonTerminal;
-import com.ledmington.ebnf.Production;
-import com.ledmington.ebnf.Terminal;
+	@Serial
+	private static final long serialVersionUID = 8643487188267532790L;
 
-public final class TestGrammarChecker {
-	@Test
-	void multipleStartSymbols() {
-		assertThrows(
-				NoUniqueStartSymbolException.class,
-				() -> GrammarChecker.check(new Grammar(
-						new Production(new NonTerminal("S"), new Terminal("a")),
-						new Production(new NonTerminal("T"), new Terminal("b")))));
-	}
-
-	@Test
-	void unusableNonTerminals() {
-		assertThrows(
-				UnusableNonTerminalException.class,
-				() -> GrammarChecker.check(new Grammar(new Production(new NonTerminal("S"), new NonTerminal("T")))));
+	public UnusableNonTerminalException(final String nonTerminalName) {
+		super(String.format("The non-terminal '%s' does not have a production.", nonTerminalName));
 	}
 }
