@@ -42,4 +42,13 @@ public final class TestGrammarChecker {
 				UnusableNonTerminalException.class,
 				() -> GrammarChecker.check(new Grammar(new Production(new NonTerminal("S"), new NonTerminal("T")))));
 	}
+
+	@Test
+	void duplicatedNonTerminals() {
+		assertThrows(
+				DuplicatedNonTerminalException.class,
+				() -> GrammarChecker.check(new Grammar(
+						new Production(new NonTerminal("S"), new Terminal("a")),
+						new Production(new NonTerminal("S"), new Terminal("b")))));
+	}
 }

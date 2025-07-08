@@ -56,8 +56,14 @@ public final class GrammarChecker {
 			}
 		}
 
-		// TODO: check for duplicated non-terminals
-		// TODO: check for circular dependencies
+		for (final Production prod : g.productions()) {
+			if (g.productions().stream()
+					.anyMatch(p ->
+							p != prod && p.start().name().equals(prod.start().name()))) {
+				throw new DuplicatedNonTerminalException(prod.start().name());
+			}
+		}
+
 		return findStartSymbol(g, allNonTerminals);
 	}
 
