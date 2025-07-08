@@ -29,6 +29,7 @@ import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Parser;
 import com.ledmington.ebnf.Utils;
 import com.ledmington.generator.Generator;
+import com.ledmington.generator.GrammarChecker;
 
 public class Main {
 
