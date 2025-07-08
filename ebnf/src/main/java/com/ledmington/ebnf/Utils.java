@@ -17,6 +17,7 @@
  */
 package com.ledmington.ebnf;
 
+import java.util.Iterator;
 import java.util.List;
 
 /** A collection of various utilities. */
@@ -43,12 +44,11 @@ public final class Utils {
 			case Grammar g -> {
 				sb.append(indentString).append("Grammar {\n");
 				if (!g.productions().isEmpty()) {
-					prettyPrint(sb, g.productions().getFirst(), indentString + indent, indent);
-					sb.append('\n');
-					for (int i = 1; i < g.productions().size(); i++) {
-						prettyPrint(sb, g.productions().get(i), indentString + indent, indent);
+					final Iterator<Production> it = g.productions().iterator();
+					do {
+						prettyPrint(sb, it.next(), indentString + indent, indent);
 						sb.append('\n');
-					}
+					} while (it.hasNext());
 				}
 				sb.append(indentString).append("}");
 			}
