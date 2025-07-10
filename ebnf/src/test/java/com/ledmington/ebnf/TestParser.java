@@ -135,7 +135,7 @@ public final class TestParser {
 							p(nt("grammar"), rep(cat(nt("whitespace"), nt("rule"), nt("whitespace")))))));
 
 	private static final List<String> INVALID_TEST_CASES =
-			List.of("=", ";", "a", "a=\";", "a=\"a\",;", "a=,\"a\";", "a=\"a\",,\"a\";");
+			List.of("=", ";", "a", "a=\";", "a=\"a\",;", "a=,\"a\";", "a=\"a\",,\"a\";", "a=\"a\nb\";");
 
 	private static String readFile(final String filename) {
 		final URL url = Thread.currentThread().getContextClassLoader().getResource(filename);

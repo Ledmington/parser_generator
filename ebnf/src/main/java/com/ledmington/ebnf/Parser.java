@@ -243,6 +243,10 @@ public final class Parser {
 		it.next();
 		final StringBuilder sb = new StringBuilder();
 		while (it.current() != CharacterIterator.DONE && it.current() != DOUBLE_QUOTES) {
+			if (it.current() == '\n') {
+				// string literals must be on the same line
+				throw new ParsingException("Unexpected newline while reading string literal.");
+			}
 			final int idx = it.getIndex();
 			if (it.current() == '\\') {
 				it.next();
