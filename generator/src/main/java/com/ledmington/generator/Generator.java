@@ -57,7 +57,8 @@ public final class Generator {
 			final String className,
 			final String packageName,
 			final String startSymbol,
-			final String indent) {
+			final String indent,
+			final boolean generateMainMethod) {
 		generateNames(root);
 
 		final boolean atLeastOneOptional = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Optional);
@@ -71,6 +72,11 @@ public final class Generator {
 		}
 		if (atLeastOneConcatenation || atLeastOneRepetition) {
 			sb.append("import java.util.List;\n").append("import java.util.ArrayList;\n");
+		}
+		if (generateMainMethod) {
+			sb.append("import java.io.IOException;\n")
+					.append("import java.nio.file.Files;\n")
+					.append("import java.nio.file.Path;");
 		}
 		sb.append("import java.util.Stack;\n\n")
 				.append("public final class ")
@@ -152,6 +158,32 @@ public final class Generator {
 				}
 				default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
 			}
+		}
+
+		if (generateMainMethod) {
+			sb.append("public static void main(final String[] args) {\n")
+					.indent()
+					.append("if (args.length != 1) {\n")
+					.indent()
+					.append("throw new RuntimeException(\"Expected the file to read input from.\");\n")
+					.deindent()
+					.append("}\n")
+					.append("final ")
+					.append(className)
+					.append(" parser = new ")
+					.append(className)
+					.append("();\n")
+					.append("try {\n")
+					.indent()
+					.append("System.out.println(parser.parse(Files.readString(Path.of(args[0]))));\n")
+					.deindent()
+					.append("} catch (final IOException e) {\n")
+					.indent()
+					.append("throw new RuntimeException(e);\n")
+					.deindent()
+					.append("}\n")
+					.deindent()
+					.append("}\n");
 		}
 
 		return sb.deindent().append("}").toString();

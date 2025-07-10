@@ -42,6 +42,7 @@ public class Main {
 		String grammarFile = null;
 		String outputFile = null;
 		boolean verbose = false;
+		boolean generateMainMethod = false;
 
 		for (int i = 0; i < args.length; i++) {
 			switch (args[i]) {
@@ -55,11 +56,17 @@ public class Main {
 							" -v, --verbose          Displays useful information while parsing the grammar.",
 							" -g, --grammar GRAMMAR  Reads the EBNF grammar from the given GRAMMAR file.",
 							" -o, --output OUTPUT    Writes the resulting parser in the given OUTPUT file.",
+							" -m, --main             Generates a main method to create a self-contained parser.",
 							""));
 					System.exit(0);
 					return;
 				}
-				case "-v", "--verbose" -> verbose = true;
+				case "-v", "--verbose" -> {
+					if (verbose) {
+						die("Cannot set verbosity twice.");
+					}
+					verbose = true;
+				}
 				case "-g", "--grammar" -> {
 					i++;
 					if (grammarFile != null) {
@@ -73,6 +80,12 @@ public class Main {
 						die("Cannot set output file twice, was already '%s'.%n", outputFile);
 					}
 					outputFile = args[i];
+				}
+				case "-m", "--main" -> {
+					if (generateMainMethod) {
+						die("Cannot generate main method twice.");
+					}
+					generateMainMethod = true;
 				}
 				default -> die("Unknown command-line argument: '%s'.%n", args[i]);
 			}
@@ -111,7 +124,7 @@ public class Main {
 			final String packageName =
 					idx < 0 ? "unknown" : outputFile.substring(0, idx).replace(File.separator, ".");
 			final String indent = "\t";
-			bw.write(Generator.generate(g, className, packageName, startSymbol, indent));
+			bw.write(Generator.generate(g, className, packageName, startSymbol, indent, generateMainMethod));
 		} catch (final IOException e) {
 			throw new RuntimeException(e);
 		}
