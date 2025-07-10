@@ -43,6 +43,7 @@ public class Main {
 		String outputFile = null;
 		boolean verbose = false;
 		boolean generateMainMethod = false;
+		String packageName = "unknown";
 
 		for (int i = 0; i < args.length; i++) {
 			switch (args[i]) {
@@ -57,6 +58,7 @@ public class Main {
 							" -g, --grammar GRAMMAR  Reads the EBNF grammar from the given GRAMMAR file.",
 							" -o, --output OUTPUT    Writes the resulting parser in the given OUTPUT file.",
 							" -m, --main             Generates a main method to create a self-contained parser.",
+							" -p, --package PACKAGE  Sets PACKAGE as the package name of the generated class.",
 							""));
 					System.exit(0);
 					return;
@@ -80,6 +82,13 @@ public class Main {
 						die("Cannot set output file twice, was already '%s'.%n", outputFile);
 					}
 					outputFile = args[i];
+				}
+				case "-p", "--package" -> {
+					i++;
+					if (!packageName.equals("unknown")) {
+						die("Cannot set package name twice, was already '%s'.%n", packageName);
+					}
+					packageName = args[i];
 				}
 				case "-m", "--main" -> {
 					if (generateMainMethod) {
@@ -121,8 +130,6 @@ public class Main {
 		try (final BufferedWriter bw = Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8)) {
 			final int idx = outputFile.lastIndexOf(File.separator);
 			final String className = idx < 0 ? outputFile : outputFile.substring(idx + 1);
-			final String packageName =
-					idx < 0 ? "unknown" : outputFile.substring(0, idx).replace(File.separator, ".");
 			final String indent = "\t";
 			bw.write(Generator.generate(g, className, packageName, startSymbol, indent, generateMainMethod));
 		} catch (final IOException e) {
