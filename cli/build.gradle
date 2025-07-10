@@ -52,5 +52,13 @@ tasks.register('fatJar', Jar) {
     }
 }
 
+tasks.register('integrationTest', Exec) {
+    group = 'verification'
+    description = 'Runs the integration tests using the fat JAR and a bash script.'
+    dependsOn fatJar
+    commandLine path("${rootProject.projectDir}", "integration", "run_tests.sh"), fatJarPath
+}
+
+tasks.test.dependsOn(integrationTest)
 tasks.build.dependsOn(fatJar)
 tasks.javadoc.enabled = false
