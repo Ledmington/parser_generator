@@ -1,0 +1,1 @@
+Sequence[nodes=[Optional[inner=null], Alternation[inner=Sequence[nodes=[Alternation[inner=Terminal[literal=1]], Repetition[nodes=[Alternation[inner=Alternation[inner=Terminal[literal=2]]], Alternation[inner=Alternation[inner=Terminal[literal=3]]]]]]]]]]
