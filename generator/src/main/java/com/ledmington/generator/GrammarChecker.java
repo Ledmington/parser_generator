@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.ledmington.ebnf.Alternation;
 import com.ledmington.ebnf.Concatenation;
@@ -56,11 +57,15 @@ public final class GrammarChecker {
 			}
 		}
 
-		for (final Production prod : g.productions()) {
-			if (g.productions().stream()
-					.anyMatch(p ->
-							p != prod && p.start().name().equals(prod.start().name()))) {
-				throw new DuplicatedNonTerminalException(prod.start().name());
+		final Set<String> uniqueNonTerminals =
+				g.productions().stream().map(p -> p.start().name()).collect(Collectors.toUnmodifiableSet());
+		if (uniqueNonTerminals.size() != g.productions().size()) {
+			for (final Production prod : g.productions()) {
+				if (g.productions().stream()
+						.anyMatch(p -> !p.equals(prod)
+								&& p.start().name().equals(prod.start().name()))) {
+					throw new DuplicatedNonTerminalException(prod.start().name());
+				}
 			}
 		}
 

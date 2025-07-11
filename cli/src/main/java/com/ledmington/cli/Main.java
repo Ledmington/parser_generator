@@ -33,6 +33,7 @@ import com.ledmington.generator.GrammarChecker;
 
 public class Main {
 
+	@SuppressWarnings("PMD.DoNotTerminateVM")
 	private static void die(final String format, final Object... args) {
 		System.err.printf(format, args);
 		System.exit(-1);

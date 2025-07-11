@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 public final class Parser {
 
 	private static final char DOUBLE_QUOTES = '\"';
+	private static final char NEWLINE = '\n';
 	private static final List<BiPredicate<List<Object>, Integer>> TRANSFORMATIONS = List.of(
 			(v, i) -> {
 				if (i + 3 >= v.size()) {
@@ -199,7 +200,7 @@ public final class Parser {
 		final StringCharacterIterator it = new StringCharacterIterator(input);
 		while (it.current() != CharacterIterator.DONE) {
 			final char ch = it.current();
-			if (ch == ' ' || ch == '\t' || ch == '\n') {
+			if (ch == ' ' || ch == '\t' || ch == NEWLINE) {
 				skipWhitespaces(it);
 			} else if (Character.isAlphabetic(ch)) {
 				tokens.add(readWord(it));
@@ -236,6 +237,7 @@ public final class Parser {
 		return tokens;
 	}
 
+	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
 	private static StringLiteral readStringLiteral(final StringCharacterIterator it) {
 		if (it.current() != DOUBLE_QUOTES) {
 			throw new AssertionError("Expected string literal to start with '\"'.");
@@ -243,7 +245,7 @@ public final class Parser {
 		it.next();
 		final StringBuilder sb = new StringBuilder();
 		while (it.current() != CharacterIterator.DONE && it.current() != DOUBLE_QUOTES) {
-			if (it.current() == '\n') {
+			if (it.current() == NEWLINE) {
 				// string literals must be on the same line
 				throw new ParsingException("Unexpected newline while reading string literal.");
 			}
@@ -279,11 +281,12 @@ public final class Parser {
 
 	private static void skipWhitespaces(final StringCharacterIterator it) {
 		while (it.current() != CharacterIterator.DONE
-				&& (it.current() == ' ' || it.current() == '\t' || it.current() == '\n')) {
+				&& (it.current() == ' ' || it.current() == '\t' || it.current() == NEWLINE)) {
 			it.next();
 		}
 	}
 
+	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
 	private static Grammar parse(final List<Token> tokens) {
 		// ugly method: the alternative is to manually convert the EBNF grammar for EBNF grammars to be left-recursive
 		// and then implement it that way

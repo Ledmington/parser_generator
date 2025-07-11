@@ -37,6 +37,7 @@ import com.ledmington.ebnf.Repetition;
 import com.ledmington.ebnf.Terminal;
 
 /** Generates Java code to parse a specified EBNF grammar. */
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public final class Generator {
 
 	private static final Map<Node, String> NODE_NAMES = new HashMap<>();
@@ -330,6 +331,7 @@ public final class Generator {
 		return ch == '\'' || ch == '\"' || ch == '\\';
 	}
 
+	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
 	private static void generateTerminal(final IndentedStringBuilder sb, final String name, final Terminal t) {
 		sb.append("private Node parse_" + name + "() {\n");
 		final String literal = t.literal();

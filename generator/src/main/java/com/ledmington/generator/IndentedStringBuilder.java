@@ -22,7 +22,7 @@ import java.util.Objects;
 /** A custom extension of the Java standard library's {@link StringBuilder} to easily handle indentation. */
 public final class IndentedStringBuilder {
 
-	private final String indent;
+	private final String indentation;
 	private int indentLevel = 0;
 	private final StringBuilder sb = new StringBuilder();
 
@@ -32,12 +32,12 @@ public final class IndentedStringBuilder {
 	 * @param indent The level of indentation.
 	 */
 	public IndentedStringBuilder(final String indent) {
-		this.indent = Objects.requireNonNull(indent);
+		this.indentation = Objects.requireNonNull(indent);
 	}
 
 	private void add(final String s) {
 		if (!sb.isEmpty() && sb.charAt(sb.length() - 1) == '\n') {
-			sb.append(indent.repeat(indentLevel));
+			sb.append(indentation.repeat(indentLevel));
 		}
 
 		if (s == null) {
@@ -49,7 +49,7 @@ public final class IndentedStringBuilder {
 			final char ch = s.charAt(i);
 			sb.append(ch);
 			if (ch == '\n' && i < s.length() - 1) {
-				sb.append(indent.repeat(indentLevel));
+				sb.append(indentation.repeat(indentLevel));
 			}
 		}
 	}

@@ -62,6 +62,7 @@ import com.ledmington.ebnf.Repetition;
 import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.Utils;
 
+@SuppressWarnings({"PMD.AvoidDuplicateLiterals", "PMD.MissingStaticMethodInNonInstantiatableClass"})
 public final class TestGenerator {
 
 	private TestGenerator() {}
