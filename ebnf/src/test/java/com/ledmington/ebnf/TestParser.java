@@ -52,6 +52,8 @@ public final class TestParser {
 			Arguments.of("a={\"a\"}, \"b\";", g(p(nt("a"), cat(rep(t("a")), t("b"))))),
 			Arguments.of("a=\"\\\"\";", g(p(nt("a"), t("\"")))),
 			Arguments.of("a=\"a\"|\"b\"|\"c\";", g(p(nt("a"), alt(t("a"), t("b"), t("c"))))),
+			Arguments.of("a1=\"a\";", g(p(nt("a1"), t("a")))),
+			Arguments.of("S=\"a\"|(\"b\",\"c\");", g(p(nt("S"), alt(t("a"), cat(t("b"), t("c")))))),
 			//
 			Arguments.of(
 					readFile("ebnf.g"),
@@ -135,8 +137,22 @@ public final class TestParser {
 											nt("terminator"))),
 							p(nt("grammar"), rep(cat(nt("whitespace"), nt("rule"), nt("whitespace")))))));
 
-	private static final List<String> INVALID_TEST_CASES =
-			List.of("=", ";", "a", "a=\";", "a=\"a\",;", "a=,\"a\";", "a=\"a\",,\"a\";", "a=\"a\nb\";");
+	private static final List<String> INVALID_TEST_CASES = List.of(
+			"=",
+			";",
+			"a",
+			"a=\";",
+			"a=\"a\",;",
+			"a=,\"a\";",
+			"a=\"a\",,\"a\";",
+			"a=\"a\nb\";",
+			"a_b=\"a\";",
+			"_a=\"a\";",
+			"1=\"a\";",
+			"1a=\"a\";",
+			"a=(\"a\";",
+			"a=\"a\");",
+			"a=(\"a\";)");
 
 	private static String readFile(final String filename) {
 		final URL url = Thread.currentThread().getContextClassLoader().getResource(filename);

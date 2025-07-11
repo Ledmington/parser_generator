@@ -29,6 +29,12 @@ public enum Symbols implements Token {
 	/** The vertical line (or pipe?) symbol (U+007C). */
 	VERTICAL_LINE('|'),
 
+	/** The left parenthesis symbol (U+0028). */
+	LEFT_PARENTHESIS('('),
+
+	/** The right parenthesis symbol (U+0029). */
+	RIGHT_PARENTHESIS(')'),
+
 	/** The left square bracket symbol (U+005B). */
 	LEFT_SQUARE_BRACKET('['),
 
