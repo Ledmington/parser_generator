@@ -19,11 +19,13 @@ package com.ledmington.generator;
 
 import java.io.Serial;
 
+/** The proper RuntimeException for a case in which there is no clear start symbol in a given grammar. */
 public final class NoUniqueStartSymbolException extends RuntimeException {
 
 	@Serial
 	private static final long serialVersionUID = 5878803702087464360L;
 
+	/** Creates a new instance with a standard message. */
 	public NoUniqueStartSymbolException() {
 		super("No unique start symbol in grammar.");
 	}

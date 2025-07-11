@@ -19,11 +19,17 @@ package com.ledmington.generator;
 
 import java.io.Serial;
 
+/** The proper RuntimeException for a grammar which has non-terminal symbols without a corresponding production. */
 public final class UnusableNonTerminalException extends RuntimeException {
 
 	@Serial
 	private static final long serialVersionUID = 8643487188267532790L;
 
+	/**
+	 * Creates a new instance with a message for the given non-terminal symbol.
+	 *
+	 * @param nonTerminalName The name of the non-terminal symbol which does not have a corresponding production.
+	 */
 	public UnusableNonTerminalException(final String nonTerminalName) {
 		super(String.format("The non-terminal '%s' does not have a production.", nonTerminalName));
 	}

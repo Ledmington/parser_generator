@@ -50,7 +50,9 @@ public final class Generator {
 	 * @param root The root of the Node tree representing the structure of the EBNF grammar.
 	 * @param className The name of the parser class produced.
 	 * @param packageName The name of the package to output.
+	 * @param startSymbol The name of the symbol to start matching from.
 	 * @param indent The level of indentation to use when generating source code.
+	 * @param generateMainMethod True to generate a self-contained executable parser which prints the resulting match.
 	 * @return The indented Java source code of the parser of the given EBNF grammar.
 	 */
 	public static String generate(

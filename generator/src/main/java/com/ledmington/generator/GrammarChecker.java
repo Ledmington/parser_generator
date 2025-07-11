@@ -37,10 +37,17 @@ import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Repetition;
 import com.ledmington.ebnf.Terminal;
 
+/** A class to check an EBNF grammar for correctness. */
 public final class GrammarChecker {
 
 	private GrammarChecker() {}
 
+	/**
+	 * Checks the given EBNF grammar for correctness. Throws a RuntimeException in case it's not.
+	 *
+	 * @param g The grammar to be checked.
+	 * @return The name of the non-terminal symbol to start parsing from.
+	 */
 	public static String check(final Grammar g) {
 		Objects.requireNonNull(g);
 

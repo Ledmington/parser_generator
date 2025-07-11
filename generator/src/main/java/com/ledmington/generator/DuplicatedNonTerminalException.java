@@ -19,11 +19,20 @@ package com.ledmington.generator;
 
 import java.io.Serial;
 
+/**
+ * The proper RuntimeException for an EBNF grammar which presents multiple productions associated to the same
+ * non-terminal symbol.
+ */
 public final class DuplicatedNonTerminalException extends RuntimeException {
 
 	@Serial
 	private static final long serialVersionUID = 2409866301090230895L;
 
+	/**
+	 * Creates a new instance with the proper message for the given non-terminal symbol.
+	 *
+	 * @param nonTerminalName The name of the non-terminal symbol with more than one production associated.
+	 */
 	public DuplicatedNonTerminalException(final String nonTerminalName) {
 		super(String.format("The non-terminal '%s' has more than one production associated.", nonTerminalName));
 	}
