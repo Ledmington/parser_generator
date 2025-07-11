@@ -32,6 +32,8 @@ public final class Parser {
 
 	private static final char DOUBLE_QUOTES = '\"';
 	private static final char NEWLINE = '\n';
+	private static final char WHITESPACE = ' ';
+	private static final char TAB = '\t';
 	private static final List<BiPredicate<List<Object>, Integer>> TRANSFORMATIONS = List.of(
 			(v, i) -> {
 				if (i + 3 >= v.size()) {
@@ -200,7 +202,7 @@ public final class Parser {
 		final StringCharacterIterator it = new StringCharacterIterator(input);
 		while (it.current() != CharacterIterator.DONE) {
 			final char ch = it.current();
-			if (ch == ' ' || ch == '\t' || ch == NEWLINE) {
+			if (ch == WHITESPACE || ch == TAB || ch == NEWLINE) {
 				skipWhitespaces(it);
 			} else if (Character.isAlphabetic(ch)) {
 				tokens.add(readWord(it));
@@ -272,16 +274,17 @@ public final class Parser {
 
 	private static Word readWord(final StringCharacterIterator it) {
 		final StringBuilder sb = new StringBuilder();
-		while (it.current() != CharacterIterator.DONE && Character.isAlphabetic(it.current())) {
+		do {
 			sb.append(it.current());
 			it.next();
-		}
+		} while (it.current() != CharacterIterator.DONE
+				&& (Character.isAlphabetic(it.current()) || Character.isDigit(it.current())));
 		return new Word(sb.toString());
 	}
 
 	private static void skipWhitespaces(final StringCharacterIterator it) {
 		while (it.current() != CharacterIterator.DONE
-				&& (it.current() == ' ' || it.current() == '\t' || it.current() == NEWLINE)) {
+				&& (it.current() == WHITESPACE || it.current() == TAB || it.current() == NEWLINE)) {
 			it.next();
 		}
 	}
@@ -307,7 +310,7 @@ public final class Parser {
 				sb.append(word);
 				v.remove(i);
 				while (v.get(i) instanceof Word(final String word2)) {
-					sb.append(' ').append(word2);
+					sb.append(WHITESPACE).append(word2);
 					v.remove(i);
 				}
 				v.add(i, new NonTerminal(sb.toString()));
