@@ -137,6 +137,17 @@ public final class Parser {
 			},
 			(v, i) -> {
 				if (i + 2 < v.size()
+						&& v.get(i).equals(Symbols.LEFT_PARENTHESIS)
+						&& v.get(i + 1) instanceof final Node n
+						&& v.get(i + 2).equals(Symbols.RIGHT_PARENTHESIS)) {
+					v.subList(i, i + 3).clear();
+					v.add(i, n);
+					return true;
+				}
+				return false;
+			},
+			(v, i) -> {
+				if (i + 2 < v.size()
 						&& v.get(i).equals(Symbols.LEFT_SQUARE_BRACKET)
 						&& v.get(i + 1) instanceof final Expression n
 						&& v.get(i + 2).equals(Symbols.RIGHT_SQUARE_BRACKET)) {
@@ -217,6 +228,12 @@ public final class Parser {
 				it.next();
 			} else if (ch == Symbols.VERTICAL_LINE.getCharacter()) {
 				tokens.add(Symbols.VERTICAL_LINE);
+				it.next();
+			} else if (ch == Symbols.LEFT_PARENTHESIS.getCharacter()) {
+				tokens.add(Symbols.LEFT_PARENTHESIS);
+				it.next();
+			} else if (ch == Symbols.RIGHT_PARENTHESIS.getCharacter()) {
+				tokens.add(Symbols.RIGHT_PARENTHESIS);
 				it.next();
 			} else if (ch == Symbols.LEFT_SQUARE_BRACKET.getCharacter()) {
 				tokens.add(Symbols.LEFT_SQUARE_BRACKET);
