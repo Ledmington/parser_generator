@@ -47,11 +47,17 @@ jobs:
       - name: Build fat jar
         run: ./gradlew --console=plain --no-daemon fatjar
 
+      - name: Generate snapshot tag name
+        id: tag
+        run: |
+          TAG_NAME="snapshot-$(date +%F)-${GITHUB_SHA::7}"
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: snapshot-`date +%F`
-          name: Release snapshot-`date +%F`
+          tag_name: ${{ steps.tag.outputs.tag_name }}
+          name: Release ${{ steps.tag.outputs.tag_name }}
           files: "cli/build/libs/parser-gen-cli-0.1.0.jar"
         env:
           GITHUB_TOKEN: ${{ secrets.CI_RELEASE_TOKEN }}
