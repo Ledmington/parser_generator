@@ -45,6 +45,7 @@ public class Main {
 		boolean verbose = false;
 		boolean generateMainMethod = false;
 		String packageName = "unknown";
+		boolean overwriteOutputFile = false;
 
 		for (int i = 0; i < args.length; i++) {
 			switch (args[i]) {
@@ -60,6 +61,7 @@ public class Main {
 							" -o, --output OUTPUT    Writes the resulting parser in the given OUTPUT file.",
 							" -m, --main             Generates a main method to create a self-contained parser.",
 							" -p, --package PACKAGE  Sets PACKAGE as the package name of the generated class.",
+							" -w, --overwrite        If specified, overwrites the output file if it is already present.",
 							""));
 					System.exit(0);
 					return;
@@ -97,6 +99,12 @@ public class Main {
 					}
 					generateMainMethod = true;
 				}
+				case "-w", "--overwrite" -> {
+					if (overwriteOutputFile) {
+						die("Cannot overwrite output file twice.");
+					}
+					overwriteOutputFile = true;
+				}
 				default -> die("Unknown command-line argument: '%s'.%n", args[i]);
 			}
 		}
@@ -126,8 +134,13 @@ public class Main {
 		if (outputFile.endsWith(".java")) {
 			outputFile = outputFile.substring(0, outputFile.length() - 5);
 		}
-
 		final Path outputPath = Path.of(outputFile + ".java").normalize().toAbsolutePath();
+
+		if (!overwriteOutputFile && outputPath.toFile().exists()) {
+			System.out.printf("Output file '%s' already exists, skipping.%n", outputPath);
+			System.exit(0);
+		}
+
 		try (final BufferedWriter bw = Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8)) {
 			final int idx = outputFile.lastIndexOf(File.separator);
 			final String className = idx < 0 ? outputFile : outputFile.substring(idx + 1);
