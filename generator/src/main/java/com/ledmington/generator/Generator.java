@@ -99,18 +99,18 @@ public final class Generator {
 		if (atLeastOneConcatenation) {
 			sb.append("private final Stack<Integer> stack = new Stack<>();\n");
 		}
-		sb.append("private interface Node {}\n").append("private record Terminal(String literal) implements Node {}\n");
+		sb.append("public interface Node {}\n").append("public record Terminal(String literal) implements Node {}\n");
 		if (atLeastOneOptional) {
-			sb.append("private record Optional(Node inner) implements Node {}\n");
+			sb.append("public record Optional(Node inner) implements Node {}\n");
 		}
 		if (atLeastOneConcatenation) {
-			sb.append("private record Sequence(List<Node> nodes) implements Node {}\n");
+			sb.append("public record Sequence(List<Node> nodes) implements Node {}\n");
 		}
 		if (atLeastOneRepetition) {
-			sb.append("private record Repetition(List<Node> nodes) implements Node {}\n");
+			sb.append("public record Repetition(List<Node> nodes) implements Node {}\n");
 		}
 		if (atLeastOneAlternation) {
-			sb.append("private record Alternation(Node inner) implements Node {}\n");
+			sb.append("public record Alternation(Node inner) implements Node {}\n");
 		}
 		sb.append("public Node parse(final String input) {\n")
 				.indent()
