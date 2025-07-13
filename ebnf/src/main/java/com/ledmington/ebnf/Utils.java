@@ -62,7 +62,7 @@ public final class Utils {
 			case Concatenation c -> prettyPrintList(sb, "Concatenation", c.nodes(), indentString, indent);
 			case Alternation a -> prettyPrintList(sb, "Alternation", a.nodes(), indentString, indent);
 			case Repetition r -> prettyPrintContainer(sb, "Repetition", r.inner(), indentString, indent);
-			case Optional o -> prettyPrintContainer(sb, "Optional", o.inner(), indentString, indent);
+			case OptionalNode o -> prettyPrintContainer(sb, "Optional", o.inner(), indentString, indent);
 			case NonTerminal n ->
 				sb.append(indentString)
 						.append("NonTerminal { ")

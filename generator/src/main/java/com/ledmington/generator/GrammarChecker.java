@@ -32,7 +32,7 @@ import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Node;
 import com.ledmington.ebnf.NonTerminal;
-import com.ledmington.ebnf.Optional;
+import com.ledmington.ebnf.OptionalNode;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Repetition;
 import com.ledmington.ebnf.Terminal;
@@ -129,7 +129,7 @@ public final class GrammarChecker {
 				case Alternation a -> q.addAll(a.nodes());
 				case Concatenation c -> q.addAll(c.nodes());
 				case Repetition r -> q.add(r.inner());
-				case Optional o -> q.add(o.inner());
+				case OptionalNode o -> q.add(o.inner());
 				default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
 			}
 		}

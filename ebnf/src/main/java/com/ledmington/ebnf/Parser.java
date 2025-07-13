@@ -152,7 +152,7 @@ public final class Parser {
 						&& v.get(i + 1) instanceof final Expression n
 						&& v.get(i + 2).equals(Symbols.RIGHT_SQUARE_BRACKET)) {
 					v.subList(i, i + 3).clear();
-					v.add(i, new Optional(n));
+					v.add(i, new OptionalNode(n));
 					return true;
 				}
 				return false;

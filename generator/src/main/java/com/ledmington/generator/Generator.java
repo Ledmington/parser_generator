@@ -31,7 +31,7 @@ import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Node;
 import com.ledmington.ebnf.NonTerminal;
-import com.ledmington.ebnf.Optional;
+import com.ledmington.ebnf.OptionalNode;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Repetition;
 import com.ledmington.ebnf.Terminal;
@@ -64,7 +64,7 @@ public final class Generator {
 			final boolean generateMainMethod) {
 		generateNames(root);
 
-		final boolean atLeastOneOptional = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Optional);
+		final boolean atLeastOneOptional = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof OptionalNode);
 		final boolean atLeastOneConcatenation = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Concatenation);
 		final boolean atLeastOneRepetition = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Repetition);
 		final boolean atLeastOneAlternation = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Alternation);
@@ -101,7 +101,7 @@ public final class Generator {
 		}
 		sb.append("public interface Node {}\n").append("public record Terminal(String literal) implements Node {}\n");
 		if (atLeastOneOptional) {
-			sb.append("public record Optional(Node inner) implements Node {}\n");
+			sb.append("public record OptionalNode(Node inner) implements Node {}\n");
 		}
 		if (atLeastOneConcatenation) {
 			sb.append("public record Sequence(List<Node> nodes) implements Node {}\n");
@@ -151,8 +151,8 @@ public final class Generator {
 					}
 				}
 				case Terminal t -> generateTerminal(sb, NODE_NAMES.get(t), t);
-				case Optional opt -> {
-					generateOptional(sb, NODE_NAMES.get(opt), opt);
+				case OptionalNode opt -> {
+					generateOptionalNode(sb, NODE_NAMES.get(opt), opt);
 					q.add(opt.inner());
 				}
 				case NonTerminal ignored -> {
@@ -304,7 +304,7 @@ public final class Generator {
 					terminalCounter++;
 				}
 				case NonTerminal nt -> NODE_NAMES.put(nt, nt.name().replace(' ', '_'));
-				case Optional opt -> {
+				case OptionalNode opt -> {
 					NODE_NAMES.put(opt, "optional_" + optionalCounter);
 					q.add(opt.inner());
 					optionalCounter++;
@@ -369,11 +369,11 @@ public final class Generator {
 				.append("}\n");
 	}
 
-	private static void generateOptional(final IndentedStringBuilder sb, final String name, final Optional o) {
-		sb.append("private Optional parse_" + name + "() {\n")
+	private static void generateOptionalNode(final IndentedStringBuilder sb, final String name, final OptionalNode o) {
+		sb.append("private OptionalNode parse_" + name + "() {\n")
 				.indent()
 				.append("final Node inner = parse_" + NODE_NAMES.get(o.inner()) + "();\n")
-				.append("return new Optional(inner);\n")
+				.append("return new OptionalNode(inner);\n")
 				.deindent()
 				.append("}\n");
 	}

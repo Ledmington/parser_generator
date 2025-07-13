@@ -187,8 +187,8 @@ public final class TestParser {
 		return new Alternation(expressions);
 	}
 
-	private static Optional opt(final Expression inner) {
-		return new Optional(inner);
+	private static OptionalNode opt(final Expression inner) {
+		return new OptionalNode(inner);
 	}
 
 	private static Repetition rep(final Expression exp) {

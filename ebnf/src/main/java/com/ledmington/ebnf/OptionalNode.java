@@ -22,4 +22,4 @@ package com.ledmington.ebnf;
  *
  * @param inner The optional Expression.
  */
-public record Optional(Expression inner) implements Expression {}
+public record OptionalNode(Expression inner) implements Expression {}

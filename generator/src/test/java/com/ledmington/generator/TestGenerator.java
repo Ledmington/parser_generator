@@ -56,7 +56,7 @@ import com.ledmington.ebnf.Concatenation;
 import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.NonTerminal;
-import com.ledmington.ebnf.Optional;
+import com.ledmington.ebnf.OptionalNode;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Repetition;
 import com.ledmington.ebnf.Terminal;
@@ -166,8 +166,8 @@ public final class TestGenerator {
 		return new Concatenation(expressions);
 	}
 
-	private static Optional opt(final Expression inner) {
-		return new Optional(inner);
+	private static OptionalNode opt(final Expression inner) {
+		return new OptionalNode(inner);
 	}
 
 	private static Repetition rep(final Expression exp) {
