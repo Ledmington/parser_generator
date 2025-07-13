@@ -205,7 +205,7 @@ public final class Generator {
 	}
 
 	private static void generateAlternation(final IndentedStringBuilder sb, final String name, final Alternation a) {
-		sb.append("private Node parse_" + name + "() {\n").indent();
+		sb.append("private Alternation parse_" + name + "() {\n").indent();
 		final List<Expression> nodes = a.nodes();
 		for (int i = 0; i < nodes.size(); i++) {
 			final String nodeName = "n_" + i;
@@ -220,7 +220,7 @@ public final class Generator {
 	}
 
 	private static void generateRepetition(final IndentedStringBuilder sb, final String name, final Repetition r) {
-		sb.append("private Node parse_" + name + "() {\n")
+		sb.append("private Repetition parse_" + name + "() {\n")
 				.indent()
 				.append("final List<Node> nodes = new ArrayList<>();\n")
 				.append("while (true) {\n")
@@ -241,7 +241,7 @@ public final class Generator {
 
 	private static void generateConcatenation(
 			final IndentedStringBuilder sb, final String name, final Concatenation c) {
-		sb.append("private Node parse_" + name + "() {\n")
+		sb.append("private Sequence parse_" + name + "() {\n")
 				.indent()
 				.append("final List<Node> nodes = new ArrayList<>();\n")
 				.append("stack.push(this.pos);\n");
@@ -335,7 +335,7 @@ public final class Generator {
 
 	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
 	private static void generateTerminal(final IndentedStringBuilder sb, final String name, final Terminal t) {
-		sb.append("private Node parse_" + name + "() {\n");
+		sb.append("private Terminal parse_" + name + "() {\n");
 		final String literal = t.literal();
 		sb.indent().append("if (pos ");
 		if (literal.length() > 1) {
@@ -370,7 +370,7 @@ public final class Generator {
 	}
 
 	private static void generateOptional(final IndentedStringBuilder sb, final String name, final Optional o) {
-		sb.append("private Node parse_" + name + "() {\n")
+		sb.append("private Optional parse_" + name + "() {\n")
 				.indent()
 				.append("final Node inner = parse_" + NODE_NAMES.get(o.inner()) + "();\n")
 				.append("return new Optional(inner);\n")
