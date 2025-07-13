@@ -246,12 +246,14 @@ public final class Generator {
 			sb.append("final Node n = parse_" + NODE_NAMES.get(r.inner()) + "();\n");
 			q.add(r.inner());
 		}
-		sb.append("if (n == null) {\n")
-				.indent()
-				.append("break;\n")
-				.deindent()
-				.append("}\n")
-				.append("nodes.add(n);\n")
+		if (!(r.inner() instanceof Repetition)) {
+			sb.append("if (n == null) {\n")
+					.indent()
+					.append("break;\n")
+					.deindent()
+					.append("}\n");
+		}
+		sb.append("nodes.add(n);\n")
 				.deindent()
 				.append("}\n")
 				.append("return new Repetition(nodes);\n")
@@ -276,13 +278,15 @@ public final class Generator {
 				sb.append("final Node " + nodeName + " = parse_" + NODE_NAMES.get(n) + "();\n");
 				q.add(n);
 			}
-			sb.append("if (" + nodeName + " == null) {\n")
-					.indent()
-					.append("this.pos = stack.pop();\n")
-					.append("return null;\n")
-					.deindent()
-					.append("}\n")
-					.append("nodes.add(" + nodeName + ");\n");
+			if (!(n instanceof Repetition)) {
+				sb.append("if (" + nodeName + " == null) {\n")
+						.indent()
+						.append("this.pos = stack.pop();\n")
+						.append("return null;\n")
+						.deindent()
+						.append("}\n");
+			}
+			sb.append("nodes.add(" + nodeName + ");\n");
 		}
 
 		sb.append("stack.pop();\n")
