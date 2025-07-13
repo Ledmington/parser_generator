@@ -91,18 +91,18 @@ public final class Parser {
 						&& v.get(i + 1).equals(Symbols.COMMA)
 						&& v.get(i + 2) instanceof final Expression second) {
 					v.subList(i, i + 3).clear();
-					v.add(i, new Concatenation(first, second));
+					v.add(i, new Sequence(first, second));
 					return true;
 				}
 				return false;
 			},
 			(v, i) -> {
-				if (v.get(i) instanceof Concatenation(final List<Expression> nodes)
-						&& nodes.stream().anyMatch(exp -> exp instanceof Concatenation)) {
+				if (v.get(i) instanceof Sequence(final List<Expression> nodes)
+						&& nodes.stream().anyMatch(exp -> exp instanceof Sequence)) {
 					v.set(
 							i,
-							new Concatenation(nodes.stream()
-									.flatMap(exp -> exp instanceof Concatenation(final List<Expression> nodes1)
+							new Sequence(nodes.stream()
+									.flatMap(exp -> exp instanceof Sequence(final List<Expression> nodes1)
 											? nodes1.stream()
 											: Stream.of(exp))
 									.toList()));

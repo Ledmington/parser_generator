@@ -27,7 +27,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.ledmington.ebnf.Alternation;
-import com.ledmington.ebnf.Concatenation;
 import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Node;
@@ -35,6 +34,7 @@ import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.OptionalNode;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Repetition;
+import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
 
 /** A class to check an EBNF grammar for correctness. */
@@ -127,7 +127,7 @@ public final class GrammarChecker {
 				case NonTerminal nt -> nonTerminalNames.add(nt.name());
 				case Terminal ignored -> {}
 				case Alternation a -> q.addAll(a.nodes());
-				case Concatenation c -> q.addAll(c.nodes());
+				case Sequence c -> q.addAll(c.nodes());
 				case Repetition r -> q.add(r.inner());
 				case OptionalNode o -> q.add(o.inner());
 				default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));

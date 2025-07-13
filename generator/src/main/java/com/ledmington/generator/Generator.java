@@ -26,7 +26,6 @@ import java.util.Queue;
 import java.util.Set;
 
 import com.ledmington.ebnf.Alternation;
-import com.ledmington.ebnf.Concatenation;
 import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Node;
@@ -34,6 +33,7 @@ import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.OptionalNode;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Repetition;
+import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
 
 /** Generates Java code to parse a specified EBNF grammar. */
@@ -65,7 +65,7 @@ public final class Generator {
 		generateNames(root);
 
 		final boolean atLeastOneOptional = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof OptionalNode);
-		final boolean atLeastOneConcatenation = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Concatenation);
+		final boolean atLeastOneSequence = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Sequence);
 		final boolean atLeastOneRepetition = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Repetition);
 		final boolean atLeastOneAlternation = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Alternation);
 
@@ -76,10 +76,10 @@ public final class Generator {
 		if (packageName != null && !packageName.isBlank()) {
 			sb.append("package ").append(packageName).append(";\n\n");
 		}
-		if (atLeastOneConcatenation || atLeastOneRepetition) {
+		if (atLeastOneSequence || atLeastOneRepetition) {
 			sb.append("import java.util.List;\n").append("import java.util.ArrayList;\n");
 		}
-		if (atLeastOneConcatenation) {
+		if (atLeastOneSequence) {
 			sb.append("import java.util.Stack;\n");
 		}
 		if (generateMainMethod) {
@@ -87,7 +87,7 @@ public final class Generator {
 					.append("import java.nio.file.Files;\n")
 					.append("import java.nio.file.Path;\n");
 		}
-		if (atLeastOneConcatenation || atLeastOneRepetition || generateMainMethod) {
+		if (atLeastOneSequence || atLeastOneRepetition || generateMainMethod) {
 			sb.append('\n');
 		}
 		sb.append("public final class ")
@@ -96,14 +96,14 @@ public final class Generator {
 				.indent()
 				.append("private char[] v = null;\n")
 				.append("private int pos = 0;\n");
-		if (atLeastOneConcatenation) {
+		if (atLeastOneSequence) {
 			sb.append("private final Stack<Integer> stack = new Stack<>();\n");
 		}
 		sb.append("public interface Node {}\n").append("public record Terminal(String literal) implements Node {}\n");
 		if (atLeastOneOptional) {
 			sb.append("public record OptionalNode(Node inner) implements Node {}\n");
 		}
-		if (atLeastOneConcatenation) {
+		if (atLeastOneSequence) {
 			sb.append("public record Sequence(List<Node> nodes) implements Node {}\n");
 		}
 		if (atLeastOneRepetition) {
@@ -126,7 +126,7 @@ public final class Generator {
 				.append("return null;\n")
 				.deindent()
 				.append("}\n");
-		if (atLeastOneConcatenation) {
+		if (atLeastOneSequence) {
 			sb.append("return (pos == v.length && stack.isEmpty()) ? result : null;\n");
 		} else {
 			sb.append("return pos == v.length ? result : null;\n");
@@ -159,8 +159,8 @@ public final class Generator {
 					// No need to generate anything here because we already handle non-terminals when visiting
 					// the grammar's productions
 				}
-				case Concatenation c -> {
-					generateConcatenation(sb, NODE_NAMES.get(c), c);
+				case Sequence c -> {
+					generateSequence(sb, NODE_NAMES.get(c), c);
 					q.addAll(c.nodes());
 				}
 				case Repetition r -> {
@@ -239,8 +239,7 @@ public final class Generator {
 				.append("}\n");
 	}
 
-	private static void generateConcatenation(
-			final IndentedStringBuilder sb, final String name, final Concatenation c) {
+	private static void generateSequence(final IndentedStringBuilder sb, final String name, final Sequence c) {
 		sb.append("private Sequence parse_" + name + "() {\n")
 				.indent()
 				.append("final List<Node> nodes = new ArrayList<>();\n")
@@ -283,7 +282,7 @@ public final class Generator {
 
 		int terminalCounter = 0;
 		int optionalCounter = 0;
-		int concatenationCounter = 0;
+		int sequenceCounter = 0;
 		int repetitionCounter = 0;
 		int alternationCounter = 0;
 		while (!q.isEmpty()) {
@@ -309,9 +308,9 @@ public final class Generator {
 					q.add(opt.inner());
 					optionalCounter++;
 				}
-				case Concatenation c -> {
-					NODE_NAMES.put(c, "concatenation_" + concatenationCounter);
-					concatenationCounter++;
+				case Sequence c -> {
+					NODE_NAMES.put(c, "sequence_" + sequenceCounter);
+					sequenceCounter++;
 					q.addAll(c.nodes());
 				}
 				case Repetition r -> {

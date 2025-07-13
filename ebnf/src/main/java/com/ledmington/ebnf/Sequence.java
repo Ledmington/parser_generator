@@ -24,14 +24,14 @@ import java.util.List;
  *
  * @param nodes The ordered sequence of expressions.
  */
-public record Concatenation(List<Expression> nodes) implements Expression {
+public record Sequence(List<Expression> nodes) implements Expression {
 
 	/**
-	 * Creates a new Concatenation Node with given expressions.
+	 * Creates a new Sequence Node with given expressions.
 	 *
-	 * @param nodes The concatenated expressions.
+	 * @param nodes The sequence of expressions.
 	 */
-	public Concatenation(final Expression... nodes) {
+	public Sequence(final Expression... nodes) {
 		this(List.of(nodes));
 	}
 }

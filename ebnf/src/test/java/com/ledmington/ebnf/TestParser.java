@@ -43,17 +43,17 @@ public final class TestParser {
 			Arguments.of("a=\"a\"(**);", g(p(nt("a"), t("a")))),
 			Arguments.of("a=\"a\";(**)", g(p(nt("a"), t("a")))),
 			Arguments.of("my symbol = \"a\";", g(p(nt("my symbol"), t("a")))),
-			Arguments.of("a = \"a\", \"b\";", g(p(nt("a"), cat(t("a"), t("b"))))),
+			Arguments.of("a = \"a\", \"b\";", g(p(nt("a"), seq(t("a"), t("b"))))),
 			Arguments.of("a=\"a\";b=\"b\";", g(p(nt("a"), t("a")), p(nt("b"), t("b")))),
 			Arguments.of("a=\"a\";b=a;", g(p(nt("a"), t("a")), p(nt("b"), nt("a")))),
 			Arguments.of("a=b;b=a;", g(p(nt("a"), nt("b")), p(nt("b"), nt("a")))),
 			Arguments.of("a=\"a\"|\"b\";", g(p(nt("a"), alt(t("a"), t("b"))))),
-			Arguments.of("a=[\"a\"], \"b\";", g(p(nt("a"), cat(opt(t("a")), t("b"))))),
-			Arguments.of("a={\"a\"}, \"b\";", g(p(nt("a"), cat(rep(t("a")), t("b"))))),
+			Arguments.of("a=[\"a\"], \"b\";", g(p(nt("a"), seq(opt(t("a")), t("b"))))),
+			Arguments.of("a={\"a\"}, \"b\";", g(p(nt("a"), seq(rep(t("a")), t("b"))))),
 			Arguments.of("a=\"\\\"\";", g(p(nt("a"), t("\"")))),
 			Arguments.of("a=\"a\"|\"b\"|\"c\";", g(p(nt("a"), alt(t("a"), t("b"), t("c"))))),
 			Arguments.of("a1=\"a\";", g(p(nt("a1"), t("a")))),
-			Arguments.of("S=\"a\"|(\"b\",\"c\");", g(p(nt("S"), alt(t("a"), cat(t("b"), t("c")))))),
+			Arguments.of("S=\"a\"|(\"b\",\"c\");", g(p(nt("S"), alt(t("a"), seq(t("b"), t("c")))))),
 			//
 			Arguments.of(
 					readFile("ebnf.g"),
@@ -81,11 +81,11 @@ public final class TestParser {
 							p(
 									nt("character without quotes"),
 									alt(nt("letter"), nt("digit"), nt("symbol"), t("_"), t(" "))),
-							p(nt("identifier"), cat(nt("letter"), rep(alt(nt("letter"), nt("digit"), t("_"))))),
+							p(nt("identifier"), seq(nt("letter"), rep(alt(nt("letter"), nt("digit"), t("_"))))),
 							p(nt("whitespace"), rep(alt(t(" "), t("\\n"), t("\\t")))),
 							p(
 									nt("terminal"),
-									cat(
+									seq(
 											t("\""),
 											nt("character without quotes"),
 											rep(nt("character without quotes")),
@@ -94,9 +94,9 @@ public final class TestParser {
 							p(
 									nt("term"),
 									alt(
-											cat(
+											seq(
 													alt(
-															cat(
+															seq(
 																	t("["),
 																	nt("whitespace"),
 																	nt("rhs"),
@@ -111,23 +111,23 @@ public final class TestParser {
 											nt("identifier"))),
 							p(
 									nt("concatenation"),
-									cat(
+									seq(
 											nt("whitespace"),
 											nt("term"),
 											nt("whitespace"),
-											rep(cat(t(","), nt("whitespace"), nt("term"), nt("whitespace"))))),
+											rep(seq(t(","), nt("whitespace"), nt("term"), nt("whitespace"))))),
 							p(
 									nt("alternation"),
-									cat(
+									seq(
 											nt("whitespace"),
 											nt("concatenation"),
 											nt("whitespace"),
-											rep(cat(t("|"), nt("whitespace"), nt("concatenation"), nt("whitespace"))))),
+											rep(seq(t("|"), nt("whitespace"), nt("concatenation"), nt("whitespace"))))),
 							p(nt("rhs"), nt("alternation")),
 							p(nt("lhs"), nt("identifier")),
 							p(
 									nt("rule"),
-									cat(
+									seq(
 											nt("lhs"),
 											nt("whitespace"),
 											t("="),
@@ -135,7 +135,7 @@ public final class TestParser {
 											nt("rhs"),
 											nt("whitespace"),
 											nt("terminator"))),
-							p(nt("grammar"), rep(cat(nt("whitespace"), nt("rule"), nt("whitespace")))))));
+							p(nt("grammar"), rep(seq(nt("whitespace"), nt("rule"), nt("whitespace")))))));
 
 	private static final List<String> INVALID_TEST_CASES = List.of(
 			"=",
@@ -179,8 +179,8 @@ public final class TestParser {
 		return new Terminal(literal);
 	}
 
-	private static Concatenation cat(final Expression... expressions) {
-		return new Concatenation(expressions);
+	private static Sequence seq(final Expression... expressions) {
+		return new Sequence(expressions);
 	}
 
 	private static Alternation alt(final Expression... expressions) {

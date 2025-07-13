@@ -52,13 +52,13 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.ledmington.ebnf.Alternation;
-import com.ledmington.ebnf.Concatenation;
 import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.OptionalNode;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Repetition;
+import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.Utils;
 
@@ -162,8 +162,8 @@ public final class TestGenerator {
 		return new Terminal(literal);
 	}
 
-	private static Concatenation cat(final Expression... expressions) {
-		return new Concatenation(expressions);
+	private static Sequence cat(final Expression... expressions) {
+		return new Sequence(expressions);
 	}
 
 	private static OptionalNode opt(final Expression inner) {
