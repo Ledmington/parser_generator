@@ -146,34 +146,41 @@ public final class Generator {
 			switch (n) {
 				case Grammar g -> {
 					for (final Production p : g.productions()) {
-						generateNonTerminal(sb, p.start(), p.result());
-						q.add(p.result());
+						generateNonTerminal(q, sb, p.start(), p.result());
 					}
 				}
-				case Terminal t -> generateTerminal(sb, NODE_NAMES.get(t), t);
-				case OptionalNode opt -> {
-					generateOptionalNode(sb, NODE_NAMES.get(opt), opt);
-					q.add(opt.inner());
-				}
+				case OptionalNode opt -> generateOptionalNode(q, sb, NODE_NAMES.get(opt), opt);
 				case NonTerminal ignored -> {
 					// No need to generate anything here because we already handle non-terminals when visiting
 					// the grammar's productions
 				}
-				case Sequence c -> {
-					generateSequence(sb, NODE_NAMES.get(c), c);
-					q.addAll(c.nodes());
-				}
-				case Repetition r -> {
-					generateRepetition(sb, NODE_NAMES.get(r), r);
-					q.add(r.inner());
-				}
-				case Alternation a -> {
-					generateAlternation(sb, NODE_NAMES.get(a), a);
-					q.addAll(a.nodes());
-				}
+				case Sequence c -> generateSequence(q, sb, NODE_NAMES.get(c), c);
+				case Repetition r -> generateRepetition(q, sb, NODE_NAMES.get(r), r);
+				case Alternation a -> generateAlternation(q, sb, NODE_NAMES.get(a), a);
 				default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
 			}
 		}
+
+		sb.append("private Terminal parseTerminal(final String input) {\n")
+				.indent()
+				.append("if (pos + input.length() > v.length) {\n")
+				.indent()
+				.append("return null;\n")
+				.deindent()
+				.append("}\n")
+				.append("for (int i = 0; i < input.length(); i++) {\n")
+				.indent()
+				.append("if (v[pos + i] != input.charAt(i)) {\n")
+				.indent()
+				.append("return null;")
+				.deindent()
+				.append("}\n")
+				.deindent()
+				.append("}\n")
+				.append("this.pos += input.length();\n")
+				.append("return new Terminal(input);\n")
+				.deindent()
+				.append("}\n");
 
 		if (generateMainMethod) {
 			sb.append("public static void main(final String[] args) {\n")
@@ -204,13 +211,20 @@ public final class Generator {
 		return sb.deindent().append("}").toString();
 	}
 
-	private static void generateAlternation(final IndentedStringBuilder sb, final String name, final Alternation a) {
+	private static void generateAlternation(
+			final Queue<Node> q, final IndentedStringBuilder sb, final String name, final Alternation a) {
 		sb.append("private Alternation parse_" + name + "() {\n").indent();
 		final List<Expression> nodes = a.nodes();
 		for (int i = 0; i < nodes.size(); i++) {
+			final Node n = nodes.get(i);
 			final String nodeName = "n_" + i;
-			sb.append("final Node " + nodeName + " = parse_" + NODE_NAMES.get(nodes.get(i)) + "();\n")
-					.append("if (" + nodeName + " != null) {\n")
+			if (n instanceof Terminal(final String literal)) {
+				sb.append("final Node " + nodeName + " = parseTerminal(\"" + getEscapedString(literal) + "\");\n");
+			} else {
+				sb.append("final Node " + nodeName + " = parse_" + NODE_NAMES.get(n) + "();\n");
+				q.add(n);
+			}
+			sb.append("if (" + nodeName + " != null) {\n")
 					.indent()
 					.append("return new Alternation(" + nodeName + ");\n")
 					.deindent()
@@ -219,14 +233,20 @@ public final class Generator {
 		sb.append("return null;\n").deindent().append("}\n");
 	}
 
-	private static void generateRepetition(final IndentedStringBuilder sb, final String name, final Repetition r) {
+	private static void generateRepetition(
+			final Queue<Node> q, final IndentedStringBuilder sb, final String name, final Repetition r) {
 		sb.append("private Repetition parse_" + name + "() {\n")
 				.indent()
 				.append("final List<Node> nodes = new ArrayList<>();\n")
 				.append("while (true) {\n")
-				.indent()
-				.append("final Node n = parse_" + NODE_NAMES.get(r.inner()) + "();\n")
-				.append("if (n == null) {\n")
+				.indent();
+		if (r.inner() instanceof Terminal(final String literal)) {
+			sb.append("final Node n = parseTerminal(\"" + getEscapedString(literal) + "\");\n");
+		} else {
+			sb.append("final Node n = parse_" + NODE_NAMES.get(r.inner()) + "();\n");
+			q.add(r.inner());
+		}
+		sb.append("if (n == null) {\n")
 				.indent()
 				.append("break;\n")
 				.deindent()
@@ -239,7 +259,8 @@ public final class Generator {
 				.append("}\n");
 	}
 
-	private static void generateSequence(final IndentedStringBuilder sb, final String name, final Sequence c) {
+	private static void generateSequence(
+			final Queue<Node> q, final IndentedStringBuilder sb, final String name, final Sequence c) {
 		sb.append("private Sequence parse_" + name + "() {\n")
 				.indent()
 				.append("final List<Node> nodes = new ArrayList<>();\n")
@@ -247,9 +268,15 @@ public final class Generator {
 
 		final List<Expression> seq = c.nodes();
 		for (int i = 0; i < seq.size(); i++) {
+			final Node n = seq.get(i);
 			final String nodeName = "n_" + i;
-			sb.append("final Node " + nodeName + " = parse_" + NODE_NAMES.get(seq.get(i)) + "();\n")
-					.append("if (" + nodeName + " == null) {\n")
+			if (n instanceof Terminal(final String literal)) {
+				sb.append("final Node " + nodeName + " = parseTerminal(\"" + getEscapedString(literal) + "\");\n");
+			} else {
+				sb.append("final Node " + nodeName + " = parse_" + NODE_NAMES.get(n) + "();\n");
+				q.add(n);
+			}
+			sb.append("if (" + nodeName + " == null) {\n")
 					.indent()
 					.append("this.pos = stack.pop();\n")
 					.append("return null;\n")
@@ -265,14 +292,18 @@ public final class Generator {
 	}
 
 	private static void generateNonTerminal(
-			final IndentedStringBuilder sb, final NonTerminal start, final Expression result) {
+			final Queue<Node> q, final IndentedStringBuilder sb, final NonTerminal start, final Expression result) {
 		sb.append("private Node parse_")
 				.append(NODE_NAMES.get(start))
 				.append("() {\n")
-				.indent()
-				.append("return parse_" + NODE_NAMES.get(result) + "();\n")
-				.deindent()
-				.append("}\n");
+				.indent();
+		if (result instanceof Terminal(final String literal)) {
+			sb.append("return parseTerminal(\"" + getEscapedString(literal) + "\");\n");
+		} else {
+			sb.append("return parse_" + NODE_NAMES.get(result) + "();\n");
+			q.add(result);
+		}
+		sb.deindent().append("}\n");
 	}
 
 	private static void generateNames(final Node root) {
@@ -280,7 +311,6 @@ public final class Generator {
 		final Set<Node> visited = new HashSet<>();
 		q.add(root);
 
-		int terminalCounter = 0;
 		int optionalCounter = 0;
 		int sequenceCounter = 0;
 		int repetitionCounter = 0;
@@ -298,10 +328,7 @@ public final class Generator {
 						q.add(p.result());
 					}
 				}
-				case Terminal t -> {
-					NODE_NAMES.put(t, "terminal_" + terminalCounter);
-					terminalCounter++;
-				}
+				case Terminal ignored -> {}
 				case NonTerminal nt -> NODE_NAMES.put(nt, nt.name().replace(' ', '_'));
 				case OptionalNode opt -> {
 					NODE_NAMES.put(opt, "optional_" + optionalCounter);
@@ -328,52 +355,46 @@ public final class Generator {
 		}
 	}
 
+	private static void generateOptionalNode(
+			final Queue<Node> q, final IndentedStringBuilder sb, final String name, final OptionalNode o) {
+		sb.append("private OptionalNode parse_" + name + "() {\n").indent();
+		if (o.inner() instanceof Terminal(final String literal)) {
+			sb.append("final Node inner = parseTerminal(\"" + getEscapedString(literal) + "\");\n");
+		} else {
+			sb.append("final Node inner = parse_" + NODE_NAMES.get(o.inner()) + "();\n");
+			q.add(o.inner());
+		}
+		sb.append("return new OptionalNode(inner);\n").deindent().append("}\n");
+	}
+
 	private static boolean needsEscaping(final char ch) {
 		return ch == '\'' || ch == '\"' || ch == '\\';
 	}
 
-	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
-	private static void generateTerminal(final IndentedStringBuilder sb, final String name, final Terminal t) {
-		sb.append("private Terminal parse_" + name + "() {\n");
-		final String literal = t.literal();
-		sb.indent().append("if (pos ");
-		if (literal.length() > 1) {
-			sb.append("+ ").append(literal.length() - 1).append(" ");
+	private static boolean needsEscaping(final String s) {
+		for (int i = 0; i < s.length(); i++) {
+			if (needsEscaping(s.charAt(i))) {
+				return true;
+			}
 		}
-		sb.append("< v.length && v[pos] == '")
-				.append((needsEscaping(literal.charAt(0)) ? "\\" : "") + literal.charAt(0))
-				.append("'");
-		for (int i = 1; i < literal.length(); i++) {
-			sb.append(" && v[pos+")
-					.append(i)
-					.append("] == '")
-					.append((needsEscaping(literal.charAt(i)) ? "\\" : "") + literal.charAt(i))
-					.append("'");
-		}
-		sb.append(") {\n")
-				.indent()
-				.append("this.pos += ")
-				.append(literal.length())
-				.append(";\n")
-				.append("return new Terminal(\"")
-				.append(((literal.length() == 1 && needsEscaping(literal.charAt(0))) ? "\\" : "") + literal)
-				.append("\");\n")
-				.deindent()
-				.append("} else {\n")
-				.indent()
-				.append("return null;\n")
-				.deindent()
-				.append("}\n")
-				.deindent()
-				.append("}\n");
+		return false;
 	}
 
-	private static void generateOptionalNode(final IndentedStringBuilder sb, final String name, final OptionalNode o) {
-		sb.append("private OptionalNode parse_" + name + "() {\n")
-				.indent()
-				.append("final Node inner = parse_" + NODE_NAMES.get(o.inner()) + "();\n")
-				.append("return new OptionalNode(inner);\n")
-				.deindent()
-				.append("}\n");
+	private static String escape(final String s) {
+		final StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < s.length(); i++) {
+			if (needsEscaping(s.charAt(i))) {
+				sb.append('\\');
+			}
+			sb.append(s.charAt(i));
+		}
+		return sb.toString();
+	}
+
+	private static String getEscapedString(final String literal) {
+		if (needsEscaping(literal)) {
+			return escape(literal);
+		}
+		return literal;
 	}
 }
