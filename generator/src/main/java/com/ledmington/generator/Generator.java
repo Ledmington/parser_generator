@@ -97,7 +97,7 @@ public final class Generator {
 				.append("private char[] v = null;\n")
 				.append("private int pos = 0;\n");
 		if (atLeastOneConcatenation) {
-			sb.append("private Stack<Integer> stack = new Stack<>();\n");
+			sb.append("private final Stack<Integer> stack = new Stack<>();\n");
 		}
 		sb.append("private interface Node {}\n").append("private record Terminal(String literal) implements Node {}\n");
 		if (atLeastOneOptional) {
