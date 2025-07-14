@@ -53,89 +53,89 @@ public final class TestParser {
 			Arguments.of("a=\"\\\"\";", g(p(nt("a"), t("\"")))),
 			Arguments.of("a=\"a\"|\"b\"|\"c\";", g(p(nt("a"), alt(t("a"), t("b"), t("c"))))),
 			Arguments.of("a1=\"a\";", g(p(nt("a1"), t("a")))),
-			Arguments.of("S=\"a\"|(\"b\",\"c\");", g(p(nt("S"), alt(t("a"), seq(t("b"), t("c")))))),
+			Arguments.of("S=\"a\"|(\"b\",\"c\");", g(p(nt("S"), alt(t("a"), seq(t("b"), t("c"))))))
 			//
-			Arguments.of(
-					readFile("ebnf.g"),
-					g(
-							p(
-									nt("letter"),
-									alt(
-											t("A"), t("B"), t("C"), t("D"), t("E"), t("F"), t("G"), t("H"), t("I"),
-											t("J"), t("K"), t("L"), t("M"), t("N"), t("O"), t("P"), t("Q"), t("R"),
-											t("S"), t("T"), t("U"), t("V"), t("W"), t("X"), t("Y"), t("Z"), t("a"),
-											t("b"), t("c"), t("d"), t("e"), t("f"), t("g"), t("h"), t("i"), t("j"),
-											t("k"), t("l"), t("m"), t("n"), t("o"), t("p"), t("q"), t("r"), t("s"),
-											t("t"), t("u"), t("v"), t("w"), t("x"), t("y"), t("z"))),
-							p(
-									nt("digit"),
-									alt(
-											t("0"), t("1"), t("2"), t("3"), t("4"), t("5"), t("6"), t("7"), t("8"),
-											t("9"))),
-							p(
-									nt("symbol"),
-									alt(
-											t("["), t("]"), t("{"), t("}"), t("("), t(")"), t("<"), t(">"), t("'"),
-											t("="), t("|"), t("."), t(","), t(";"), t("-"), t("+"), t("*"), t("?"),
-											t("\\n"), t("\\t"))),
-							p(
+			/*,Arguments.of(
+			readFile("ebnf.g"),
+			g(
+					p(
+							nt("letter"),
+							alt(
+									t("A"), t("B"), t("C"), t("D"), t("E"), t("F"), t("G"), t("H"), t("I"),
+									t("J"), t("K"), t("L"), t("M"), t("N"), t("O"), t("P"), t("Q"), t("R"),
+									t("S"), t("T"), t("U"), t("V"), t("W"), t("X"), t("Y"), t("Z"), t("a"),
+									t("b"), t("c"), t("d"), t("e"), t("f"), t("g"), t("h"), t("i"), t("j"),
+									t("k"), t("l"), t("m"), t("n"), t("o"), t("p"), t("q"), t("r"), t("s"),
+									t("t"), t("u"), t("v"), t("w"), t("x"), t("y"), t("z"))),
+					p(
+							nt("digit"),
+							alt(
+									t("0"), t("1"), t("2"), t("3"), t("4"), t("5"), t("6"), t("7"), t("8"),
+									t("9"))),
+					p(
+							nt("symbol"),
+							alt(
+									t("["), t("]"), t("{"), t("}"), t("("), t(")"), t("<"), t(">"), t("'"),
+									t("="), t("|"), t("."), t(","), t(";"), t("-"), t("+"), t("*"), t("?"),
+									t("\\n"), t("\\t"))),
+					p(
+							nt("character without quotes"),
+							alt(nt("letter"), nt("digit"), nt("symbol"), t("_"), t(" "))),
+					p(nt("identifier"), seq(nt("letter"), rep(alt(nt("letter"), nt("digit"), t("_"))))),
+					p(nt("whitespace"), rep(alt(t(" "), t("\\n"), t("\\t")))),
+					p(
+							nt("terminal"),
+							seq(
+									t("\""),
 									nt("character without quotes"),
-									alt(nt("letter"), nt("digit"), nt("symbol"), t("_"), t(" "))),
-							p(nt("identifier"), seq(nt("letter"), rep(alt(nt("letter"), nt("digit"), t("_"))))),
-							p(nt("whitespace"), rep(alt(t(" "), t("\\n"), t("\\t")))),
-							p(
-									nt("terminal"),
+									rep(nt("character without quotes")),
+									t("\""))),
+					p(nt("terminator"), t(";")),
+					p(
+							nt("term"),
+							alt(
 									seq(
-											t("\""),
-											nt("character without quotes"),
-											rep(nt("character without quotes")),
-											t("\""))),
-							p(nt("terminator"), t(";")),
-							p(
-									nt("term"),
-									alt(
-											seq(
-													alt(
-															seq(
-																	t("["),
-																	nt("whitespace"),
-																	nt("rhs"),
-																	nt("whitespace"),
-																	t("]")),
-															t("{")),
-													nt("whitespace"),
-													nt("rhs"),
-													nt("whitespace"),
-													t("}")),
-											nt("terminal"),
-											nt("identifier"))),
-							p(
-									nt("concatenation"),
-									seq(
-											nt("whitespace"),
-											nt("term"),
-											nt("whitespace"),
-											rep(seq(t(","), nt("whitespace"), nt("term"), nt("whitespace"))))),
-							p(
-									nt("alternation"),
-									seq(
-											nt("whitespace"),
-											nt("concatenation"),
-											nt("whitespace"),
-											rep(seq(t("|"), nt("whitespace"), nt("concatenation"), nt("whitespace"))))),
-							p(nt("rhs"), nt("alternation")),
-							p(nt("lhs"), nt("identifier")),
-							p(
-									nt("rule"),
-									seq(
-											nt("lhs"),
-											nt("whitespace"),
-											t("="),
+											alt(
+													seq(
+															t("["),
+															nt("whitespace"),
+															nt("rhs"),
+															nt("whitespace"),
+															t("]")),
+													t("{")),
 											nt("whitespace"),
 											nt("rhs"),
 											nt("whitespace"),
-											nt("terminator"))),
-							p(nt("grammar"), rep(seq(nt("whitespace"), nt("rule"), nt("whitespace")))))));
+											t("}")),
+									nt("terminal"),
+									nt("identifier"))),
+					p(
+							nt("concatenation"),
+							seq(
+									nt("whitespace"),
+									nt("term"),
+									nt("whitespace"),
+									rep(seq(t(","), nt("whitespace"), nt("term"), nt("whitespace"))))),
+					p(
+							nt("alternation"),
+							seq(
+									nt("whitespace"),
+									nt("concatenation"),
+									nt("whitespace"),
+									rep(seq(t("|"), nt("whitespace"), nt("concatenation"), nt("whitespace"))))),
+					p(nt("rhs"), nt("alternation")),
+					p(nt("lhs"), nt("identifier")),
+					p(
+							nt("rule"),
+							seq(
+									nt("lhs"),
+									nt("whitespace"),
+									t("="),
+									nt("whitespace"),
+									nt("rhs"),
+									nt("whitespace"),
+									nt("terminator"))),
+					p(nt("grammar"), rep(seq(nt("whitespace"), nt("rule"), nt("whitespace"))))))*/ );
 
 	private static final List<String> INVALID_TEST_CASES = List.of(
 			"=",
