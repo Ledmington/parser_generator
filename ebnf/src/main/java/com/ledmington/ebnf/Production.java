@@ -17,6 +17,8 @@
  */
 package com.ledmington.ebnf;
 
+import java.util.Objects;
+
 /**
  * The most important element of an EBNF grammar, maps a non-terminal symbol to an expression which represents the
  * possible expansions.
@@ -25,4 +27,48 @@ package com.ledmington.ebnf;
  *     production.
  * @param result The expression to replace the non-terminal.c
  */
-public record Production(NonTerminal start, Expression result) implements Node {}
+public sealed class Production implements Node permits LexerProduction {
+
+	private final NonTerminal start;
+	private final Expression result;
+
+	public Production(final NonTerminal start, final Expression result) {
+		this.start = Objects.requireNonNull(start);
+		this.result = Objects.requireNonNull(result);
+	}
+
+	public NonTerminal start() {
+		return start;
+	}
+
+	public Expression result() {
+		return result;
+	}
+
+	@Override
+	public int hashCode() {
+		int h = 17;
+		h = 31 * h + start.hashCode();
+		h = 31 * h + result.hashCode();
+		return h;
+	}
+
+	@Override
+	public String toString() {
+		return "Production[start=" + start + ";result=" + result + "]";
+	}
+
+	@Override
+	public boolean equals(final Object other) {
+		if (other == null) {
+			return false;
+		}
+		if (this == other) {
+			return true;
+		}
+		if (!(other instanceof Production p)) {
+			return false;
+		}
+		return this.start.equals(p.start) && this.result.equals(p.result);
+	}
+}
