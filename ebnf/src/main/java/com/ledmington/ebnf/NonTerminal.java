@@ -17,9 +17,18 @@
  */
 package com.ledmington.ebnf;
 
+import java.util.Objects;
+
 /**
  * An element of the EBNF grammar which represents a symbol which can be expanded into other symbols.
  *
  * @param name The name used in the grammar to refer to this non-terminal symbol.
  */
-public record NonTerminal(String name) implements Expression {}
+public record NonTerminal(String name) implements Expression {
+	public NonTerminal {
+		Objects.requireNonNull(name);
+		if (name.isBlank()) {
+			throw new IllegalArgumentException("Empty non-terminal name.");
+		}
+	}
+}

@@ -17,9 +17,18 @@
  */
 package com.ledmington.ebnf;
 
+import java.util.Objects;
+
 /**
  * An element of the EBNF grammar which represents a symbol which cannot be expanded into other symbols.
  *
  * @param literal The content of the terminal symbol.c
  */
-public record Terminal(String literal) implements Expression {}
+public record Terminal(String literal) implements Expression {
+	public Terminal {
+		Objects.requireNonNull(literal);
+		if (literal.isBlank()) {
+			throw new IllegalArgumentException("Empty terminal symbol.");
+		}
+	}
+}

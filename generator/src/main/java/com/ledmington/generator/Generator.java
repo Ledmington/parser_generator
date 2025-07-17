@@ -35,6 +35,7 @@ import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Repetition;
 import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
+import com.ledmington.ebnf.Utils;
 
 /** Generates Java code to parse a specified EBNF grammar. */
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
@@ -112,51 +113,40 @@ public final class Generator {
 		if (atLeastOneAlternation) {
 			sb.append("public record Alternation(Node inner) implements Node {}\n");
 		}
-		sb.append("public interface Token {}\n");
-		sb.append("public final class TokenStream {\n")
-				.indent()
-				.append("public boolean hasNext() {\n")
-				.indent()
-				.append("return false;\n")
-				.deindent()
-				.append("}\n")
-				.append("public Token next() {\n")
-				.indent()
-				.append("return null;\n")
-				.deindent()
-				.append("}\n")
-				.deindent()
-				.append("}\n");
+
+		{
+			for (final Production p : ((Grammar) root).productions()) {
+				System.out.printf("'%s' -> %s%n", p.start().name(), p.isLexerProduction() ? "LEXER" : "PARSER");
+			}
+		}
+
+		final boolean isLexerNeeded = ((Grammar) root).productions().stream().anyMatch(p -> p.isLexerProduction());
 		final String lexerName = className + "_Lexer";
-		sb.append("public final class ")
-				.append(lexerName)
-				.append(" {\n")
-				.indent()
-				.append("public ")
-				.append(lexerName)
-				.append("() {}\n")
-				.append("public TokenStream tokenize(final String input) {\n")
-				.indent()
-				.append("return null;\n")
-				.deindent()
-				.append("}\n")
-				.deindent()
-				.append("}\n");
+
+		if (isLexerNeeded) {
+			generateLexer(sb, lexerName);
+		}
+
 		sb.append("public Node parse(final String input) {\n")
 				.indent()
 				.append("this.v = input.toCharArray();\n")
 				.append("this.pos = 0;\n")
-				.append("final Node result;\n")
-				.append("final ")
-				.append(lexerName)
-				.append(" lexer = new ")
-				.append(lexerName)
-				.append("();\n")
-				.append("try {\n")
-				.indent()
-				.append("final TokenStream tokens = lexer.tokenize(input);\n")
-				.append("result = parse_" + startSymbol + "(tokens);\n")
-				.deindent()
+				.append("final Node result;\n");
+
+		if (isLexerNeeded) {
+			sb.append("final ")
+					.append(lexerName)
+					.append(" lexer = new ")
+					.append(lexerName)
+					.append("();\n")
+					.append("try {\n")
+					.indent()
+					.append("final TokenStream tokens = lexer.tokenize(input);\n")
+					.append("result = parse_" + startSymbol + "(tokens);\n");
+		} else {
+			sb.append("try {\n").indent().append("result = parse_" + startSymbol + "();\n");
+		}
+		sb.deindent()
 				.append("} catch (final ArrayIndexOutOfBoundsException e) {\n")
 				.indent()
 				.append("return null;\n")
@@ -208,7 +198,7 @@ public final class Generator {
 				.indent()
 				.append("if (v[pos + i] != input.charAt(i)) {\n")
 				.indent()
-				.append("return null;")
+				.append("return null;\n")
 				.deindent()
 				.append("}\n")
 				.deindent()
@@ -247,6 +237,38 @@ public final class Generator {
 		return sb.deindent().append("}").toString();
 	}
 
+	private static void generateLexer(final IndentedStringBuilder sb, final String lexerName) {
+		sb.append("public interface Token {}\n");
+		sb.append("public final class TokenStream {\n")
+				.indent()
+				.append("public boolean hasNext() {\n")
+				.indent()
+				.append("return false;\n")
+				.deindent()
+				.append("}\n")
+				.append("public Token next() {\n")
+				.indent()
+				.append("return null;\n")
+				.deindent()
+				.append("}\n")
+				.deindent()
+				.append("}\n");
+		sb.append("public final class ")
+				.append(lexerName)
+				.append(" {\n")
+				.indent()
+				.append("public ")
+				.append(lexerName)
+				.append("() {}\n")
+				.append("public TokenStream tokenize(final String input) {\n")
+				.indent()
+				.append("return null;\n")
+				.deindent()
+				.append("}\n")
+				.deindent()
+				.append("}\n");
+	}
+
 	private static void generateAlternation(
 			final Queue<Node> q, final IndentedStringBuilder sb, final String name, final Alternation a) {
 		sb.append("private Alternation parse_" + name + "() {\n").indent();
@@ -255,7 +277,8 @@ public final class Generator {
 			final Node n = nodes.get(i);
 			final String nodeName = "n_" + i;
 			if (n instanceof Terminal(final String literal)) {
-				sb.append("final Node " + nodeName + " = parseTerminal(\"" + getEscapedString(literal) + "\");\n");
+				sb.append(
+						"final Node " + nodeName + " = parseTerminal(\"" + Utils.getEscapedString(literal) + "\");\n");
 			} else {
 				sb.append("final Node " + nodeName + " = parse_" + NODE_NAMES.get(n) + "();\n");
 				q.add(n);
@@ -277,7 +300,7 @@ public final class Generator {
 				.append("while (true) {\n")
 				.indent();
 		if (r.inner() instanceof Terminal(final String literal)) {
-			sb.append("final Node n = parseTerminal(\"" + getEscapedString(literal) + "\");\n");
+			sb.append("final Node n = parseTerminal(\"" + Utils.getEscapedString(literal) + "\");\n");
 		} else {
 			sb.append("final Node n = parse_" + NODE_NAMES.get(r.inner()) + "();\n");
 			q.add(r.inner());
@@ -309,7 +332,8 @@ public final class Generator {
 			final Node n = seq.get(i);
 			final String nodeName = "n_" + i;
 			if (n instanceof Terminal(final String literal)) {
-				sb.append("final Node " + nodeName + " = parseTerminal(\"" + getEscapedString(literal) + "\");\n");
+				sb.append(
+						"final Node " + nodeName + " = parseTerminal(\"" + Utils.getEscapedString(literal) + "\");\n");
 			} else {
 				sb.append("final Node " + nodeName + " = parse_" + NODE_NAMES.get(n) + "();\n");
 				q.add(n);
@@ -338,7 +362,7 @@ public final class Generator {
 				.append("() {\n")
 				.indent();
 		if (result instanceof Terminal(final String literal)) {
-			sb.append("return parseTerminal(\"" + getEscapedString(literal) + "\");\n");
+			sb.append("return parseTerminal(\"" + Utils.getEscapedString(literal) + "\");\n");
 		} else {
 			sb.append("return parse_" + NODE_NAMES.get(result) + "();\n");
 			q.add(result);
@@ -347,6 +371,7 @@ public final class Generator {
 	}
 
 	private static void generateNames(final Node root) {
+		NODE_NAMES.clear();
 		final Queue<Node> q = new ArrayDeque<>();
 		final Set<Node> visited = new HashSet<>();
 		q.add(root);
@@ -399,42 +424,11 @@ public final class Generator {
 			final Queue<Node> q, final IndentedStringBuilder sb, final String name, final OptionalNode o) {
 		sb.append("private OptionalNode parse_" + name + "() {\n").indent();
 		if (o.inner() instanceof Terminal(final String literal)) {
-			sb.append("final Node inner = parseTerminal(\"" + getEscapedString(literal) + "\");\n");
+			sb.append("final Node inner = parseTerminal(\"" + Utils.getEscapedString(literal) + "\");\n");
 		} else {
 			sb.append("final Node inner = parse_" + NODE_NAMES.get(o.inner()) + "();\n");
 			q.add(o.inner());
 		}
 		sb.append("return new OptionalNode(inner);\n").deindent().append("}\n");
-	}
-
-	private static boolean needsEscaping(final char ch) {
-		return ch == '\'' || ch == '\"' || ch == '\\';
-	}
-
-	private static boolean needsEscaping(final String s) {
-		for (int i = 0; i < s.length(); i++) {
-			if (needsEscaping(s.charAt(i))) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	private static String escape(final String s) {
-		final StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < s.length(); i++) {
-			if (needsEscaping(s.charAt(i))) {
-				sb.append('\\');
-			}
-			sb.append(s.charAt(i));
-		}
-		return sb.toString();
-	}
-
-	private static String getEscapedString(final String literal) {
-		if (needsEscaping(literal)) {
-			return escape(literal);
-		}
-		return literal;
 	}
 }

@@ -105,4 +105,51 @@ public final class Utils {
 		}
 		sb.append(indentString).append("}");
 	}
+
+	private static boolean needsEscaping(final char ch) {
+		return ch == '\'' || ch == '\"' || ch == '\\';
+	}
+
+	private static boolean needsEscaping(final String s) {
+		for (int i = 0; i < s.length(); i++) {
+			if (needsEscaping(s.charAt(i))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean containsSpaces(final String s) {
+		for (int i = 0; i < s.length(); i++) {
+			if (s.charAt(i) == ' ') {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static String escape(final String s) {
+		final StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < s.length(); i++) {
+			if (needsEscaping(s.charAt(i))) {
+				sb.append('\\');
+			}
+			sb.append(s.charAt(i));
+		}
+		return sb.toString();
+	}
+
+	public static String getEscapedString(final String literal) {
+		if (needsEscaping(literal)) {
+			return escape(literal);
+		}
+		return literal;
+	}
+
+	public static String getQuotedString(final String s) {
+		if (containsSpaces(s) || needsEscaping(s)) {
+			return "'" + escape(s) + "'";
+		}
+		return s;
+	}
 }

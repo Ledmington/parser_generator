@@ -17,9 +17,15 @@
  */
 package com.ledmington.ebnf;
 
+import java.util.Objects;
+
 /**
  * An element of an EBNF grammar representing an expression which may or may not be present.
  *
  * @param inner The optional Expression.
  */
-public record OptionalNode(Expression inner) implements Expression {}
+public record OptionalNode(Expression inner) implements Expression {
+	public OptionalNode {
+		Objects.requireNonNull(inner);
+	}
+}

@@ -17,7 +17,9 @@
  */
 package com.ledmington.ebnf;
 
+import java.util.ArrayDeque;
 import java.util.Objects;
+import java.util.Queue;
 
 /**
  * The most important element of an EBNF grammar, maps a non-terminal symbol to an expression which represents the
@@ -27,48 +29,34 @@ import java.util.Objects;
  *     production.
  * @param result The expression to replace the non-terminal.c
  */
-public sealed class Production implements Node permits LexerProduction {
+public record Production(NonTerminal start, Expression result) implements Node {
 
-	private final NonTerminal start;
-	private final Expression result;
-
-	public Production(final NonTerminal start, final Expression result) {
-		this.start = Objects.requireNonNull(start);
-		this.result = Objects.requireNonNull(result);
+	public Production {
+		Objects.requireNonNull(start);
+		Objects.requireNonNull(result);
 	}
 
-	public NonTerminal start() {
-		return start;
-	}
-
-	public Expression result() {
-		return result;
-	}
-
-	@Override
-	public int hashCode() {
-		int h = 17;
-		h = 31 * h + start.hashCode();
-		h = 31 * h + result.hashCode();
-		return h;
-	}
-
-	@Override
-	public String toString() {
-		return "Production[start=" + start + ";result=" + result + "]";
-	}
-
-	@Override
-	public boolean equals(final Object other) {
-		if (other == null) {
-			return false;
+	public boolean isLexerProduction() {
+		final Queue<Node> q = new ArrayDeque<>();
+		q.add(result);
+		while (!q.isEmpty()) {
+			final Node n = q.remove();
+			switch (n) {
+				case Terminal ignored -> {}
+				case NonTerminal ignored -> {
+					return false;
+				}
+				case OptionalNode o -> q.add(o.inner());
+				case Repetition r -> q.add(r.inner());
+				case Alternation a -> q.addAll(a.nodes());
+				case Sequence s -> q.addAll(s.nodes());
+				default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'.", n));
+			}
 		}
-		if (this == other) {
-			return true;
-		}
-		if (!(other instanceof Production p)) {
-			return false;
-		}
-		return this.start.equals(p.start) && this.result.equals(p.result);
+		return true;
+	}
+
+	public boolean isSkippable() {
+		return isLexerProduction() && start.name().charAt(0) == '_';
 	}
 }
