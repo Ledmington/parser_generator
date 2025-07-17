@@ -36,6 +36,7 @@ import com.ledmington.ebnf.Repetition;
 import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.Utils;
+import com.ledmington.generator.automata.NFA;
 
 /** Generates Java code to parse a specified EBNF grammar. */
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
@@ -124,7 +125,7 @@ public final class Generator {
 		final String lexerName = className + "_Lexer";
 
 		if (isLexerNeeded) {
-			generateLexer(sb, lexerName);
+			generateLexer(sb, lexerName, (Grammar) root);
 		}
 
 		sb.append("public Node parse(final String input) {\n")
@@ -237,7 +238,8 @@ public final class Generator {
 		return sb.deindent().append("}").toString();
 	}
 
-	private static void generateLexer(final IndentedStringBuilder sb, final String lexerName) {
+	private static void generateLexer(final IndentedStringBuilder sb, final String lexerName, final Grammar g) {
+		final NFA nfa = new NFA(g);
 		sb.append("public interface Token {}\n");
 		sb.append("public final class TokenStream {\n")
 				.indent()
