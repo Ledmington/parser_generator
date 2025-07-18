@@ -15,22 +15,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.generator;
+package com.ledmington.generator.automata;
 
-import java.io.Serial;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 
-/** The proper RuntimeException for a case in which there is no clear start symbol in a given grammar. */
-public final class NoUniqueStartSymbolException extends RuntimeException {
+public final class Automaton {
 
-	@Serial
-	private static final long serialVersionUID = 5878803702087464360L;
+	private final State startingState;
+	private final Set<StateTransition> transitions;
 
-	/** Creates a new instance with a standard message. */
-	public NoUniqueStartSymbolException() {
-		super("No starting symbol found in the grammar.");
-	}
-
-	public NoUniqueStartSymbolException(final String message) {
-		super(message);
+	public Automaton(final State startingState, final Set<StateTransition> transitions) {
+		this.startingState = Objects.requireNonNull(startingState);
+		this.transitions = new HashSet<>(transitions);
 	}
 }

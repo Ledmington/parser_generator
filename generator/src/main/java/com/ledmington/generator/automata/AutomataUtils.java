@@ -24,12 +24,18 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.ledmington.ebnf.Alternation;
 import com.ledmington.ebnf.Grammar;
+import com.ledmington.ebnf.Node;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Terminal;
 
-public final class NFA {
-	public NFA(final Grammar g) {
+// FIXME: find a better name or place for these functions
+public final class AutomataUtils {
+
+	private AutomataUtils() {}
+
+	public static Automaton grammarToNFA(final Grammar g) {
 		final Set<Production> prod =
 				g.productions().stream().filter(Production::isLexerProduction).collect(Collectors.toUnmodifiableSet());
 		final Set<State> states = new HashSet<>();
@@ -41,31 +47,17 @@ public final class NFA {
 		states.add(end);
 
 		for (final Production p : prod) {
-			switch (p.result()) {
-				case Terminal t -> {
-					State prev = new State();
-					states.add(prev);
-					transitions.add(new StateTransition(start, prev, StateTransition.EPSILON));
-					for (int i = 0; i < t.literal().length(); i++) {
-						final State s = new State();
-						states.add(s);
-						transitions.add(new StateTransition(prev, s, t.literal().charAt(i)));
-						prev = s;
-					}
-					transitions.add(new StateTransition(prev, end, StateTransition.EPSILON));
-				}
-				default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", p.result()));
-			}
+			convertNode(p.result(), states, transitions, start, end);
 		}
 
 		{
 			states.stream().sorted(Comparator.comparing(State::name)).forEach(s -> {
-				System.out.printf("%5s  ", s.name());
+				System.out.printf(" %-5s : ", s.name());
 				for (final StateTransition t : transitions) {
 					if (!t.from().equals(s)) {
 						continue;
 					}
-					System.out.printf("%c|%s ", t.character(), t.to().name());
+					System.out.printf("%c|%-5s ", t.character(), t.to().name());
 				}
 				System.out.println();
 			});
@@ -115,5 +107,70 @@ public final class NFA {
 								.collect(Collectors.joining(", "))));
 			}
 		}
+
+		return new Automaton(start, transitions);
+	}
+
+	private static void convertNode(
+			final Node n,
+			final Set<State> states,
+			final Set<StateTransition> transitions,
+			final State start,
+			final State end) {
+		switch (n) {
+			case Terminal t -> convertTerminal(t, states, transitions, start, end);
+			case Alternation a -> convertAlternation(a, states, transitions, start, end);
+			default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
+		}
+	}
+
+	private static void convertAlternation(
+			final Alternation a,
+			final Set<State> states,
+			final Set<StateTransition> transitions,
+			final State start,
+			final State end) {
+		for (final Node n : a.nodes()) {
+			final State newStart = new State();
+			final State newEnd = new State();
+			states.add(newStart);
+			states.add(newEnd);
+			transitions.add(new StateTransition(start, newStart, StateTransition.EPSILON));
+			transitions.add(new StateTransition(newEnd, end, StateTransition.EPSILON));
+			convertNode(n, states, transitions, newStart, newEnd);
+		}
+	}
+
+	private static void convertTerminal(
+			final Terminal t,
+			final Set<State> states,
+			final Set<StateTransition> transitions,
+			final State start,
+			final State end) {
+		State prev = new State();
+		states.add(prev);
+		transitions.add(new StateTransition(start, prev, StateTransition.EPSILON));
+		for (int i = 0; i < t.literal().length(); i++) {
+			final State s = new State();
+			states.add(s);
+			transitions.add(new StateTransition(prev, s, t.literal().charAt(i)));
+			prev = s;
+		}
+		transitions.add(new StateTransition(prev, end, StateTransition.EPSILON));
+	}
+
+	public static Automaton epsilonNFAtoNFA(final Automaton epsilonNFA) {
+		// TODO
+		return epsilonNFA;
+	}
+
+	public static Automaton NFAtoDFA(final Automaton nfa) {
+		// TODO
+		return nfa;
+	}
+
+	public static Automaton minimizeDFA(final Automaton dfa) {
+		// TODO
+		return dfa;
 	}
 }

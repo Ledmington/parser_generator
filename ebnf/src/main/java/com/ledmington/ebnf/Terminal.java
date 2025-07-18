@@ -27,7 +27,7 @@ import java.util.Objects;
 public record Terminal(String literal) implements Expression {
 	public Terminal {
 		Objects.requireNonNull(literal);
-		if (literal.isBlank()) {
+		if (literal.isEmpty()) {
 			throw new IllegalArgumentException("Empty terminal symbol.");
 		}
 	}

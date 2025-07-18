@@ -36,7 +36,8 @@ import com.ledmington.ebnf.Repetition;
 import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.Utils;
-import com.ledmington.generator.automata.NFA;
+import com.ledmington.generator.automata.AutomataUtils;
+import com.ledmington.generator.automata.Automaton;
 
 /** Generates Java code to parse a specified EBNF grammar. */
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
@@ -115,13 +116,13 @@ public final class Generator {
 			sb.append("public record Alternation(Node inner) implements Node {}\n");
 		}
 
-		{
+		if (false) {
 			for (final Production p : ((Grammar) root).productions()) {
 				System.out.printf("'%s' -> %s%n", p.start().name(), p.isLexerProduction() ? "LEXER" : "PARSER");
 			}
 		}
 
-		final boolean isLexerNeeded = ((Grammar) root).productions().stream().anyMatch(p -> p.isLexerProduction());
+		final boolean isLexerNeeded = ((Grammar) root).productions().stream().anyMatch(Production::isLexerProduction);
 		final String lexerName = className + "_Lexer";
 
 		if (isLexerNeeded) {
@@ -239,7 +240,8 @@ public final class Generator {
 	}
 
 	private static void generateLexer(final IndentedStringBuilder sb, final String lexerName, final Grammar g) {
-		final NFA nfa = new NFA(g);
+		final Automaton dfa = AutomataUtils.minimizeDFA(
+				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToNFA(g))));
 		sb.append("public interface Token {}\n");
 		sb.append("public final class TokenStream {\n")
 				.indent()
