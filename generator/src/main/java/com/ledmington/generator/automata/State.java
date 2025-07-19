@@ -24,4 +24,8 @@ public record State(String name, boolean isFinal) {
 	public State() {
 		this("S" + (ID++), false);
 	}
+
+	public State(final String name) {
+		this(name, false);
+	}
 }

@@ -240,8 +240,14 @@ public final class Generator {
 	}
 
 	private static void generateLexer(final IndentedStringBuilder sb, final String lexerName, final Grammar g) {
-		final Automaton dfa = AutomataUtils.minimizeDFA(
-				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToNFA(g))));
+		final Automaton epsilonNFA = AutomataUtils.grammarToEpsilonNFA(g);
+		AutomataUtils.assertAutomatonValid(epsilonNFA);
+		final Automaton nfa = AutomataUtils.epsilonNFAtoNFA(epsilonNFA);
+		AutomataUtils.assertAutomatonValid(nfa);
+		final Automaton dfa = AutomataUtils.NFAtoDFA(nfa);
+		AutomataUtils.assertAutomatonValid(dfa);
+		final Automaton minimizedDFA = AutomataUtils.minimizeDFA(dfa);
+		AutomataUtils.assertAutomatonValid(minimizedDFA);
 		sb.append("public interface Token {}\n");
 		sb.append("public final class TokenStream {\n")
 				.indent()

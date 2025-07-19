@@ -24,10 +24,19 @@ import java.util.Set;
 public final class Automaton {
 
 	private final State startingState;
+	// FIXME: convert to Map<State, Map<Character, State>>? How to deal with NFAs?
 	private final Set<StateTransition> transitions;
 
 	public Automaton(final State startingState, final Set<StateTransition> transitions) {
 		this.startingState = Objects.requireNonNull(startingState);
 		this.transitions = new HashSet<>(transitions);
+	}
+
+	public State startingState() {
+		return startingState;
+	}
+
+	public Set<StateTransition> transitions() {
+		return transitions;
 	}
 }
