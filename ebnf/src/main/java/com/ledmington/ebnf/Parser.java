@@ -67,7 +67,20 @@ public final class Parser {
 					v.add(
 							i,
 							new Grammar(Stream.concat(productions.stream(), Stream.of(second))
-									.collect(Collectors.toSet())));
+									.collect(Collectors.toUnmodifiableSet())));
+					return true;
+				}
+				return false;
+			},
+			(v, i) -> {
+				if (i + 1 < v.size()
+						&& v.get(i) instanceof final Production first
+						&& v.get(i + 1) instanceof Grammar(final Set<Production> productions)) {
+					v.subList(i, i + 2).clear();
+					v.add(
+							i,
+							new Grammar(Stream.concat(productions.stream(), Stream.of(first))
+									.collect(Collectors.toUnmodifiableSet())));
 					return true;
 				}
 				return false;
@@ -80,7 +93,7 @@ public final class Parser {
 					v.add(
 							i,
 							new Grammar(Stream.concat(productions.stream(), productions1.stream())
-									.collect(Collectors.toSet())));
+									.collect(Collectors.toUnmodifiableSet())));
 					return true;
 				}
 				return false;

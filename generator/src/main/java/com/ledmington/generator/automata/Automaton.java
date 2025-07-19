@@ -15,17 +15,28 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.ebnf;
+package com.ledmington.generator.automata;
 
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
-/**
- * An element of an EBNF grammar representing an expression which may or may not be present.
- *
- * @param inner The optional Expression.
- */
-public record OptionalNode(Expression inner) implements Expression {
-	public OptionalNode {
-		Objects.requireNonNull(inner);
+public final class Automaton {
+
+	private final State startingState;
+	// FIXME: convert to Map<State, Map<Character, State>>? How to deal with NFAs?
+	private final Set<StateTransition> transitions;
+
+	public Automaton(final State startingState, final Set<StateTransition> transitions) {
+		this.startingState = Objects.requireNonNull(startingState);
+		this.transitions = new HashSet<>(transitions);
+	}
+
+	public State startingState() {
+		return startingState;
+	}
+
+	public Set<StateTransition> transitions() {
+		return transitions;
 	}
 }

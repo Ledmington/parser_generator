@@ -15,17 +15,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.ebnf;
+package com.ledmington.generator.automata;
 
-import java.util.Objects;
-
-/**
- * An element of an EBNF grammar representing an expression which may or may not be present.
- *
- * @param inner The optional Expression.
- */
-public record OptionalNode(Expression inner) implements Expression {
-	public OptionalNode {
-		Objects.requireNonNull(inner);
-	}
+public record StateTransition(State from, State to, char character) {
+	public static final char EPSILON = (char) -1;
 }

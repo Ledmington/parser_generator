@@ -17,6 +17,10 @@
  */
 package com.ledmington.ebnf;
 
+import java.util.ArrayDeque;
+import java.util.Objects;
+import java.util.Queue;
+
 /**
  * The most important element of an EBNF grammar, maps a non-terminal symbol to an expression which represents the
  * possible expansions.
@@ -25,4 +29,34 @@ package com.ledmington.ebnf;
  *     production.
  * @param result The expression to replace the non-terminal.c
  */
-public record Production(NonTerminal start, Expression result) implements Node {}
+public record Production(NonTerminal start, Expression result) implements Node {
+
+	public Production {
+		Objects.requireNonNull(start);
+		Objects.requireNonNull(result);
+	}
+
+	public boolean isLexerProduction() {
+		final Queue<Node> q = new ArrayDeque<>();
+		q.add(result);
+		while (!q.isEmpty()) {
+			final Node n = q.remove();
+			switch (n) {
+				case Terminal ignored -> {}
+				case NonTerminal ignored -> {
+					return false;
+				}
+				case OptionalNode o -> q.add(o.inner());
+				case Repetition r -> q.add(r.inner());
+				case Alternation a -> q.addAll(a.nodes());
+				case Sequence s -> q.addAll(s.nodes());
+				default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'.", n));
+			}
+		}
+		return true;
+	}
+
+	public boolean isSkippable() {
+		return isLexerProduction() && start.name().charAt(0) == '_';
+	}
+}

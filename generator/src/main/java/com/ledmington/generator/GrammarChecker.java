@@ -18,8 +18,10 @@
 package com.ledmington.generator;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
@@ -60,7 +62,7 @@ public final class GrammarChecker {
 
 		for (final String name : allNonTerminals) {
 			if (g.productions().stream().noneMatch(p -> p.start().name().equals(name))) {
-				throw new UnusableNonTerminalException(name);
+				throw new UnknownNonTerminalException(name);
 			}
 		}
 
@@ -80,6 +82,7 @@ public final class GrammarChecker {
 	}
 
 	private static String findStartSymbol(final Grammar g, final Set<String> nonTerminals) {
+		// Building the graph of reachable symbols
 		final Map<String, Set<String>> graph = new HashMap<>();
 		for (final Production p : g.productions()) {
 			final String s = p.start().name();
@@ -87,14 +90,34 @@ public final class GrammarChecker {
 
 			graph.put(s, outEdges);
 		}
+
+		final List<String> possibleStartSymbols = new ArrayList<>();
 		for (final Map.Entry<String, Set<String>> e : graph.entrySet()) {
 			final String possibleStartSymbol = e.getKey();
 			final Set<String> visited = bfs(possibleStartSymbol, graph);
+			if (false) {
+				System.out.printf(
+						"Nodes reachable from '%s': %s.%n",
+						possibleStartSymbol,
+						visited.stream().sorted().map(s -> "'" + s + "'").collect(Collectors.joining(", ")));
+				System.out.println(visited.stream().sorted().toList());
+				System.out.println(nonTerminals.stream().sorted().toList());
+				System.out.println();
+			}
 			if (visited.equals(nonTerminals)) {
-				return possibleStartSymbol;
+				possibleStartSymbols.add(possibleStartSymbol);
 			}
 		}
-		throw new NoUniqueStartSymbolException();
+
+		if (possibleStartSymbols.isEmpty()) {
+			throw new NoUniqueStartSymbolException();
+		}
+		if (possibleStartSymbols.size() == 1) {
+			return possibleStartSymbols.getFirst();
+		}
+		throw new NoUniqueStartSymbolException(String.format(
+				"The following symbols are possible starting symbols: %s.",
+				possibleStartSymbols.stream().map(s -> "'" + s + "'").collect(Collectors.joining(", "))));
 	}
 
 	private static Set<String> bfs(final String start, final Map<String, Set<String>> graph) {
