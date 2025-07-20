@@ -28,4 +28,8 @@ public record State(String name, boolean isFinal) {
 	public State(final String name) {
 		this(name, false);
 	}
+
+	public State(final boolean isFinal) {
+		this("S" + (ID++), isFinal);
+	}
 }

@@ -64,28 +64,27 @@ public final class TestAutomata {
 	@ParameterizedTest
 	@MethodSource("onlyGrammars")
 	void checkValidEpsilonNFA(final Grammar g) {
-		assertDoesNotThrow(() -> AutomataUtils.assertAutomatonValid(AutomataUtils.grammarToEpsilonNFA(g)));
+		assertDoesNotThrow(() -> AutomataUtils.assertEpsilonNFAValid(AutomataUtils.grammarToEpsilonNFA(g)));
 	}
 
 	@ParameterizedTest
 	@MethodSource("onlyGrammars")
 	void checkValidNFA(final Grammar g) {
-		printAutomaton(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g)));
-		assertDoesNotThrow(() -> AutomataUtils.assertAutomatonValid(
-				AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g))));
+		assertDoesNotThrow(() ->
+				AutomataUtils.assertNFAValid(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g))));
 	}
 
 	@ParameterizedTest
 	@MethodSource("onlyGrammars")
 	void checkValidDFA(final Grammar g) {
-		assertDoesNotThrow(() -> AutomataUtils.assertAutomatonValid(
+		assertDoesNotThrow(() -> AutomataUtils.assertDFAValid(
 				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g)))));
 	}
 
 	@ParameterizedTest
 	@MethodSource("onlyGrammars")
 	void checkValidMinimizedDFA(final Grammar g) {
-		assertDoesNotThrow(() -> AutomataUtils.assertAutomatonValid(AutomataUtils.minimizeDFA(
+		assertDoesNotThrow(() -> AutomataUtils.assertDFAValid(AutomataUtils.minimizeDFA(
 				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g))))));
 	}
 }

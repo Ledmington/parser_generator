@@ -188,58 +188,28 @@ public final class AutomataUtils {
 		return closure;
 	}
 
-	private static Set<State> epsilonClosure(final Set<State> states, final Set<StateTransition> transitions) {
-		final Set<State> result = new HashSet<>();
-		for (final State s : states) {
-			result.addAll(epsilonClosure(s, transitions));
-		}
-		return result;
-	}
-
 	public static Automaton epsilonNFAtoNFA(final Automaton epsilonNFA) {
-		final State oldStartState = epsilonNFA.startingState();
 		final Set<State> oldStates = epsilonNFA.transitions().stream()
 				.flatMap(t -> Stream.of(t.from(), t.to()))
 				.collect(Collectors.toUnmodifiableSet());
-		final Set<State> oldAcceptingStates =
-				oldStates.stream().filter(State::isFinal).collect(Collectors.toUnmodifiableSet());
-		final Set<State> newStates = new HashSet<>();
-		final Set<StateTransition> oldTransitions = epsilonNFA.transitions();
-		final Set<StateTransition> newTransitions = new HashSet<>();
 		final Map<State, State> stateMapping = new HashMap<>();
 
 		for (final State s : oldStates) {
-			final State newState = new State(s.name(), oldAcceptingStates.contains(s));
-			stateMapping.put(s, newState);
-			newStates.add(newState);
-		}
-
-		for (final State s : oldStates) {
-			final Set<State> closure = epsilonClosure(s, oldTransitions);
-			// for (final String symbol : alphabet) {
-			final Set<State> targets = new HashSet<>(closure);
-			/*for (final State c : closure) {
-				for (final StateTransition t : oldTransitions) {
-					if (t.from().equals(c)) {
-						targets.add();
-					}
-				}
-				// targets.addAll(transitions.getOrDefault(c, new HashMap<>()).getOrDefault(symbol, new HashSet<>()));
-			}*/
-			final Set<State> closureTargets = epsilonClosure(targets, oldTransitions);
-			for (final State target : closureTargets) {
-				for (final StateTransition t : oldTransitions) {
-					if (t.from().equals(s) && t.to().equals(target)) {
-						newTransitions.add(
-								new StateTransition(stateMapping.get(s), stateMapping.get(target), t.character()));
-					}
-				}
-				// newTransitions.add(new StateTransition(stateMapping.get(s), symbol, stateMapping.get(target)));
+			if (stateMapping.containsKey(s)) {
+				continue;
 			}
-			// }
-		}
+			final Set<State> closure = epsilonClosure(s, epsilonNFA.transitions());
 
-		return new Automaton(oldStartState, newTransitions);
+			final boolean isAccepting = closure.stream().anyMatch(State::isFinal);
+			final State newState = new State(isAccepting);
+			closure.forEach(state -> stateMapping.put(state, newState));
+		}
+		final Set<StateTransition> newTransitions = new HashSet<>();
+		for (final StateTransition t : epsilonNFA.transitions()) {
+			newTransitions.add(
+					new StateTransition(stateMapping.get(t.from()), stateMapping.get(t.to()), t.character()));
+		}
+		return new Automaton(stateMapping.get(epsilonNFA.startingState()), newTransitions);
 	}
 
 	public static Automaton NFAtoDFA(final Automaton nfa) {
@@ -252,7 +222,7 @@ public final class AutomataUtils {
 		return dfa;
 	}
 
-	public static void assertAutomatonValid(final Automaton automaton) {
+	public static void assertEpsilonNFAValid(final Automaton automaton) {
 		final Set<State> allStates = Stream.concat(
 						Stream.of(automaton.startingState()),
 						automaton.transitions().stream().flatMap(t -> Stream.of(t.from(), t.to())))
@@ -284,6 +254,38 @@ public final class AutomataUtils {
 
 		if (!visited.equals(allStates)) {
 			throw new IllegalArgumentException("The automaton is not a single strongly connected component.");
+		}
+	}
+
+	public static void assertNFAValid(final Automaton automaton) {
+		assertEpsilonNFAValid(automaton);
+
+		if (automaton.transitions().stream().anyMatch(t -> t.character() == StateTransition.EPSILON)) {
+			throw new IllegalArgumentException("Epsilon transitions found in an NFA.");
+		}
+	}
+
+	public static void assertDFAValid(final Automaton automaton) {
+		assertNFAValid(automaton);
+
+		final Set<State> allStates = Stream.concat(
+						Stream.of(automaton.startingState()),
+						automaton.transitions().stream().flatMap(t -> Stream.of(t.from(), t.to())))
+				.collect(Collectors.toUnmodifiableSet());
+
+		for (final State s : allStates) {
+			final Set<Character> transitions = new HashSet<>();
+			for (final StateTransition t : automaton.transitions()) {
+				if (!t.from().equals(s)) {
+					continue;
+				}
+				if (transitions.contains(t.character())) {
+					throw new IllegalArgumentException(String.format(
+							"State '%s' has two transitions with the same character '%c' (U+%04X).",
+							s, t.character(), (int) t.character()));
+				}
+				transitions.add(t.character());
+			}
 		}
 	}
 }

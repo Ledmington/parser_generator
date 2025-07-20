@@ -241,13 +241,13 @@ public final class Generator {
 
 	private static void generateLexer(final IndentedStringBuilder sb, final String lexerName, final Grammar g) {
 		final Automaton epsilonNFA = AutomataUtils.grammarToEpsilonNFA(g);
-		AutomataUtils.assertAutomatonValid(epsilonNFA);
+		AutomataUtils.assertEpsilonNFAValid(epsilonNFA);
 		final Automaton nfa = AutomataUtils.epsilonNFAtoNFA(epsilonNFA);
-		AutomataUtils.assertAutomatonValid(nfa);
+		AutomataUtils.assertNFAValid(nfa);
 		final Automaton dfa = AutomataUtils.NFAtoDFA(nfa);
-		AutomataUtils.assertAutomatonValid(dfa);
+		AutomataUtils.assertDFAValid(dfa);
 		final Automaton minimizedDFA = AutomataUtils.minimizeDFA(dfa);
-		AutomataUtils.assertAutomatonValid(minimizedDFA);
+		AutomataUtils.assertDFAValid(minimizedDFA);
 		sb.append("public interface Token {}\n");
 		sb.append("public final class TokenStream {\n")
 				.indent()
