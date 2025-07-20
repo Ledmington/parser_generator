@@ -18,12 +18,15 @@
 package com.ledmington.generator;
 
 import java.util.ArrayDeque;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.ledmington.ebnf.Alternation;
 import com.ledmington.ebnf.Expression;
@@ -38,6 +41,8 @@ import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.Utils;
 import com.ledmington.generator.automata.AutomataUtils;
 import com.ledmington.generator.automata.Automaton;
+import com.ledmington.generator.automata.State;
+import com.ledmington.generator.automata.StateTransition;
 
 /** Generates Java code to parse a specified EBNF grammar. */
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
@@ -51,7 +56,7 @@ public final class Generator {
 	 * Generates a String containing Java source code to parse the given EBNF grammar.
 	 *
 	 * @param root The root of the Node tree representing the structure of the EBNF grammar.
-	 * @param className The name of the parser class produced.
+	 * @param parserName The name of the parser class produced.
 	 * @param packageName The name of the package to output.
 	 * @param startSymbol The name of the symbol to start matching from.
 	 * @param indent The level of indentation to use when generating source code.
@@ -60,13 +65,14 @@ public final class Generator {
 	 */
 	public static String generate(
 			final Node root,
-			final String className,
+			final String parserName,
 			final String packageName,
 			final String startSymbol,
 			final String indent,
 			final boolean generateMainMethod) {
 		generateNames(root);
 
+		final boolean isLexerNeeded = ((Grammar) root).productions().stream().anyMatch(Production::isLexerProduction);
 		final boolean atLeastOneOptional = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof OptionalNode);
 		final boolean atLeastOneSequence = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Sequence);
 		final boolean atLeastOneRepetition = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Repetition);
@@ -85,6 +91,9 @@ public final class Generator {
 		if (atLeastOneSequence) {
 			sb.append("import java.util.Stack;\n");
 		}
+		if (isLexerNeeded) {
+			sb.append("import java.util.Map;\n");
+		}
 		if (generateMainMethod) {
 			sb.append("import java.io.IOException;\n")
 					.append("import java.nio.file.Files;\n")
@@ -94,10 +103,10 @@ public final class Generator {
 			sb.append('\n');
 		}
 		sb.append("public final class ")
-				.append(className)
+				.append(parserName)
 				.append(" {\n")
 				.indent()
-				.append("private char[] v = null;\n")
+				.append("private Token[] v = null;\n")
 				.append("private int pos = 0;\n");
 		if (atLeastOneSequence) {
 			sb.append("private final Stack<Integer> stack = new Stack<>();\n");
@@ -122,18 +131,13 @@ public final class Generator {
 			}
 		}
 
-		final boolean isLexerNeeded = ((Grammar) root).productions().stream().anyMatch(Production::isLexerProduction);
-		final String lexerName = className + "_Lexer";
+		final String lexerName = parserName + "_Lexer";
 
 		if (isLexerNeeded) {
 			generateLexer(sb, lexerName, (Grammar) root);
 		}
 
-		sb.append("public Node parse(final String input) {\n")
-				.indent()
-				.append("this.v = input.toCharArray();\n")
-				.append("this.pos = 0;\n")
-				.append("final Node result;\n");
+		sb.append("public Node parse(final String input) {\n").indent().append("final Node result;\n");
 
 		if (isLexerNeeded) {
 			sb.append("final ")
@@ -143,8 +147,9 @@ public final class Generator {
 					.append("();\n")
 					.append("try {\n")
 					.indent()
-					.append("final TokenStream tokens = lexer.tokenize(input);\n")
-					.append("result = parse_" + startSymbol + "(tokens);\n");
+					.append("this.v = lexer.tokenize(input).toArray(new Token[0]);\n")
+					.append("this.pos = 0;\n")
+					.append("result = parse_" + startSymbol + "();\n");
 		} else {
 			sb.append("try {\n").indent().append("result = parse_" + startSymbol + "();\n");
 		}
@@ -219,9 +224,9 @@ public final class Generator {
 					.deindent()
 					.append("}\n")
 					.append("final ")
-					.append(className)
+					.append(parserName)
 					.append(" parser = new ")
-					.append(className)
+					.append(parserName)
 					.append("();\n")
 					.append("try {\n")
 					.indent()
@@ -248,31 +253,105 @@ public final class Generator {
 		AutomataUtils.assertDFAValid(dfa);
 		final Automaton minimizedDFA = AutomataUtils.minimizeDFA(dfa);
 		AutomataUtils.assertDFAValid(minimizedDFA);
+
+		// re-index DFA states
+		final Map<State, Integer> stateIndex = new HashMap<>();
+		stateIndex.put(minimizedDFA.startingState(), 0);
+		int idx = 1;
+		for (final State s : minimizedDFA.states()) {
+			if (s.equals(minimizedDFA.startingState())) {
+				continue;
+			}
+			stateIndex.put(s, idx);
+			idx++;
+		}
+
 		sb.append("public interface Token {}\n");
-		sb.append("public final class TokenStream {\n")
-				.indent()
-				.append("public boolean hasNext() {\n")
-				.indent()
-				.append("return false;\n")
-				.deindent()
-				.append("}\n")
-				.append("public Token next() {\n")
-				.indent()
-				.append("return null;\n")
-				.deindent()
-				.append("}\n")
-				.deindent()
-				.append("}\n");
+		for (final Production p : g.productions()) {
+			if (p.isLexerProduction()) {
+				sb.append("public record ")
+						.append(p.start().name().replace(' ', '_'))
+						.append("() implements Token {}\n");
+			}
+		}
+
 		sb.append("public final class ")
 				.append(lexerName)
 				.append(" {\n")
 				.indent()
+				.append("private char[] v = null;\n")
+				.append("private int pos = 0;\n")
+				.append("private Token lastTokenMatched = null;\n")
+				.append("private int lastTokenMatchPosition = -1;\n")
+				.append("private final boolean[] isAccepting = new boolean[] {")
+				.append(stateIndex.entrySet().stream()
+						.sorted(Entry.comparingByValue())
+						.map(Entry::getKey)
+						.map(s -> s.isAccepting() ? "true" : "false")
+						.collect(Collectors.joining(", ")))
+				.append("};\n")
+				.append("private final Token[] tokensToMatch = new Token[] {")
+				.append(stateIndex.entrySet().stream()
+						.sorted(Entry.comparingByValue())
+						.map(Entry::getKey)
+						.map(s -> s.isAccepting() ? "new Token() {}" : "null")
+						.collect(Collectors.joining(", ")))
+				.append("};\n")
+				.append("private final Map<Integer, Map<Character, Integer>> transitions = Map.ofEntries(\n")
+				.indent()
+				.append(stateIndex.entrySet().stream()
+						.sorted(Entry.comparingByValue())
+						.map(e -> String.format(
+								"Map.entry(%d, Map.ofEntries(\n%s\n))",
+								e.getValue(),
+								minimizedDFA.transitions().stream()
+										.filter(t -> t.from().equals(e.getKey()))
+										.sorted(Comparator.comparing(StateTransition::character))
+										.map(t -> "Map.entry('" + t.character() + "', " + stateIndex.get(t.to()) + ")")
+										.collect(Collectors.joining(",\n"))))
+						.collect(Collectors.joining(",\n")))
+				.append("\n")
+				.deindent()
+				.append(");\n")
 				.append("public ")
 				.append(lexerName)
 				.append("() {}\n")
-				.append("public TokenStream tokenize(final String input) {\n")
+				.append("public List<Token> tokenize(final String input) {\n")
 				.indent()
-				.append("return null;\n")
+				.append("this.v = input.toCharArray();\n")
+				.append("this.pos = 0;\n")
+				.append("this.lastTokenMatched = null;\n")
+				.append("this.lastTokenMatchPosition = -1;\n")
+				.append("final List<Token> tokens = new ArrayList<>();\n")
+				.append("int currentState = 0;\n")
+				.append("while (this.pos < v.length) {\n")
+				.indent()
+				.append("if (isAccepting[currentState]) {\n")
+				.indent()
+				.append("lastTokenMatched = tokensToMatch[currentState];\n")
+				.append("lastTokenMatchPosition = pos;\n")
+				.deindent()
+				.append("}\n")
+				.append("final char ch = v[pos];\n")
+				.append("if (!transitions.get(currentState).containsKey(ch)) {\n")
+				.indent()
+				.append("if (lastTokenMatched != null) {\n")
+				.indent()
+				.append("tokens.add(lastTokenMatched);\n")
+				.append("pos = lastTokenMatchPosition;\n")
+				.append("lastTokenMatched = null;\n")
+				.append("lastTokenMatchPosition = -1;\n")
+				.deindent()
+				.append("} else {\n")
+				.indent()
+				.append("throw new RuntimeException(String.format(\"Lexical error at index %,d.\", pos));\n")
+				.deindent()
+				.append("}\n")
+				.deindent()
+				.append("}\n")
+				.deindent()
+				.append("}\n")
+				.append("return tokens;\n")
 				.deindent()
 				.append("}\n")
 				.deindent()
