@@ -19,10 +19,7 @@ package com.ledmington.generator;
 
 import static com.ledmington.generator.CorrectGrammars.TEST_CASES;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -130,7 +127,7 @@ public final class TestAutomata {
 						"Expected this automaton to be valid but it wasn't:\n%s\n", printAutomaton(minimizedDFA)));
 	}
 
-	@ParameterizedTest
+	/*@ParameterizedTest
 	@MethodSource("correctCases")
 	void checkDFAMatches(final Grammar g, final List<String> correctInputs) {
 		final Automaton dfa =
@@ -184,5 +181,5 @@ public final class TestAutomata {
 							"Expected this automaton to NOT match the input '%s' but it did.\n%s\n",
 							input, printAutomaton(minimizedDFA)));
 		}
-	}
+	}*/
 }

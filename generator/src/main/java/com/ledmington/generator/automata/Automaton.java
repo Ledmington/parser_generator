@@ -20,6 +20,8 @@ package com.ledmington.generator.automata;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class Automaton {
 
@@ -38,6 +40,11 @@ public final class Automaton {
 
 	public Set<StateTransition> transitions() {
 		return transitions;
+	}
+
+	public Set<State> states() {
+		return Stream.concat(Stream.of(startingState), transitions.stream().flatMap(t -> Stream.of(t.from(), t.to())))
+				.collect(Collectors.toUnmodifiableSet());
 	}
 
 	public boolean matches(final String input) {

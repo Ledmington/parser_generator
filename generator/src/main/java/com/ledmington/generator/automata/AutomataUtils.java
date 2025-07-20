@@ -21,6 +21,7 @@ import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -190,9 +191,7 @@ public final class AutomataUtils {
 	}
 
 	public static Automaton epsilonNFAtoNFA(final Automaton epsilonNFA) {
-		final Set<State> oldStates = epsilonNFA.transitions().stream()
-				.flatMap(t -> Stream.of(t.from(), t.to()))
-				.collect(Collectors.toUnmodifiableSet());
+		final Set<State> oldStates = epsilonNFA.states();
 		final Map<State, Set<State>> epsilonClosures = new HashMap<>();
 
 		// cache all epsilon-closures
@@ -307,8 +306,102 @@ public final class AutomataUtils {
 	}
 
 	public static Automaton minimizeDFA(final Automaton dfa) {
-		// TODO
-		return dfa;
+		// Myhill-Nerode theorem
+		final List<State> oldStates = dfa.states().stream().toList();
+		final int n = oldStates.size();
+		final boolean[][] isDistinguishable = new boolean[n][n];
+		for (int i = 0; i < n; i++) {
+			final State a = oldStates.get(i);
+			for (int j = i + 1; j < n; j++) {
+				final State b = oldStates.get(j);
+				if (a.isAccepting() != b.isAccepting()) {
+					isDistinguishable[i][j] = true;
+					isDistinguishable[j][i] = true;
+				}
+			}
+		}
+
+		boolean atLeastOnePairDistinguished;
+		do {
+			atLeastOnePairDistinguished = false;
+			for (int i = 0; i < n; i++) {
+				final State p = oldStates.get(i);
+				final Map<Character, State> px = dfa.transitions().stream()
+						.filter(t -> t.from().equals(p))
+						.collect(Collectors.toMap(StateTransition::character, StateTransition::to));
+
+				for (int j = i + 1; j < n; j++) {
+					final State q = oldStates.get(j);
+					final Map<Character, State> qx = dfa.transitions().stream()
+							.filter(t -> t.from().equals(q))
+							.collect(Collectors.toMap(StateTransition::character, StateTransition::to));
+					if (isDistinguishable[i][j]) {
+						continue;
+					}
+
+					if (!px.keySet().equals(qx.keySet())) {
+						isDistinguishable[i][j] = true;
+						isDistinguishable[j][i] = true;
+						atLeastOnePairDistinguished = true;
+						continue;
+					}
+					for (final char x : px.keySet()) {
+						System.out.printf(
+								"Character '%c': '%s'->'%s'; '%s'->'%s'%n",
+								x,
+								p.name(),
+								px.get(x).name(),
+								q.name(),
+								qx.get(x).name());
+						System.out.println(oldStates);
+						final int pxx = oldStates.indexOf(px.get(x));
+						final int qxx = oldStates.indexOf(qx.get(x));
+						if (isDistinguishable[pxx][qxx]) {
+							isDistinguishable[i][j] = true;
+							isDistinguishable[j][i] = true;
+							atLeastOnePairDistinguished = true;
+							break;
+						}
+					}
+				}
+			}
+		} while (atLeastOnePairDistinguished);
+
+		// Create group of equivalent states
+		final Map<State, Set<State>> equivalentGroups = new HashMap<>();
+		for (int i = 0; i < n; i++) {
+			final State a = oldStates.get(i);
+			equivalentGroups.putIfAbsent(a, new HashSet<>(Set.of(a)));
+			for (int j = i + 1; j < n; j++) {
+				final State b = oldStates.get(j);
+				if (!isDistinguishable[i][j]) {
+					equivalentGroups.get(a).add(b);
+					equivalentGroups.put(b, equivalentGroups.get(a));
+				}
+			}
+		}
+
+		// Create a new state for each equivalent state
+		final Map<State, State> oldToNew = new HashMap<>();
+		for (final Set<State> eqClass : new HashSet<>(equivalentGroups.values())) {
+			final boolean isAccept = eqClass.stream().anyMatch(State::isAccepting);
+			final State rep = new State(isAccept);
+			for (final State s : eqClass) {
+				oldToNew.put(s, rep);
+			}
+		}
+
+		// Add transitions
+		final Set<StateTransition> newTransitions = new HashSet<>();
+		for (final StateTransition t : dfa.transitions()) {
+			final State from = oldToNew.get(t.from());
+			final State to = oldToNew.get(t.to());
+			newTransitions.add(new StateTransition(from, to, t.character()));
+		}
+
+		final State newStart = oldToNew.get(dfa.startingState());
+
+		return new Automaton(newStart, newTransitions);
 	}
 
 	public static void assertEpsilonNFAValid(final Automaton automaton) {
