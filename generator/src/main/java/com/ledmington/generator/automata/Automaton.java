@@ -39,4 +39,26 @@ public final class Automaton {
 	public Set<StateTransition> transitions() {
 		return transitions;
 	}
+
+	public boolean matches(final String input) {
+		// NOTE: the result of this method makes sense only if this automaton is a DFA
+		State currentState = this.startingState;
+		int i = 0;
+		while (i < input.length()) {
+			final char ch = input.charAt(i);
+			boolean foundTransition = false;
+			for (final StateTransition t : transitions) {
+				if (t.from().equals(currentState) && t.character() == ch) {
+					i++;
+					currentState = t.to();
+					foundTransition = true;
+					break;
+				}
+			}
+			if (!foundTransition) {
+				return false;
+			}
+		}
+		return currentState.isAccepting();
+	}
 }

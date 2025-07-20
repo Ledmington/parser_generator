@@ -19,7 +19,10 @@ package com.ledmington.generator;
 
 import static com.ledmington.generator.CorrectGrammars.TEST_CASES;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -73,6 +76,14 @@ public final class TestAutomata {
 		return TEST_CASES.stream().map(tc -> Arguments.of(tc.get()[0]));
 	}
 
+	public static Stream<Arguments> correctCases() {
+		return TEST_CASES.stream().map(tc -> Arguments.of(tc.get()[0], tc.get()[1]));
+	}
+
+	public static Stream<Arguments> wrongCases() {
+		return TEST_CASES.stream().map(tc -> Arguments.of(tc.get()[0], tc.get()[2]));
+	}
+
 	@ParameterizedTest
 	@MethodSource("onlyGrammars")
 	void checkValidEpsilonNFA(final Grammar g) {
@@ -98,5 +109,45 @@ public final class TestAutomata {
 	void checkValidMinimizedDFA(final Grammar g) {
 		assertDoesNotThrow(() -> AutomataUtils.assertDFAValid(AutomataUtils.minimizeDFA(
 				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g))))));
+	}
+
+	@ParameterizedTest
+	@MethodSource("correctCases")
+	void checkDFAMatches(final Grammar g, final List<String> correctInputs) {
+		final Automaton dfa =
+				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g)));
+		for (final String input : correctInputs) {
+			assertTrue(dfa.matches(input));
+		}
+	}
+
+	@ParameterizedTest
+	@MethodSource("correctCases")
+	void checkMinimizedDFAMatches(final Grammar g, final List<String> correctInputs) {
+		final Automaton dfa = AutomataUtils.minimizeDFA(
+				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g))));
+		for (final String input : correctInputs) {
+			assertTrue(dfa.matches(input));
+		}
+	}
+
+	@ParameterizedTest
+	@MethodSource("wrongCases")
+	void checkDFADoesntMatch(final Grammar g, final List<String> wrongInputs) {
+		final Automaton dfa =
+				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g)));
+		for (final String input : wrongInputs) {
+			assertFalse(dfa.matches(input));
+		}
+	}
+
+	@ParameterizedTest
+	@MethodSource("wrongCases")
+	void checkMinimizedDFADoesntMatch(final Grammar g, final List<String> wrongInputs) {
+		final Automaton dfa = AutomataUtils.minimizeDFA(
+				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g))));
+		for (final String input : wrongInputs) {
+			assertFalse(dfa.matches(input));
+		}
 	}
 }
