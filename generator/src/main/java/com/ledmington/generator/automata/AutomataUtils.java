@@ -192,24 +192,65 @@ public final class AutomataUtils {
 		final Set<State> oldStates = epsilonNFA.transitions().stream()
 				.flatMap(t -> Stream.of(t.from(), t.to()))
 				.collect(Collectors.toUnmodifiableSet());
-		final Map<State, State> stateMapping = new HashMap<>();
+		final Map<State, Set<State>> epsilonClosures = new HashMap<>();
 
+		// cache all epsilon-closures
 		for (final State s : oldStates) {
-			if (stateMapping.containsKey(s)) {
+			epsilonClosures.put(s, epsilonClosure(s, epsilonNFA.transitions()));
+		}
+
+		final Map<State, State> stateMapping = new HashMap<>();
+		for (final State s : oldStates) {
+			final Set<State> closure = epsilonClosures.get(s);
+			final boolean isAccepting = closure.stream().anyMatch(State::isAccepting);
+			stateMapping.put(s, new State(isAccepting));
+		}
+
+		final Set<StateTransition> newTransitions = new HashSet<>();
+		for (final State s : oldStates) {
+			final Set<State> closure = epsilonClosures.get(s);
+
+			for (final StateTransition t : epsilonNFA.transitions()) {
+				if (t.character() != StateTransition.EPSILON && closure.contains(t.from())) {
+					for (final State q : epsilonClosures.get(t.to())) {
+						newTransitions.add(
+								new StateTransition(stateMapping.get(s), stateMapping.get(q), t.character()));
+					}
+				}
+			}
+		}
+
+		final State newStartingState = stateMapping.get(epsilonNFA.startingState());
+
+		// Explicit removing all states that are not reachable from the starting state
+		final Queue<State> q = new ArrayDeque<>();
+		final Set<State> visited = new HashSet<>();
+		q.add(newStartingState);
+		while (!q.isEmpty()) {
+			final State s = q.remove();
+			if (visited.contains(s)) {
 				continue;
 			}
-			final Set<State> closure = epsilonClosure(s, epsilonNFA.transitions());
+			visited.add(s);
+			for (final StateTransition t : newTransitions) {
+				if (t.from().equals(s)) {
+					q.add(t.to());
+				}
+			}
+		}
 
-			final boolean isAccepting = closure.stream().anyMatch(State::isFinal);
-			final State newState = new State(isAccepting);
-			closure.forEach(state -> stateMapping.put(state, newState));
+		final Set<State> unreachableStates = new HashSet<>();
+		for (final State newState : stateMapping.values()) {
+			if (!visited.contains(newState)) {
+				unreachableStates.add(newState);
+			}
 		}
-		final Set<StateTransition> newTransitions = new HashSet<>();
-		for (final StateTransition t : epsilonNFA.transitions()) {
-			newTransitions.add(
-					new StateTransition(stateMapping.get(t.from()), stateMapping.get(t.to()), t.character()));
+
+		if (!unreachableStates.isEmpty()) {
+			newTransitions.removeIf(t -> unreachableStates.contains(t.from()) || unreachableStates.contains(t.to()));
 		}
-		return new Automaton(stateMapping.get(epsilonNFA.startingState()), newTransitions);
+
+		return new Automaton(newStartingState, newTransitions);
 	}
 
 	public static Automaton NFAtoDFA(final Automaton nfa) {
@@ -229,7 +270,7 @@ public final class AutomataUtils {
 				.collect(Collectors.toUnmodifiableSet());
 
 		// At least one final state
-		if (allStates.stream().noneMatch(State::isFinal)) {
+		if (allStates.stream().noneMatch(State::isAccepting)) {
 			throw new IllegalArgumentException("No final state in the given automaton.");
 		}
 

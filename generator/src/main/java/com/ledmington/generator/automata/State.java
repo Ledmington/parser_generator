@@ -17,19 +17,63 @@
  */
 package com.ledmington.generator.automata;
 
-public record State(String name, boolean isFinal) {
+import java.util.Objects;
+
+public final class State {
 
 	private static int ID = 1;
+	private final String name;
+	private final boolean isAccepting;
+
+	public State(final String name, final boolean isAccepting) {
+		Objects.requireNonNull(name);
+		if (name.isBlank()) {
+			throw new IllegalArgumentException("Empty name.");
+		}
+		this.name = name;
+		this.isAccepting = isAccepting;
+	}
 
 	public State() {
 		this("S" + (ID++), false);
 	}
 
-	public State(final String name) {
-		this(name, false);
-	}
-
 	public State(final boolean isFinal) {
 		this("S" + (ID++), isFinal);
+	}
+
+	public String name() {
+		return name;
+	}
+
+	public boolean isAccepting() {
+		return isAccepting;
+	}
+
+	@Override
+	public String toString() {
+		return "State[name=" + name + ";isAccepting=" + isAccepting + "]";
+	}
+
+	@Override
+	public int hashCode() {
+		int h = 17;
+		h = 31 * h + name.hashCode();
+		h = 31 * h + (isAccepting ? 1 : 0);
+		return h;
+	}
+
+	@Override
+	public boolean equals(final Object other) {
+		if (other == null) {
+			return false;
+		}
+		if (this == other) {
+			return true;
+		}
+		if (!(other instanceof State s)) {
+			return false;
+		}
+		return this.name.equals(s.name) && this.isAccepting == s.isAccepting;
 	}
 }

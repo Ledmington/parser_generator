@@ -20,7 +20,6 @@ package com.ledmington.generator;
 import static com.ledmington.generator.CorrectGrammars.TEST_CASES;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
-import java.util.Comparator;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -39,22 +38,35 @@ public final class TestAutomata {
 
 	private TestAutomata() {}
 
-	// just for debugging
+	// just for debugging: outputs graphviz code to be used in tools such as https://graph.flyte.org
 	private static void printAutomaton(final Automaton automaton) {
 		final Set<State> allStates = Stream.concat(
 						Stream.of(automaton.startingState()),
 						automaton.transitions().stream().flatMap(t -> Stream.of(t.from(), t.to())))
 				.collect(Collectors.toUnmodifiableSet());
-		allStates.stream().sorted(Comparator.comparing(State::name)).forEach(s -> {
-			System.out.printf(" %-5s : ", s.name());
-			for (final StateTransition t : automaton.transitions()) {
-				if (!t.from().equals(s)) {
-					continue;
-				}
-				System.out.printf("%c|%-5s ", t.character(), t.to().name());
+
+		System.out.println("digraph NFA {");
+		System.out.println("    rankdir=LR;");
+		System.out.println("    size=\"8,5\"");
+		System.out.println("    node [shape = doublecircle];");
+
+		for (final State s : allStates) {
+			if (s.isAccepting()) {
+				System.out.printf("    %s;\n", s.name());
 			}
-			System.out.println();
-		});
+		}
+
+		System.out.println("    node [shape = circle];");
+		System.out.println("    __start__ [shape = point];");
+		System.out.printf("    __start__ -> %s;\n", automaton.startingState().name());
+
+		for (final StateTransition t : automaton.transitions()) {
+			System.out.printf(
+					"    %s -> %s [label=\"%s\"];\n",
+					t.from().name(), t.to().name(), t.character() == StateTransition.EPSILON ? "ε" : t.character());
+		}
+
+		System.out.println("}");
 	}
 
 	public static Stream<Arguments> onlyGrammars() {
