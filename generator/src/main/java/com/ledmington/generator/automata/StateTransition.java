@@ -17,6 +17,14 @@
  */
 package com.ledmington.generator.automata;
 
+import java.util.Objects;
+
 public record StateTransition(State from, State to, char character) {
+
 	public static final char EPSILON = (char) -1;
+
+	public StateTransition {
+		Objects.requireNonNull(from);
+		Objects.requireNonNull(to);
+	}
 }

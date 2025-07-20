@@ -20,6 +20,7 @@ package com.ledmington.generator.automata;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -253,9 +254,56 @@ public final class AutomataUtils {
 		return new Automaton(newStartingState, newTransitions);
 	}
 
+	private static Set<State> move(final Set<State> states, final char symbol, final Set<StateTransition> transitions) {
+		final Set<State> result = new HashSet<>();
+		for (final State s : states) {
+			for (final StateTransition t : transitions) {
+				if (t.from().equals(s) && t.character() == symbol) {
+					result.add(t.to());
+				}
+			}
+		}
+		return result;
+	}
+
 	public static Automaton NFAtoDFA(final Automaton nfa) {
-		// TODO
-		return nfa;
+		final Map<Set<State>, State> stateMapping = new HashMap<>();
+		final Set<StateTransition> newTransitions = new HashSet<>();
+		final Queue<Set<State>> queue = new LinkedList<>();
+
+		final Set<Character> alphabet =
+				nfa.transitions().stream().map(StateTransition::character).collect(Collectors.toUnmodifiableSet());
+
+		final Set<State> startSet = new HashSet<>();
+		startSet.add(nfa.startingState());
+		final State dfaStartState = new State(startSet.stream().anyMatch(State::isAccepting));
+		stateMapping.put(startSet, dfaStartState);
+		queue.add(startSet);
+
+		while (!queue.isEmpty()) {
+			final Set<State> currentSet = queue.poll();
+			final State fromDFAState = stateMapping.get(currentSet);
+
+			for (final char symbol : alphabet) {
+				final Set<State> moveSet = move(currentSet, symbol, nfa.transitions());
+				if (moveSet.isEmpty()) {
+					continue;
+				}
+
+				final State toDFAState;
+				if (stateMapping.containsKey(moveSet)) {
+					toDFAState = stateMapping.get(moveSet);
+				} else {
+					toDFAState = new State(moveSet.stream().anyMatch(State::isAccepting));
+					stateMapping.put(moveSet, toDFAState);
+					queue.add(moveSet);
+				}
+
+				newTransitions.add(new StateTransition(fromDFAState, toDFAState, symbol));
+			}
+		}
+
+		return new Automaton(dfaStartState, newTransitions);
 	}
 
 	public static Automaton minimizeDFA(final Automaton dfa) {
@@ -274,7 +322,7 @@ public final class AutomataUtils {
 			throw new IllegalArgumentException("No final state in the given automaton.");
 		}
 
-		// Only one strongly connect component
+		// Only one strongly connected component
 		final Queue<State> q = new ArrayDeque<>();
 		final Set<State> visited = new HashSet<>();
 		q.add(automaton.startingState());
@@ -295,6 +343,15 @@ public final class AutomataUtils {
 
 		if (!visited.equals(allStates)) {
 			throw new IllegalArgumentException("The automaton is not a single strongly connected component.");
+		}
+
+		final Set<State> outgoing =
+				automaton.transitions().stream().map(StateTransition::from).collect(Collectors.toUnmodifiableSet());
+		for (final State s : allStates) {
+			if (!outgoing.contains(s) && !s.isAccepting()) {
+				// A dead-end node is a non-accepting node with no outgoing edges
+				throw new IllegalArgumentException("The automaton contains dead-end nodes.");
+			}
 		}
 	}
 
