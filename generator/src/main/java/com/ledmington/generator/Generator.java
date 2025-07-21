@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.ledmington.ebnf.Alternation;
 import com.ledmington.ebnf.Expression;
@@ -92,7 +93,10 @@ public final class Generator {
 			sb.append("import java.util.Stack;\n");
 		}
 		if (isLexerNeeded) {
-			sb.append("import java.util.Map;\n");
+			sb.append("import java.util.Map;\n")
+					.append("import java.util.Objects;\n")
+					.append("import java.util.Arrays;\n")
+					.append("import java.util.function.Function;\n");
 		}
 		if (generateMainMethod) {
 			sb.append("import java.io.IOException;\n")
@@ -148,8 +152,19 @@ public final class Generator {
 					.append("try {\n")
 					.indent()
 					.append("this.v = lexer.tokenize(input).toArray(new Token[0]);\n")
-					.append("this.pos = 0;\n")
-					.append("result = parse_" + startSymbol + "();\n");
+					.append("this.pos = 0;\n");
+
+			if (((Grammar) root)
+							.productions().stream()
+									.filter(p -> p.start().name().equals(startSymbol))
+									.findFirst()
+									.orElseThrow()
+									.result()
+					instanceof Terminal) {
+				sb.append("result = parseTerminal(TokenType." + startSymbol + ");\n");
+			} else {
+				sb.append("result = parse_" + startSymbol + "();\n");
+			}
 		} else {
 			sb.append("try {\n").indent().append("result = parse_" + startSymbol + "();\n");
 		}
@@ -197,15 +212,14 @@ public final class Generator {
 			}
 		}
 
-		sb.append("private Terminal parseTerminal(final Token expected) {\n")
+		sb.append("private Terminal parseTerminal(final TokenType expected) {\n")
 				.indent()
-				.append("if (pos >= v.length || v[pos] == expected) {\n")
+				.append("if (pos < v.length && v[pos].type() == expected) {\n")
 				.indent()
-				.append("return null;\n")
+				.append("return new Terminal(v[pos++].content());\n")
 				.deindent()
 				.append("}\n")
-				.append("pos++;\n")
-				.append("return new Terminal(expected.getClass().getSimpleName());\n")
+				.append("return null;\n")
 				.deindent()
 				.append("}\n");
 
@@ -265,14 +279,25 @@ public final class Generator {
 				.map(Entry::getKey)
 				.toList();
 
-		sb.append("public interface Token {}\n");
-		for (final Production p : g.productions()) {
-			if (p.isLexerProduction()) {
-				sb.append("public record ")
-						.append(p.start().name().replace(' ', '_'))
-						.append("() implements Token {}\n");
-			}
-		}
+		sb.append("public enum TokenType {\n")
+				.indent()
+				.append(g.productions().stream()
+						.filter(Production::isLexerProduction)
+						.map(p -> p.start().name().replace(' ', '_'))
+						.sorted()
+						.collect(Collectors.joining(",\n")))
+				.append('\n')
+				.deindent()
+				.append("}\n");
+		sb.append("public record Token(TokenType type, String content) {\n")
+				.indent()
+				.append("public Token {\n")
+				.indent()
+				.append("Objects.requireNonNull(type);\n")
+				.deindent()
+				.append("}\n")
+				.deindent()
+				.append("}\n");
 
 		sb.append("public final class ")
 				.append(lexerName)
@@ -281,15 +306,15 @@ public final class Generator {
 				.append("private char[] v = null;\n")
 				.append("private int pos = 0;\n")
 				.append("private Token lastTokenMatched = null;\n")
-				.append("private int lastTokenMatchPosition = -1;\n");
+				.append("private int lastTokenMatchPosition = 0;\n");
 
 		sb.append("private final boolean[] isAccepting = new boolean[] {");
 		generateList(sb, allStates, s -> s.isAccepting() ? "true" : "false");
 		sb.append("};\n");
 
-		sb.append("private final Token[] tokensToMatch = new Token[] {");
-		generateList(sb, allStates, s -> s.isAccepting() ? "new Token() {}" : "null");
-		sb.append("};\n");
+		sb.append("private final List<Function<String, Token>> tokensToMatch = Arrays.asList(");
+		generateList(sb, allStates, s -> s.isAccepting() ? "s -> new Token(null, s)" : "null");
+		sb.append(");\n");
 
 		// TODO: change this into three arrays for better performance
 		sb.append("private final Map<Integer, Map<Character, Integer>> transitions = Map.ofEntries(\n")
@@ -342,12 +367,18 @@ public final class Generator {
 				.indent()
 				.append("if (isAccepting[currentState]) {\n")
 				.indent()
-				.append("lastTokenMatched = tokensToMatch[currentState];\n")
+				.append("final String match = input.substring(lastTokenMatchPosition, pos);\n")
+				.append("lastTokenMatched = tokensToMatch.get(currentState).apply(match);\n")
 				.append("lastTokenMatchPosition = pos;\n")
 				.deindent()
 				.append("}\n")
 				.append("final char ch = v[pos];\n")
-				.append("if (!transitions.get(currentState).containsKey(ch)) {\n")
+				.append("if (transitions.get(currentState).containsKey(ch)) {\n")
+				.indent()
+				.append("currentState = transitions.get(currentState).get(ch);\n")
+				.append("pos++;\n")
+				.deindent()
+				.append("} else {\n")
 				.indent()
 				.append("if (lastTokenMatched != null) {\n")
 				.indent()
