@@ -119,13 +119,8 @@ public final class Utils {
 		return false;
 	}
 
-	private static boolean containsSpaces(final String s) {
-		for (int i = 0; i < s.length(); i++) {
-			if (s.charAt(i) == ' ') {
-				return true;
-			}
-		}
-		return false;
+	public static String getEscapeCharacter(final char ch) {
+		return (needsEscaping(ch) ? "\\" : "") + ch;
 	}
 
 	private static String escape(final String s) {
@@ -144,12 +139,5 @@ public final class Utils {
 			return escape(literal);
 		}
 		return literal;
-	}
-
-	public static String getQuotedString(final String s) {
-		if (containsSpaces(s) || needsEscaping(s)) {
-			return "'" + escape(s) + "'";
-		}
-		return s;
 	}
 }

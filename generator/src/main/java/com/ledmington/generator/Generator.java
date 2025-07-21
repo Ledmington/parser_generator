@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 
 import com.ledmington.ebnf.Alternation;
 import com.ledmington.ebnf.Expression;
@@ -85,7 +85,7 @@ public final class Generator {
 		if (packageName != null && !packageName.isBlank()) {
 			sb.append("package ").append(packageName).append(";\n\n");
 		}
-		if (atLeastOneSequence || atLeastOneRepetition) {
+		if (atLeastOneSequence || atLeastOneRepetition || isLexerNeeded) {
 			sb.append("import java.util.List;\n").append("import java.util.ArrayList;\n");
 		}
 		if (atLeastOneSequence) {
@@ -179,6 +179,9 @@ public final class Generator {
 			switch (n) {
 				case Grammar g -> {
 					for (final Production p : g.productions()) {
+						if (p.isLexerProduction()) {
+							continue;
+						}
 						generateNonTerminal(q, sb, p.start(), p.result());
 					}
 				}
@@ -194,24 +197,15 @@ public final class Generator {
 			}
 		}
 
-		sb.append("private Terminal parseTerminal(final String input) {\n")
+		sb.append("private Terminal parseTerminal(final Token expected) {\n")
 				.indent()
-				.append("if (pos + input.length() > v.length) {\n")
-				.indent()
-				.append("return null;\n")
-				.deindent()
-				.append("}\n")
-				.append("for (int i = 0; i < input.length(); i++) {\n")
-				.indent()
-				.append("if (v[pos + i] != input.charAt(i)) {\n")
+				.append("if (pos >= v.length || v[pos] == expected) {\n")
 				.indent()
 				.append("return null;\n")
 				.deindent()
 				.append("}\n")
-				.deindent()
-				.append("}\n")
-				.append("this.pos += input.length();\n")
-				.append("return new Terminal(input);\n")
+				.append("pos++;\n")
+				.append("return new Terminal(expected.getClass().getSimpleName());\n")
 				.deindent()
 				.append("}\n");
 
@@ -266,6 +260,11 @@ public final class Generator {
 			idx++;
 		}
 
+		final List<State> allStates = stateIndex.entrySet().stream()
+				.sorted(Entry.comparingByValue())
+				.map(Entry::getKey)
+				.toList();
+
 		sb.append("public interface Token {}\n");
 		for (final Production p : g.productions()) {
 			if (p.isLexerProduction()) {
@@ -282,38 +281,53 @@ public final class Generator {
 				.append("private char[] v = null;\n")
 				.append("private int pos = 0;\n")
 				.append("private Token lastTokenMatched = null;\n")
-				.append("private int lastTokenMatchPosition = -1;\n")
-				.append("private final boolean[] isAccepting = new boolean[] {")
-				.append(stateIndex.entrySet().stream()
-						.sorted(Entry.comparingByValue())
-						.map(Entry::getKey)
-						.map(s -> s.isAccepting() ? "true" : "false")
-						.collect(Collectors.joining(", ")))
-				.append("};\n")
-				.append("private final Token[] tokensToMatch = new Token[] {")
-				.append(stateIndex.entrySet().stream()
-						.sorted(Entry.comparingByValue())
-						.map(Entry::getKey)
-						.map(s -> s.isAccepting() ? "new Token() {}" : "null")
-						.collect(Collectors.joining(", ")))
-				.append("};\n")
-				.append("private final Map<Integer, Map<Character, Integer>> transitions = Map.ofEntries(\n")
-				.indent()
-				.append(stateIndex.entrySet().stream()
-						.sorted(Entry.comparingByValue())
-						.map(e -> String.format(
-								"Map.entry(%d, Map.ofEntries(\n%s\n))",
-								e.getValue(),
-								minimizedDFA.transitions().stream()
-										.filter(t -> t.from().equals(e.getKey()))
-										.sorted(Comparator.comparing(StateTransition::character))
-										.map(t -> "Map.entry('" + t.character() + "', " + stateIndex.get(t.to()) + ")")
-										.collect(Collectors.joining(",\n"))))
-						.collect(Collectors.joining(",\n")))
-				.append("\n")
-				.deindent()
-				.append(");\n")
-				.append("public ")
+				.append("private int lastTokenMatchPosition = -1;\n");
+
+		sb.append("private final boolean[] isAccepting = new boolean[] {");
+		generateList(sb, allStates, s -> s.isAccepting() ? "true" : "false");
+		sb.append("};\n");
+
+		sb.append("private final Token[] tokensToMatch = new Token[] {");
+		generateList(sb, allStates, s -> s.isAccepting() ? "new Token() {}" : "null");
+		sb.append("};\n");
+
+		// TODO: change this into three arrays for better performance
+		sb.append("private final Map<Integer, Map<Character, Integer>> transitions = Map.ofEntries(\n")
+				.indent();
+		for (int i = 0; i < allStates.size(); i++) {
+			final int final_i = i;
+			final List<StateTransition> transitions = minimizedDFA.transitions().stream()
+					.filter(t -> t.from().equals(allStates.get(final_i)))
+					.sorted(Comparator.comparing(StateTransition::character))
+					.toList();
+			sb.append("Map.entry(").append(i).append(", Map.ofEntries(");
+			if (!transitions.isEmpty()) {
+				sb.append('\n').indent();
+				for (int j = 0; j < transitions.size(); j++) {
+					final StateTransition t = transitions.get(j);
+					if (t.from().equals(allStates.get(i))) {
+						sb.append("Map.entry('")
+								.append(Utils.getEscapeCharacter(t.character()))
+								.append("', ")
+								.append(stateIndex.get(t.to()))
+								.append(")");
+						if (j < transitions.size() - 1) {
+							sb.append(',');
+						}
+						sb.append('\n');
+					}
+				}
+				sb.deindent();
+			}
+			sb.append("))");
+			if (i < allStates.size() - 1) {
+				sb.append(',');
+			}
+			sb.append('\n');
+		}
+		sb.deindent().append(");\n");
+
+		sb.append("public ")
 				.append(lexerName)
 				.append("() {}\n")
 				.append("public List<Token> tokenize(final String input) {\n")
@@ -356,6 +370,17 @@ public final class Generator {
 				.append("}\n")
 				.deindent()
 				.append("}\n");
+	}
+
+	private static <X> void generateList(
+			final IndentedStringBuilder sb, final List<X> elements, final Function<X, String> serializer) {
+		if (elements.isEmpty()) {
+			return;
+		}
+		sb.append(serializer.apply(elements.getFirst()));
+		for (int i = 1; i < elements.size(); i++) {
+			sb.append(", ").append(serializer.apply(elements.get(i)));
+		}
 	}
 
 	private static void generateAlternation(
