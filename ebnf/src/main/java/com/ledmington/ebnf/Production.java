@@ -18,8 +18,10 @@
 package com.ledmington.ebnf;
 
 import java.util.ArrayDeque;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.Set;
 
 /**
  * The most important element of an EBNF grammar, maps a non-terminal symbol to an expression which represents the
@@ -37,10 +39,16 @@ public record Production(NonTerminal start, Expression result) implements Node {
 	}
 
 	public boolean isLexerProduction() {
+		// TODO: maybe cache this value?
 		final Queue<Node> q = new ArrayDeque<>();
+		final Set<Node> visited = new HashSet<>();
 		q.add(result);
 		while (!q.isEmpty()) {
 			final Node n = q.remove();
+			if (visited.contains(n)) {
+				continue;
+			}
+			visited.add(n);
 			switch (n) {
 				case Terminal ignored -> {}
 				case NonTerminal ignored -> {

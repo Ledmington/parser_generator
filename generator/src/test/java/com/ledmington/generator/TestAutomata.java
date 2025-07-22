@@ -19,9 +19,11 @@ package com.ledmington.generator;
 
 import static com.ledmington.generator.CorrectGrammars.TEST_CASES;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.params.ParameterizedTest;
@@ -31,60 +33,59 @@ import org.junit.jupiter.params.provider.MethodSource;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.generator.automata.AutomataUtils;
 import com.ledmington.generator.automata.Automaton;
-import com.ledmington.generator.automata.State;
-import com.ledmington.generator.automata.StateTransition;
 
 public final class TestAutomata {
 
 	private TestAutomata() {}
 
-	// just for debugging: outputs graphviz code to be used in tools such as https://graph.flyte.org
-	private static String printAutomaton(final Automaton automaton) {
-		final Set<State> allStates = Stream.concat(
-						Stream.of(automaton.startingState()),
-						automaton.transitions().stream().flatMap(t -> Stream.of(t.from(), t.to())))
-				.collect(Collectors.toUnmodifiableSet());
-		final StringBuilder sb = new StringBuilder();
-
-		sb.append("digraph NFA {\n");
-		sb.append("    rankdir=LR;\n");
-		sb.append("    size=\"8,5\"\n");
-		sb.append("    node [shape = doublecircle];\n");
-
-		for (final State s : allStates) {
-			if (s.isAccepting()) {
-				sb.append("    ").append(s.name()).append(";\n");
-			}
-		}
-
-		sb.append("    node [shape = circle];\n");
-		sb.append("    __start__ [shape = point];\n");
-		sb.append("    __start__ -> ").append(automaton.startingState().name()).append(";\n");
-
-		for (final StateTransition t : automaton.transitions()) {
-			sb.append("    ")
-					.append(t.from().name())
-					.append(" -> ")
-					.append(t.to().name())
-					.append(" [label=\"")
-					.append(t.character() == StateTransition.EPSILON ? "ε" : t.character())
-					.append("\"];\n");
-		}
-
-		sb.append("}\n");
-		return sb.toString();
-	}
-
 	public static Stream<Arguments> onlyGrammars() {
 		return TEST_CASES.stream().map(tc -> Arguments.of(tc.get()[0]));
 	}
 
+	@SuppressWarnings("unchecked")
 	public static Stream<Arguments> correctCases() {
-		return TEST_CASES.stream().map(tc -> Arguments.of(tc.get()[0], tc.get()[1]));
+		// since the produced automata match an arbitrarily long sequence of the given tokens, we check if they match
+		// the same sequence multiple times
+		return TEST_CASES.stream()
+				.map(tc -> Arguments.of(
+						tc.get()[0],
+						((List<String>) tc.get()[1])
+								.stream()
+										.flatMap(s -> Stream.of(s, s.repeat(2), s.repeat(3)))
+										.distinct()
+										.toList()));
 	}
 
+	@SuppressWarnings("unchecked")
 	public static Stream<Arguments> wrongCases() {
-		return TEST_CASES.stream().map(tc -> Arguments.of(tc.get()[0], tc.get()[2]));
+		// since the produced automata match an arbitrarily long sequence of the given tokens, we make sure to remove
+		// from the wrong inputs the ones obtainable by just repeating one of the correct input sequences
+		return TEST_CASES.stream().map(tc -> {
+			final List<String> correct = (List<String>) tc.get()[1];
+			final List<String> wrong = (List<String>) tc.get()[2];
+			final List<String> out = new ArrayList<>();
+			for (final String s : wrong) {
+				boolean valid = true;
+				for (final String c : correct) {
+					if (c.length() > s.length() || c.isEmpty()) {
+						continue;
+					}
+					for (int i = 1; i < 10; i++) {
+						if (c.repeat(i).equals(s)) {
+							valid = false;
+							break;
+						}
+					}
+					if (!valid) {
+						break;
+					}
+				}
+				if (valid) {
+					out.add(s);
+				}
+			}
+			return Arguments.of(tc.get()[0], out);
+		});
 	}
 
 	@ParameterizedTest
@@ -94,7 +95,7 @@ public final class TestAutomata {
 		assertDoesNotThrow(
 				() -> AutomataUtils.assertEpsilonNFAValid(epsilonNFA),
 				() -> String.format(
-						"Expected this automaton to be valid but it wasn't:\n%s\n", printAutomaton(epsilonNFA)));
+						"Expected this automaton to be valid but it wasn't:\n%s\n", epsilonNFA.toGraphviz()));
 	}
 
 	@ParameterizedTest
@@ -103,7 +104,7 @@ public final class TestAutomata {
 		final Automaton nfa = AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g));
 		assertDoesNotThrow(
 				() -> AutomataUtils.assertNFAValid(nfa),
-				() -> String.format("Expected this automaton to be valid but it wasn't:\n%s\n", printAutomaton(nfa)));
+				() -> String.format("Expected this automaton to be valid but it wasn't:\n%s\n", nfa.toGraphviz()));
 	}
 
 	@ParameterizedTest
@@ -113,7 +114,7 @@ public final class TestAutomata {
 				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g)));
 		assertDoesNotThrow(
 				() -> AutomataUtils.assertDFAValid(dfa),
-				() -> String.format("Expected this automaton to be valid but it wasn't:\n%s\n", printAutomaton(dfa)));
+				() -> String.format("Expected this automaton to be valid but it wasn't:\n%s\n", dfa.toGraphviz()));
 	}
 
 	@ParameterizedTest
@@ -124,10 +125,10 @@ public final class TestAutomata {
 		assertDoesNotThrow(
 				() -> AutomataUtils.assertDFAValid(minimizedDFA),
 				() -> String.format(
-						"Expected this automaton to be valid but it wasn't:\n%s\n", printAutomaton(minimizedDFA)));
+						"Expected this automaton to be valid but it wasn't:\n%s\n", minimizedDFA.toGraphviz()));
 	}
 
-	/*@ParameterizedTest
+	@ParameterizedTest
 	@MethodSource("correctCases")
 	void checkDFAMatches(final Grammar g, final List<String> correctInputs) {
 		final Automaton dfa =
@@ -137,7 +138,7 @@ public final class TestAutomata {
 					dfa.matches(input),
 					() -> String.format(
 							"Expected this automaton to match the input '%s' but it didn't.\n%s\n",
-							input, printAutomaton(dfa)));
+							input, dfa.toGraphviz()));
 		}
 	}
 
@@ -151,7 +152,7 @@ public final class TestAutomata {
 					minimizedDFA.matches(input),
 					() -> String.format(
 							"Expected this automaton to match the input '%s' but it didn't.\n%s\n",
-							input, printAutomaton(minimizedDFA)));
+							input, minimizedDFA.toGraphviz()));
 		}
 	}
 
@@ -165,7 +166,7 @@ public final class TestAutomata {
 					dfa.matches(input),
 					() -> String.format(
 							"Expected this automaton to NOT match the input '%s' but it did.\n%s\n",
-							input, printAutomaton(dfa)));
+							input, dfa.toGraphviz()));
 		}
 	}
 
@@ -179,7 +180,7 @@ public final class TestAutomata {
 					minimizedDFA.matches(input),
 					() -> String.format(
 							"Expected this automaton to NOT match the input '%s' but it did.\n%s\n",
-							input, printAutomaton(minimizedDFA)));
+							input, minimizedDFA.toGraphviz()));
 		}
-	}*/
+	}
 }

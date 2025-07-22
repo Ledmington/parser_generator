@@ -68,4 +68,38 @@ public final class Automaton {
 		}
 		return currentState.isAccepting();
 	}
+
+	// just for debugging: outputs graphviz code to be used in tools such as https://graph.flyte.org
+	public String toGraphviz() {
+		final Set<State> allStates = states();
+		final StringBuilder sb = new StringBuilder();
+
+		sb.append("digraph Automaton {\n");
+		sb.append("    rankdir=LR;\n");
+		sb.append("    size=\"8,5\"\n");
+		sb.append("    node [shape = doublecircle];\n");
+
+		for (final State s : allStates) {
+			if (s.isAccepting()) {
+				sb.append("    ").append(s.name()).append(";\n");
+			}
+		}
+
+		sb.append("    node [shape = circle];\n");
+		sb.append("    __start__ [shape = point];\n");
+		sb.append("    __start__ -> ").append(startingState.name()).append(";\n");
+
+		for (final StateTransition t : transitions) {
+			sb.append("    ")
+					.append(t.from().name())
+					.append(" -> ")
+					.append(t.to().name())
+					.append(" [label=\"")
+					.append(t.character() == StateTransition.EPSILON ? "ε" : t.character())
+					.append("\"];\n");
+		}
+
+		sb.append("}\n");
+		return sb.toString();
+	}
 }

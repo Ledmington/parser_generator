@@ -95,15 +95,6 @@ public final class GrammarChecker {
 		for (final Map.Entry<String, Set<String>> e : graph.entrySet()) {
 			final String possibleStartSymbol = e.getKey();
 			final Set<String> visited = bfs(possibleStartSymbol, graph);
-			if (false) {
-				System.out.printf(
-						"Nodes reachable from '%s': %s.%n",
-						possibleStartSymbol,
-						visited.stream().sorted().map(s -> "'" + s + "'").collect(Collectors.joining(", ")));
-				System.out.println(visited.stream().sorted().toList());
-				System.out.println(nonTerminals.stream().sorted().toList());
-				System.out.println();
-			}
 			if (visited.equals(nonTerminals)) {
 				possibleStartSymbols.add(possibleStartSymbol);
 			}

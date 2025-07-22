@@ -19,40 +19,39 @@ package com.ledmington.generator.automata;
 
 import java.util.Objects;
 
-public sealed class State permits AcceptingState {
+// TODO: instead of a different type, maybe it's better to have a common method which may throw
+public final class AcceptingState extends State {
 
-	private static int ID = 1;
-	protected final String name;
+	private final String tokenName;
 
-	public State(final String name) {
-		Objects.requireNonNull(name);
-		if (name.isBlank()) {
-			throw new IllegalArgumentException("Empty name.");
+	public AcceptingState(final String tokenName) {
+		super();
+		Objects.requireNonNull(tokenName);
+		if (tokenName.isBlank()) {
+			throw new IllegalArgumentException("Empty token name.");
 		}
-		this.name = name;
+		this.tokenName = tokenName;
 	}
 
-	public State() {
-		this("S" + (ID++));
-	}
-
-	public String name() {
-		return name;
-	}
-
+	@Override
 	public boolean isAccepting() {
-		return false;
+		return true;
+	}
+
+	public String tokenName() {
+		return tokenName;
 	}
 
 	@Override
 	public String toString() {
-		return "State[name=" + name + "]";
+		return "AcceptingState[name=" + name + ";tokenName=" + tokenName + "]";
 	}
 
 	@Override
 	public int hashCode() {
 		int h = 17;
-		h = 31 * h + name.hashCode();
+		h = 31 * h + super.hashCode();
+		h = 31 * h + tokenName.hashCode();
 		return h;
 	}
 
@@ -64,9 +63,9 @@ public sealed class State permits AcceptingState {
 		if (this == other) {
 			return true;
 		}
-		if (!(other instanceof State s)) {
+		if (!(other instanceof AcceptingState as)) {
 			return false;
 		}
-		return this.name.equals(s.name);
+		return this.name.equals(as.name) && this.tokenName.equals(as.tokenName);
 	}
 }

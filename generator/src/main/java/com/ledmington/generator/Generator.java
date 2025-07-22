@@ -40,6 +40,7 @@ import com.ledmington.ebnf.Repetition;
 import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.Utils;
+import com.ledmington.generator.automata.AcceptingState;
 import com.ledmington.generator.automata.AutomataUtils;
 import com.ledmington.generator.automata.Automaton;
 import com.ledmington.generator.automata.State;
@@ -129,16 +130,27 @@ public final class Generator {
 			sb.append("public record Alternation(Node inner) implements Node {}\n");
 		}
 
-		if (false) {
-			for (final Production p : ((Grammar) root).productions()) {
-				System.out.printf("'%s' -> %s%n", p.start().name(), p.isLexerProduction() ? "LEXER" : "PARSER");
-			}
+		final List<Production> lexerProductions = ((Grammar) root)
+				.productions().stream()
+						.filter(Production::isLexerProduction)
+						.sorted(Comparator.comparing(p -> p.start().name()))
+						.toList();
+		final List<Production> parserProductions = ((Grammar) root)
+				.productions().stream()
+						.filter(p -> !p.isLexerProduction())
+						.sorted(Comparator.comparing(p -> p.start().name()))
+						.toList();
+		for (final Production p : parserProductions) {
+			System.out.printf(" %s -> PARSER%n", p.start().name());
+		}
+		for (final Production p : lexerProductions) {
+			System.out.printf(" %s -> LEXER%n", p.start().name());
 		}
 
 		final String lexerName = parserName + "_Lexer";
 
 		if (isLexerNeeded) {
-			generateLexer(sb, lexerName, (Grammar) root);
+			generateLexer(sb, lexerName, lexerProductions);
 		}
 
 		sb.append("public Node parse(final String input) {\n").indent().append("final Node result;\n");
@@ -252,14 +264,19 @@ public final class Generator {
 		return sb.deindent().append("}").toString();
 	}
 
-	private static void generateLexer(final IndentedStringBuilder sb, final String lexerName, final Grammar g) {
-		final Automaton epsilonNFA = AutomataUtils.grammarToEpsilonNFA(g);
+	private static void generateLexer(
+			final IndentedStringBuilder sb, final String lexerName, final List<Production> lexerProductions) {
+		final Automaton epsilonNFA = AutomataUtils.grammarToEpsilonNFA(lexerProductions);
+		System.out.println(epsilonNFA.toGraphviz());
 		AutomataUtils.assertEpsilonNFAValid(epsilonNFA);
 		final Automaton nfa = AutomataUtils.epsilonNFAtoNFA(epsilonNFA);
+		System.out.println(nfa.toGraphviz());
 		AutomataUtils.assertNFAValid(nfa);
 		final Automaton dfa = AutomataUtils.NFAtoDFA(nfa);
+		System.out.println(dfa.toGraphviz());
 		AutomataUtils.assertDFAValid(dfa);
 		final Automaton minimizedDFA = AutomataUtils.minimizeDFA(dfa);
+		System.out.println(minimizedDFA.toGraphviz());
 		AutomataUtils.assertDFAValid(minimizedDFA);
 
 		// re-index DFA states
@@ -281,8 +298,7 @@ public final class Generator {
 
 		sb.append("public enum TokenType {\n")
 				.indent()
-				.append(g.productions().stream()
-						.filter(Production::isLexerProduction)
+				.append(lexerProductions.stream()
 						.map(p -> p.start().name().replace(' ', '_'))
 						.sorted()
 						.collect(Collectors.joining(",\n")))
@@ -313,7 +329,12 @@ public final class Generator {
 		sb.append("};\n");
 
 		sb.append("private final List<Function<String, Token>> tokensToMatch = Arrays.asList(");
-		generateList(sb, allStates, s -> s.isAccepting() ? "s -> new Token(null, s)" : "null");
+		generateList(
+				sb,
+				allStates,
+				s -> s.isAccepting()
+						? "s -> new Token(TokenType." + ((AcceptingState) s).tokenName() + ", s)"
+						: "null");
 		sb.append(");\n");
 
 		// TODO: change this into three arrays for better performance
