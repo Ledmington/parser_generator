@@ -17,14 +17,14 @@
  */
 package com.ledmington.ebnf;
 
-import java.util.Set;
+import java.util.List;
 
 /**
  * An object representing all the productions and symbols of an EBNF grammar.
  *
  * @param productions The ordered sequence of productions of the grammar.
  */
-public record Grammar(Set<Production> productions) implements Node {
+public record Grammar(List<Production> productions) implements Node {
 
 	/**
 	 * Creates a new Grammar with the given Productions.
@@ -32,6 +32,6 @@ public record Grammar(Set<Production> productions) implements Node {
 	 * @param productions The list of productions of the grammar.
 	 */
 	public Grammar(final Production... productions) {
-		this(Set.of(productions));
+		this(List.of(productions));
 	}
 }

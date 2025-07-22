@@ -21,7 +21,6 @@ import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -61,13 +60,13 @@ public final class Parser {
 			},
 			(v, i) -> {
 				if (i + 1 < v.size()
-						&& v.get(i) instanceof Grammar(final Set<Production> productions)
+						&& v.get(i) instanceof Grammar(final List<Production> productions)
 						&& v.get(i + 1) instanceof final Production second) {
 					v.subList(i, i + 2).clear();
 					v.add(
 							i,
 							new Grammar(Stream.concat(productions.stream(), Stream.of(second))
-									.collect(Collectors.toUnmodifiableSet())));
+									.toList()));
 					return true;
 				}
 				return false;
@@ -75,25 +74,25 @@ public final class Parser {
 			(v, i) -> {
 				if (i + 1 < v.size()
 						&& v.get(i) instanceof final Production first
-						&& v.get(i + 1) instanceof Grammar(final Set<Production> productions)) {
+						&& v.get(i + 1) instanceof Grammar(final List<Production> productions)) {
 					v.subList(i, i + 2).clear();
 					v.add(
 							i,
 							new Grammar(Stream.concat(productions.stream(), Stream.of(first))
-									.collect(Collectors.toUnmodifiableSet())));
+									.toList()));
 					return true;
 				}
 				return false;
 			},
 			(v, i) -> {
 				if (i + 1 < v.size()
-						&& v.get(i) instanceof Grammar(final Set<Production> productions)
-						&& v.get(i + 1) instanceof Grammar(final Set<Production> productions1)) {
+						&& v.get(i) instanceof Grammar(final List<Production> productions)
+						&& v.get(i + 1) instanceof Grammar(final List<Production> productions1)) {
 					v.subList(i, i + 2).clear();
 					v.add(
 							i,
 							new Grammar(Stream.concat(productions.stream(), productions1.stream())
-									.collect(Collectors.toUnmodifiableSet())));
+									.toList()));
 					return true;
 				}
 				return false;
