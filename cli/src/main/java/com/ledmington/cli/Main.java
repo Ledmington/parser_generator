@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Objects;
 
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Parser;
@@ -115,9 +114,6 @@ public class Main {
 		if (outputFile == null) {
 			die("No output file was set.%n");
 		}
-
-		Objects.requireNonNull(grammarFile);
-		Objects.requireNonNull(outputFile);
 
 		final Grammar g;
 		try {
