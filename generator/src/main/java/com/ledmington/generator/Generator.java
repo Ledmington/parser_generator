@@ -18,6 +18,7 @@
 package com.ledmington.generator;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,6 +28,7 @@ import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.ledmington.ebnf.Alternation;
@@ -130,16 +132,9 @@ public final class Generator {
 			sb.append("public record Alternation(Node inner) implements Node {}\n");
 		}
 
-		final List<Production> lexerProductions = ((Grammar) root)
-				.productions().stream()
-						.filter(Production::isLexerProduction)
-						.sorted(Comparator.comparing(p -> p.start().name()))
-						.toList();
-		final List<Production> parserProductions = ((Grammar) root)
-				.productions().stream()
-						.filter(p -> !p.isLexerProduction())
-						.sorted(Comparator.comparing(p -> p.start().name()))
-						.toList();
+		final List<Production> lexerProductions = new ArrayList<>();
+		final List<Production> parserProductions = new ArrayList<>();
+		splitProductions((Grammar) root, lexerProductions, parserProductions);
 		for (final Production p : parserProductions) {
 			System.out.printf(" %s -> PARSER%n", p.start().name());
 		}
@@ -266,6 +261,75 @@ public final class Generator {
 		}
 
 		return sb.deindent().append("}").toString();
+	}
+
+	private static void splitProductions(
+			final Grammar g, final List<Production> lexerProductions, final List<Production> parserProductions) {
+		// Divide all trivial lexer productions from the rest
+		for (final Production p : g.productions()) {
+			if (p.isLexerProduction()) {
+				lexerProductions.add(p);
+			} else {
+				parserProductions.add(p);
+			}
+		}
+
+		// Convert all terminal symbols still in the parser into "anonymous" non-terminal ones
+		final Supplier<String> name = new Supplier<>() {
+			private int id = 0;
+
+			@Override
+			public String get() {
+				return "terminal_" + (id++);
+			}
+		};
+		for (int i = 0; i < parserProductions.size(); i++) {
+			final Production p = parserProductions.get(i);
+			if (containsAtLeastOneTerminal(p.result())) {
+				parserProductions.set(
+						i, new Production(p.start(), convertExpression(name, lexerProductions, p.result())));
+			}
+		}
+
+		// Final sort by name the productions
+		lexerProductions.sort(Comparator.comparing(a -> a.start().name()));
+		parserProductions.sort(Comparator.comparing(a -> a.start().name()));
+	}
+
+	private static Expression convertExpression(
+			final Supplier<String> name, final List<Production> lexerProductions, final Expression e) {
+		return switch (e) {
+			case Terminal t -> {
+				final String newName = name.get();
+				final NonTerminal nt = new NonTerminal(newName);
+				lexerProductions.add(new Production(nt, t));
+				yield nt;
+			}
+			case NonTerminal nt -> nt;
+			case OptionalNode o -> new OptionalNode(convertExpression(name, lexerProductions, o.inner()));
+			case Repetition r -> new Repetition(convertExpression(name, lexerProductions, r.inner()));
+			case Sequence s ->
+				new Sequence(s.nodes().stream()
+						.map(n -> convertExpression(name, lexerProductions, n))
+						.toList());
+			case Alternation a ->
+				new Sequence(a.nodes().stream()
+						.map(n -> convertExpression(name, lexerProductions, n))
+						.toList());
+			default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", e));
+		};
+	}
+
+	private static boolean containsAtLeastOneTerminal(final Node n) {
+		return switch (n) {
+			case Terminal ignored -> true;
+			case NonTerminal ignored -> false;
+			case OptionalNode o -> containsAtLeastOneTerminal(o.inner());
+			case Repetition r -> containsAtLeastOneTerminal(r.inner());
+			case Sequence s -> s.nodes().stream().anyMatch(Generator::containsAtLeastOneTerminal);
+			case Alternation a -> a.nodes().stream().anyMatch(Generator::containsAtLeastOneTerminal);
+			default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
+		};
 	}
 
 	private static void generateLexer(
