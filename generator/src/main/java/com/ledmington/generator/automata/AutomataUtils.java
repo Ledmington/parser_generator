@@ -45,7 +45,7 @@ public final class AutomataUtils {
 
 	public static Automaton grammarToEpsilonNFA(final Grammar g) {
 		return grammarToEpsilonNFA(g.productions().stream()
-				.filter(Production::isLexerProduction)
+				.filter(Production::isTrivialLexerProduction)
 				.sorted(Comparator.comparing(p -> p.start().name()))
 				.toList());
 	}
@@ -54,19 +54,16 @@ public final class AutomataUtils {
 		final Set<StateTransition> transitions = new HashSet<>();
 
 		final State globalStart = new State();
-		final State globalEnd = new State();
 
 		for (final Production p : lexerProductions) {
+			final String productionName = p.start().name().replace(' ', '_');
 			final State productionStart = new State();
-			final State productionEnd = new AcceptingState(p.start().name().replace(' ', '_'));
+			final State productionEnd = new AcceptingState(productionName);
 
 			transitions.add(new StateTransition(globalStart, productionStart, StateTransition.EPSILON));
-			transitions.add(new StateTransition(productionEnd, globalEnd, StateTransition.EPSILON));
 
 			convertNode(p.result(), transitions, productionStart, productionEnd);
 		}
-
-		transitions.add(new StateTransition(globalEnd, globalStart, StateTransition.EPSILON));
 
 		return new Automaton(globalStart, transitions);
 	}
