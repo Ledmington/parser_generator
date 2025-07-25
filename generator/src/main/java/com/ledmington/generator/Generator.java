@@ -74,9 +74,24 @@ public final class Generator {
 			final String startSymbol,
 			final String indent,
 			final boolean generateMainMethod) {
-		generateNames(root);
 
-		final boolean isLexerNeeded = ((Grammar) root).productions().stream().anyMatch(Production::isLexerProduction);
+		NODE_NAMES.clear();
+
+		final List<Production> lexerProductions = new ArrayList<>();
+		final List<Production> parserProductions = new ArrayList<>();
+		splitProductions((Grammar) root, lexerProductions, parserProductions);
+
+		{ // Debug
+			for (final Production p : parserProductions) {
+				System.out.printf(" %s -> PARSER%n", p.start().name());
+			}
+			for (final Production p : lexerProductions) {
+				System.out.printf(" %s -> LEXER%n", p.start().name());
+			}
+		}
+
+		generateNames(parserProductions);
+
 		final boolean atLeastOneOptional = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof OptionalNode);
 		final boolean atLeastOneSequence = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Sequence);
 		final boolean atLeastOneRepetition = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Repetition);
@@ -89,18 +104,14 @@ public final class Generator {
 		if (packageName != null && !packageName.isBlank()) {
 			sb.append("package ").append(packageName).append(";\n\n");
 		}
-		if (atLeastOneSequence || atLeastOneRepetition || isLexerNeeded) {
-			sb.append("import java.util.List;\n").append("import java.util.ArrayList;\n");
-		}
+		sb.append("import java.util.List;\n").append("import java.util.ArrayList;\n");
 		if (atLeastOneSequence) {
 			sb.append("import java.util.Stack;\n");
 		}
-		if (isLexerNeeded) {
-			sb.append("import java.util.Map;\n")
-					.append("import java.util.Objects;\n")
-					.append("import java.util.Arrays;\n")
-					.append("import java.util.function.Function;\n");
-		}
+		sb.append("import java.util.Map;\n")
+				.append("import java.util.Objects;\n")
+				.append("import java.util.Arrays;\n")
+				.append("import java.util.function.Function;\n");
 		if (generateMainMethod) {
 			sb.append("import java.io.IOException;\n")
 					.append("import java.nio.file.Files;\n")
@@ -132,49 +143,42 @@ public final class Generator {
 			sb.append("public record Alternation(Node inner) implements Node {}\n");
 		}
 
-		final List<Production> lexerProductions = new ArrayList<>();
-		final List<Production> parserProductions = new ArrayList<>();
-		splitProductions((Grammar) root, lexerProductions, parserProductions);
-		for (final Production p : parserProductions) {
-			System.out.printf(" %s -> PARSER%n", p.start().name());
-		}
-		for (final Production p : lexerProductions) {
-			System.out.printf(" %s -> LEXER%n", p.start().name());
-		}
-
 		final String lexerName = parserName + "_Lexer";
 
-		if (isLexerNeeded) {
-			generateLexer(sb, lexerName, lexerProductions);
-		}
+		generateLexer(sb, lexerName, lexerProductions);
 
 		sb.append("public Node parse(final String input) {\n").indent().append("final Node result;\n");
 
-		if (isLexerNeeded) {
-			sb.append("final ")
-					.append(lexerName)
-					.append(" lexer = new ")
-					.append(lexerName)
-					.append("();\n")
-					.append("try {\n")
-					.indent()
-					.append("this.v = lexer.tokenize(input).toArray(new Token[0]);\n")
-					.append("this.pos = 0;\n");
+		sb.append("final ")
+				.append(lexerName)
+				.append(" lexer = new ")
+				.append(lexerName)
+				.append("();\n")
+				.append("try {\n")
+				.indent()
+				.append("this.v = lexer.tokenize(input).toArray(new Token[0]);\n")
+				.deindent()
+				.append("} catch (final IllegalArgumentException e) {\n")
+				.indent()
+				.append("return null;\n")
+				.deindent()
+				.append("}\n")
+				.append("this.pos = 0;\n")
+				.append("try {\n")
+				.indent();
 
-			if (((Grammar) root)
-							.productions().stream()
-									.filter(p -> p.start().name().equals(startSymbol))
-									.findFirst()
-									.orElseThrow()
-									.result()
-					instanceof Terminal) {
-				sb.append("result = parseTerminal(TokenType." + startSymbol + ");\n");
-			} else {
-				sb.append("result = parse_" + startSymbol + "();\n");
-			}
+		if (((Grammar) root)
+						.productions().stream()
+								.filter(p -> p.start().name().equals(startSymbol))
+								.findFirst()
+								.orElseThrow()
+								.result()
+				instanceof Terminal) {
+			sb.append("result = parseTerminal(TokenType." + startSymbol + ");\n");
 		} else {
-			sb.append("try {\n").indent().append("result = parse_" + startSymbol + "();\n");
+			sb.append("result = parse_" + startSymbol + "();\n");
 		}
+
 		sb.deindent()
 				.append("} catch (final ArrayIndexOutOfBoundsException e) {\n")
 				.indent()
@@ -194,7 +198,10 @@ public final class Generator {
 
 		final Queue<Node> q = new ArrayDeque<>();
 		final Set<Node> visited = new HashSet<>();
-		q.add(root);
+
+		for (final Production p : parserProductions) {
+			generateNonTerminal(q, sb, p.start(), p.result(), tokenNames);
+		}
 
 		while (!q.isEmpty()) {
 			final Node n = q.remove();
@@ -202,15 +209,8 @@ public final class Generator {
 				continue;
 			}
 			visited.add(n);
+			System.out.printf("Visiting '%s'%n", n);
 			switch (n) {
-				case Grammar g -> {
-					for (final Production p : g.productions()) {
-						if (p.isLexerProduction()) {
-							continue;
-						}
-						generateNonTerminal(q, sb, p.start(), p.result(), tokenNames);
-					}
-				}
 				case OptionalNode opt -> generateOptionalNode(q, sb, NODE_NAMES.get(opt), opt, tokenNames);
 				case NonTerminal ignored -> {
 					// No need to generate anything here because we already handle non-terminals when visiting
@@ -267,7 +267,7 @@ public final class Generator {
 			final Grammar g, final List<Production> lexerProductions, final List<Production> parserProductions) {
 		// Divide all trivial lexer productions from the rest
 		for (final Production p : g.productions()) {
-			if (p.isLexerProduction()) {
+			if (p.isTrivialLexerProduction()) {
 				lexerProductions.add(p);
 			} else {
 				parserProductions.add(p);
@@ -303,6 +303,7 @@ public final class Generator {
 				final String newName = name.get();
 				final NonTerminal nt = new NonTerminal(newName);
 				lexerProductions.add(new Production(nt, t));
+				NODE_NAMES.put(nt, newName);
 				yield nt;
 			}
 			case NonTerminal nt -> nt;
@@ -313,7 +314,7 @@ public final class Generator {
 						.map(n -> convertExpression(name, lexerProductions, n))
 						.toList());
 			case Alternation a ->
-				new Sequence(a.nodes().stream()
+				new Alternation(a.nodes().stream()
 						.map(n -> convertExpression(name, lexerProductions, n))
 						.toList());
 			default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", e));
@@ -450,9 +451,10 @@ public final class Generator {
 				.append("this.pos = 0;\n")
 				.append("final List<Token> tokens = new ArrayList<>();\n")
 				.append("int currentState = 0;\n")
-				.append(
-						"this.lastTokenMatched = isAccepting[currentState] ? tokensToMatch.get(currentState).apply(\"\") : null;\n")
-				.append("this.lastTokenMatchPosition = isAccepting[currentState] ? 0 : -1;\n")
+				// .append("this.lastTokenMatched = isAccepting[currentState] ?
+				// tokensToMatch.get(currentState).apply(\"\") : null;\n")
+				.append("this.lastTokenMatched = null;\n")
+				.append("this.lastTokenMatchPosition = 0;\n")
 				.append("while (this.pos < v.length) {\n")
 				.indent()
 				.append("if (isAccepting[currentState]) {\n")
@@ -473,13 +475,13 @@ public final class Generator {
 				.append("if (lastTokenMatched != null) {\n")
 				.indent()
 				.append("tokens.add(lastTokenMatched);\n")
-				.append("pos = lastTokenMatchPosition;\n")
+				.append("currentState = 0;\n")
 				.append("lastTokenMatched = null;\n")
-				.append("lastTokenMatchPosition = -1;\n")
+				.append("lastTokenMatchPosition = pos;\n")
 				.deindent()
 				.append("} else {\n")
 				.indent()
-				.append("throw new RuntimeException(String.format(\"Lexical error at index %,d.\", pos));\n")
+				.append("throw new IllegalArgumentException(String.format(\"Lexical error at index %,d.\", pos));\n")
 				.deindent()
 				.append("}\n")
 				.deindent()
@@ -516,6 +518,7 @@ public final class Generator {
 			final String productionName,
 			final Alternation a,
 			final Set<String> tokenNames) {
+		System.out.printf("Generating alternation '%s'%n", productionName);
 		sb.append("private Alternation parse_" + productionName + "() {\n").indent();
 		final List<Expression> nodes = a.nodes();
 		for (int i = 0; i < nodes.size(); i++) {
@@ -625,11 +628,14 @@ public final class Generator {
 		sb.deindent().append("}\n");
 	}
 
-	private static void generateNames(final Node root) {
-		NODE_NAMES.clear();
-		final Queue<Node> q = new ArrayDeque<>();
+	private static void generateNames(final List<Production> parserProductions) {
 		final Set<Node> visited = new HashSet<>();
-		q.add(root);
+		final Queue<Node> q = new ArrayDeque<>();
+
+		for (final Production p : parserProductions) {
+			q.add(p.start());
+			q.add(p.result());
+		}
 
 		int optionalCounter = 0;
 		int sequenceCounter = 0;
@@ -642,12 +648,6 @@ public final class Generator {
 			}
 			visited.add(n);
 			switch (n) {
-				case Grammar g -> {
-					for (final Production p : g.productions()) {
-						q.add(p.start());
-						q.add(p.result());
-					}
-				}
 				case Terminal ignored -> {}
 				case NonTerminal nt -> NODE_NAMES.put(nt, nt.name().replace(' ', '_'));
 				case OptionalNode opt -> {
@@ -655,15 +655,15 @@ public final class Generator {
 					q.add(opt.inner());
 					optionalCounter++;
 				}
-				case Sequence c -> {
-					NODE_NAMES.put(c, "sequence_" + sequenceCounter);
-					sequenceCounter++;
-					q.addAll(c.nodes());
-				}
 				case Repetition r -> {
 					NODE_NAMES.put(r, "repetition_" + repetitionCounter);
 					repetitionCounter++;
 					q.add(r.inner());
+				}
+				case Sequence s -> {
+					NODE_NAMES.put(s, "sequence_" + sequenceCounter);
+					sequenceCounter++;
+					q.addAll(s.nodes());
 				}
 				case Alternation a -> {
 					NODE_NAMES.put(a, "alternation_" + alternationCounter);
