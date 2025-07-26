@@ -28,16 +28,17 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.ledmington.ebnf.Alternation;
 import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Node;
 import com.ledmington.ebnf.NonTerminal;
-import com.ledmington.ebnf.OptionalNode;
+import com.ledmington.ebnf.OneOrMore;
+import com.ledmington.ebnf.Or;
 import com.ledmington.ebnf.Production;
-import com.ledmington.ebnf.Repetition;
 import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
+import com.ledmington.ebnf.ZeroOrMore;
+import com.ledmington.ebnf.ZeroOrOne;
 
 /** A class to check an EBNF grammar for correctness. */
 public final class GrammarChecker {
@@ -78,6 +79,13 @@ public final class GrammarChecker {
 			}
 		}
 
+		// remove all lexer symbols
+		for (final Production p : g.productions()) {
+			if (p.isLexerProduction()) {
+				allNonTerminals.remove(p.start().name());
+			}
+		}
+
 		return findStartSymbol(g, allNonTerminals);
 	}
 
@@ -85,6 +93,9 @@ public final class GrammarChecker {
 		// Building the graph of reachable symbols
 		final Map<String, Set<String>> graph = new HashMap<>();
 		for (final Production p : g.productions()) {
+			if (p.isLexerProduction()) {
+				continue;
+			}
 			final String s = p.start().name();
 			final Set<String> outEdges = findAllNonTerminals(p.result());
 
@@ -95,6 +106,12 @@ public final class GrammarChecker {
 		for (final Map.Entry<String, Set<String>> e : graph.entrySet()) {
 			final String possibleStartSymbol = e.getKey();
 			final Set<String> visited = bfs(possibleStartSymbol, graph);
+			// remove all lexer symbols
+			for (final Production p : g.productions()) {
+				if (p.isLexerProduction()) {
+					visited.remove(p.start().name());
+				}
+			}
 			if (visited.equals(nonTerminals)) {
 				possibleStartSymbols.add(possibleStartSymbol);
 			}
@@ -121,7 +138,9 @@ public final class GrammarChecker {
 				continue;
 			}
 			visited.add(s);
-			q.addAll(graph.get(s));
+			if (graph.containsKey(s)) {
+				q.addAll(graph.get(s));
+			}
 		}
 		return visited;
 	}
@@ -140,10 +159,11 @@ public final class GrammarChecker {
 			switch (n) {
 				case NonTerminal nt -> nonTerminalNames.add(nt.name());
 				case Terminal ignored -> {}
-				case Alternation a -> q.addAll(a.nodes());
+				case Or or -> q.addAll(or.nodes());
 				case Sequence c -> q.addAll(c.nodes());
-				case Repetition r -> q.add(r.inner());
-				case OptionalNode o -> q.add(o.inner());
+				case ZeroOrMore zom -> q.add(zom.inner());
+				case ZeroOrOne zoo -> q.add(zoo.inner());
+				case OneOrMore oom -> q.add(oom.inner());
 				default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
 			}
 		}

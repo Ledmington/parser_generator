@@ -21,10 +21,8 @@ import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /** A parser of EBNF grammars. */
 public final class Parser {
@@ -33,153 +31,6 @@ public final class Parser {
 	private static final char NEWLINE = '\n';
 	private static final char WHITESPACE = ' ';
 	private static final char TAB = '\t';
-	private static final List<BiPredicate<List<Object>, Integer>> TRANSFORMATIONS = List.of(
-			(v, i) -> {
-				if (i + 3 >= v.size()) {
-					return false;
-				}
-				if (v.get(i) instanceof final NonTerminal start
-						&& v.get(i + 1).equals(Symbols.EQUAL_SIGN)
-						&& v.get(i + 2) instanceof final Expression n
-						&& v.get(i + 3).equals(Symbols.SEMICOLON)) {
-					v.subList(i, i + 4).clear();
-					v.add(i, new Production(start, n));
-					return true;
-				}
-				return false;
-			},
-			(v, i) -> {
-				if (i + 1 < v.size()
-						&& v.get(i) instanceof final Production first
-						&& v.get(i + 1) instanceof final Production second) {
-					v.subList(i, i + 2).clear();
-					v.add(i, new Grammar(first, second));
-					return true;
-				}
-				return false;
-			},
-			(v, i) -> {
-				if (i + 1 < v.size()
-						&& v.get(i) instanceof Grammar(final List<Production> productions)
-						&& v.get(i + 1) instanceof final Production second) {
-					v.subList(i, i + 2).clear();
-					v.add(
-							i,
-							new Grammar(Stream.concat(productions.stream(), Stream.of(second))
-									.toList()));
-					return true;
-				}
-				return false;
-			},
-			(v, i) -> {
-				if (i + 1 < v.size()
-						&& v.get(i) instanceof final Production first
-						&& v.get(i + 1) instanceof Grammar(final List<Production> productions)) {
-					v.subList(i, i + 2).clear();
-					v.add(
-							i,
-							new Grammar(Stream.concat(productions.stream(), Stream.of(first))
-									.toList()));
-					return true;
-				}
-				return false;
-			},
-			(v, i) -> {
-				if (i + 1 < v.size()
-						&& v.get(i) instanceof Grammar(final List<Production> productions)
-						&& v.get(i + 1) instanceof Grammar(final List<Production> productions1)) {
-					v.subList(i, i + 2).clear();
-					v.add(
-							i,
-							new Grammar(Stream.concat(productions.stream(), productions1.stream())
-									.toList()));
-					return true;
-				}
-				return false;
-			},
-			(v, i) -> {
-				if (i + 2 < v.size()
-						&& v.get(i) instanceof final Expression first
-						&& v.get(i + 1).equals(Symbols.COMMA)
-						&& v.get(i + 2) instanceof final Expression second) {
-					v.subList(i, i + 3).clear();
-					v.add(i, new Sequence(first, second));
-					return true;
-				}
-				return false;
-			},
-			(v, i) -> {
-				if (v.get(i) instanceof Sequence(final List<Expression> nodes)
-						&& nodes.stream().anyMatch(exp -> exp instanceof Sequence)) {
-					v.set(
-							i,
-							new Sequence(nodes.stream()
-									.flatMap(exp -> exp instanceof Sequence(final List<Expression> nodes1)
-											? nodes1.stream()
-											: Stream.of(exp))
-									.toList()));
-					return true;
-				}
-				return false;
-			},
-			(v, i) -> {
-				if (i + 2 < v.size()
-						&& v.get(i) instanceof final Expression first
-						&& v.get(i + 1).equals(Symbols.VERTICAL_LINE)
-						&& v.get(i + 2) instanceof final Expression second) {
-					v.subList(i, i + 3).clear();
-					v.add(i, new Alternation(first, second));
-					return true;
-				}
-				return false;
-			},
-			(v, i) -> {
-				if (v.get(i) instanceof Alternation(final List<Expression> nodes)
-						&& nodes.stream().anyMatch(exp -> exp instanceof Alternation)) {
-					v.set(
-							i,
-							new Alternation(nodes.stream()
-									.flatMap(exp -> exp instanceof Alternation(final List<Expression> nodes1)
-											? nodes1.stream()
-											: Stream.of(exp))
-									.toList()));
-					return true;
-				}
-				return false;
-			},
-			(v, i) -> {
-				if (i + 2 < v.size()
-						&& v.get(i).equals(Symbols.LEFT_PARENTHESIS)
-						&& v.get(i + 1) instanceof final Node n
-						&& v.get(i + 2).equals(Symbols.RIGHT_PARENTHESIS)) {
-					v.subList(i, i + 3).clear();
-					v.add(i, n);
-					return true;
-				}
-				return false;
-			},
-			(v, i) -> {
-				if (i + 2 < v.size()
-						&& v.get(i).equals(Symbols.LEFT_SQUARE_BRACKET)
-						&& v.get(i + 1) instanceof final Expression n
-						&& v.get(i + 2).equals(Symbols.RIGHT_SQUARE_BRACKET)) {
-					v.subList(i, i + 3).clear();
-					v.add(i, new OptionalNode(n));
-					return true;
-				}
-				return false;
-			},
-			(v, i) -> {
-				if (i + 2 < v.size()
-						&& v.get(i).equals(Symbols.LEFT_CURLY_BRACKET)
-						&& v.get(i + 1) instanceof final Expression n
-						&& v.get(i + 2).equals(Symbols.RIGHT_CURLY_BRACKET)) {
-					v.subList(i, i + 3).clear();
-					v.add(i, new Repetition(n));
-					return true;
-				}
-				return false;
-			});
 
 	private Parser() {}
 
@@ -227,16 +78,13 @@ public final class Parser {
 			final char ch = it.current();
 			if (ch == WHITESPACE || ch == TAB || ch == NEWLINE) {
 				skipWhitespaces(it);
-			} else if (Character.isAlphabetic(ch)) {
+			} else if (Character.isAlphabetic(ch) || ch == Symbols.UNDERSCORE.getCharacter()) {
 				tokens.add(readWord(it));
 			} else if (ch == Symbols.EQUAL_SIGN.getCharacter()) {
 				tokens.add(Symbols.EQUAL_SIGN);
 				it.next();
 			} else if (ch == Symbols.SEMICOLON.getCharacter()) {
 				tokens.add(Symbols.SEMICOLON);
-				it.next();
-			} else if (ch == Symbols.COMMA.getCharacter()) {
-				tokens.add(Symbols.COMMA);
 				it.next();
 			} else if (ch == Symbols.VERTICAL_LINE.getCharacter()) {
 				tokens.add(Symbols.VERTICAL_LINE);
@@ -258,6 +106,21 @@ public final class Parser {
 				it.next();
 			} else if (ch == Symbols.RIGHT_CURLY_BRACKET.getCharacter()) {
 				tokens.add(Symbols.RIGHT_CURLY_BRACKET);
+				it.next();
+			} else if (ch == Symbols.PLUS.getCharacter()) {
+				tokens.add(Symbols.PLUS);
+				it.next();
+			} else if (ch == Symbols.QUESTION_MARK.getCharacter()) {
+				tokens.add(Symbols.QUESTION_MARK);
+				it.next();
+			} else if (ch == Symbols.DOT.getCharacter()) {
+				tokens.add(Symbols.DOT);
+				it.next();
+			} else if (ch == Symbols.ASTERISK.getCharacter()) {
+				tokens.add(Symbols.ASTERISK);
+				it.next();
+			} else if (ch == Symbols.DASH.getCharacter()) {
+				tokens.add(Symbols.DASH);
 				it.next();
 			} else if (ch == DOUBLE_QUOTES) {
 				tokens.add(readStringLiteral(it));
@@ -307,7 +170,7 @@ public final class Parser {
 			sb.append(it.current());
 			it.next();
 		} while (it.current() != CharacterIterator.DONE
-				&& (Character.isAlphabetic(it.current()) || Character.isDigit(it.current())));
+				&& (Character.isAlphabetic(it.current()) || it.current() == Symbols.UNDERSCORE.getCharacter()));
 		return new Word(sb.toString());
 	}
 
@@ -331,37 +194,53 @@ public final class Parser {
 			}
 		}
 
-		// Second hard-coded pass: concatenate all successive words into a single non-terminal symbol
+		// Second hard-coded pass: convert all words into non-terminal symbols
 		for (int i = 0; i < v.size(); i++) {
-			if (v.get(i) instanceof Word(final String word)) {
-				// concatenate all successive words into a single NonTerminal
-				final StringBuilder sb = new StringBuilder();
-				sb.append(word);
-				v.remove(i);
-				while (v.get(i) instanceof Word(final String word2)) {
-					sb.append(WHITESPACE).append(word2);
-					v.remove(i);
-				}
-				v.add(i, new NonTerminal(sb.toString()));
+			if (v.get(i) instanceof Word(final String content)) {
+				v.set(i, new NonTerminal(content));
+			}
+		}
+
+		// Third hard-coded pass: convert all dots into special Alternation symbols
+		for (int i = 0; i < v.size(); i++) {
+			if (v.get(i).equals(Symbols.DOT)) {
+				v.set(
+						i,
+						new Or(IntStream.range(32, 127)
+								.mapToObj(x -> (Expression) new Terminal("" + (char) x))
+								.toList()));
 			}
 		}
 
 		while (v.size() > 1) {
+			System.out.println(IntStream.range(0, v.size())
+					.mapToObj(j -> String.format(
+							" %3d : %n%s",
+							j,
+							v.get(j) instanceof Token
+									? v.get(j).toString()
+									: Utils.prettyPrint((Node) v.get(j), " ".repeat(6))))
+					.collect(Collectors.joining("\n")));
+
 			// do one pass
 			final int initialSize = v.size();
 			for (int i = 0; i < v.size(); ) {
 				boolean atLeastOneMatch = false;
-				for (final BiPredicate<List<Object>, Integer> bp : TRANSFORMATIONS) {
-					if (bp.test(v, i)) {
-						atLeastOneMatch = true;
-						break;
-					}
-				}
+
+				atLeastOneMatch |= asterisk(v, i);
+				atLeastOneMatch |= plus(v, i);
+				atLeastOneMatch |= questionMark(v, i);
+				atLeastOneMatch |= parenthesis(v, i);
+				atLeastOneMatch |= mergeSequence(v, i);
+				atLeastOneMatch |= mergeOr(v, i);
+				atLeastOneMatch |= createProduction(v, i);
+
 				// move only if we didn't apply any transformation
 				if (!atLeastOneMatch) {
 					i++;
 				}
 			}
+
 			if (v.size() == initialSize) {
 				throw new ParsingException(String.format(
 						"Unknown parsing state:%n%s",
@@ -388,5 +267,124 @@ public final class Parser {
 		}
 
 		return g;
+	}
+
+	private static boolean parenthesis(final List<Object> v, final int i) {
+		if (i + 2 >= v.size()) {
+			return false;
+		}
+		if (v.get(i).equals(Symbols.LEFT_PARENTHESIS)
+				&& v.get(i + 1) instanceof final Expression exp
+				&& v.get(i + 2).equals(Symbols.RIGHT_PARENTHESIS)) {
+			v.subList(i, i + 3).clear();
+			v.add(i, exp);
+			return true;
+		}
+		return false;
+	}
+
+	private static boolean createProduction(final List<Object> v, final int i) {
+		if (i + 3 >= v.size()) {
+			return false;
+		}
+		if (v.get(i) instanceof final NonTerminal start
+				&& v.get(i + 1).equals(Symbols.EQUAL_SIGN)
+				&& v.get(i + 2) instanceof final Expression exp
+				&& v.get(i + 3).equals(Symbols.SEMICOLON)) {
+			v.subList(i, i + 4).clear();
+			v.add(i, new Production(start, exp));
+			return true;
+		}
+		return false;
+	}
+
+	private static boolean mergeSequence(final List<Object> v, final int i) {
+		final List<Expression> expressions = new ArrayList<>();
+		int count = 0;
+		int j = i;
+		for (; j < v.size(); j++) {
+			final Object obj = v.get(j);
+			if (obj instanceof Sequence(final List<Expression> nodes)) {
+				expressions.addAll(nodes);
+				count++;
+			} else if (obj instanceof final Expression exp && !(obj instanceof Or)) {
+				expressions.add(exp);
+				count++;
+			} else {
+				break;
+			}
+		}
+		if (count == 0) {
+			return false;
+		} else {
+			v.subList(i, j).clear();
+			v.add(i, new Sequence(expressions));
+			return true;
+		}
+	}
+
+	private static boolean mergeOr(final List<Object> v, final int i) {
+		final List<Expression> expressions = new ArrayList<>();
+		if (!(v.get(i) instanceof Expression)) {
+			return false;
+		}
+		int count = 0;
+		int j = i;
+		for (; j < v.size() - 1; j++) {
+			if (v.get(j).equals(Symbols.VERTICAL_LINE) && v.get(j + 1) instanceof Or(final List<Expression> nodes)) {
+				expressions.addAll(nodes);
+				count++;
+				j++;
+			} else if (v.get(j).equals(Symbols.VERTICAL_LINE) && v.get(j + 1) instanceof final Expression exp) {
+				expressions.add(exp);
+				count++;
+				j++;
+			} else {
+				break;
+			}
+		}
+		if (count == 0) {
+			return false;
+		} else {
+			v.subList(i, j).clear();
+			v.add(i, new Or(expressions));
+			return true;
+		}
+	}
+
+	private static boolean asterisk(final List<Object> v, final int i) {
+		if (i + 1 >= v.size()) {
+			return false;
+		}
+		if (v.get(i) instanceof final Expression exp && v.get(i + 1).equals(Symbols.ASTERISK)) {
+			v.subList(i, i + 2).clear();
+			v.add(i, new ZeroOrMore(exp));
+			return true;
+		}
+		return false;
+	}
+
+	private static boolean plus(final List<Object> v, final int i) {
+		if (i + 1 >= v.size()) {
+			return false;
+		}
+		if (v.get(i) instanceof final Expression exp && v.get(i + 1).equals(Symbols.PLUS)) {
+			v.subList(i, i + 2).clear();
+			v.add(i, new OneOrMore(exp));
+			return true;
+		}
+		return false;
+	}
+
+	private static boolean questionMark(final List<Object> v, final int i) {
+		if (i + 1 >= v.size()) {
+			return false;
+		}
+		if (v.get(i) instanceof final Expression exp && v.get(i + 1).equals(Symbols.QUESTION_MARK)) {
+			v.subList(i, i + 2).clear();
+			v.add(i, new OneOrMore(exp));
+			return true;
+		}
+		return false;
 	}
 }

@@ -182,16 +182,16 @@ public final class TestParser {
 		return new Sequence(expressions);
 	}
 
-	private static Alternation alt(final Expression... expressions) {
-		return new Alternation(expressions);
+	private static Or alt(final Expression... expressions) {
+		return new Or(expressions);
 	}
 
-	private static OptionalNode opt(final Expression inner) {
-		return new OptionalNode(inner);
+	private static ZeroOrOne opt(final Expression inner) {
+		return new ZeroOrOne(inner);
 	}
 
-	private static Repetition rep(final Expression exp) {
-		return new Repetition(exp);
+	private static ZeroOrMore rep(final Expression exp) {
+		return new ZeroOrMore(exp);
 	}
 
 	private static Stream<Arguments> correctTestCases() {

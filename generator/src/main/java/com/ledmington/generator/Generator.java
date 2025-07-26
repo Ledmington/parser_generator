@@ -32,17 +32,18 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import com.ledmington.ebnf.Alternation;
 import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Node;
 import com.ledmington.ebnf.NonTerminal;
-import com.ledmington.ebnf.OptionalNode;
+import com.ledmington.ebnf.OneOrMore;
+import com.ledmington.ebnf.Or;
 import com.ledmington.ebnf.Production;
-import com.ledmington.ebnf.Repetition;
 import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.Utils;
+import com.ledmington.ebnf.ZeroOrMore;
+import com.ledmington.ebnf.ZeroOrOne;
 import com.ledmington.generator.automata.AcceptingState;
 import com.ledmington.generator.automata.AutomataUtils;
 import com.ledmington.generator.automata.Automaton;
@@ -83,10 +84,10 @@ public final class Generator {
 
 		generateNames(parserProductions);
 
-		final boolean atLeastOneOptional = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof OptionalNode);
+		final boolean atLeastOneOptional = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof ZeroOrOne);
 		final boolean atLeastOneSequence = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Sequence);
-		final boolean atLeastOneRepetition = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Repetition);
-		final boolean atLeastOneAlternation = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Alternation);
+		final boolean atLeastOneRepetition = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof ZeroOrMore);
+		final boolean atLeastOneAlternation = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Or);
 
 		final IndentedStringBuilder sb = new IndentedStringBuilder(indent);
 		sb.append("/*\n")
@@ -195,14 +196,14 @@ public final class Generator {
 			}
 			visited.add(n);
 			switch (n) {
-				case OptionalNode opt -> generateOptionalNode(q, sb, NODE_NAMES.get(opt), opt, tokenNames);
+				case ZeroOrOne opt -> generateOptionalNode(q, sb, NODE_NAMES.get(opt), opt, tokenNames);
 				case NonTerminal ignored -> {
 					// No need to generate anything here because we already handle non-terminals when visiting
 					// the grammar's productions
 				}
 				case Sequence c -> generateSequence(q, sb, NODE_NAMES.get(c), c, tokenNames);
-				case Repetition r -> generateRepetition(q, sb, NODE_NAMES.get(r), r, tokenNames);
-				case Alternation a -> generateAlternation(q, sb, NODE_NAMES.get(a), a, tokenNames);
+				case ZeroOrMore r -> generateRepetition(q, sb, NODE_NAMES.get(r), r, tokenNames);
+				case Or a -> generateAlternation(q, sb, NODE_NAMES.get(a), a, tokenNames);
 				default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
 			}
 		}
@@ -301,14 +302,14 @@ public final class Generator {
 				}
 			}
 			case NonTerminal nt -> nt;
-			case OptionalNode o -> new OptionalNode(convertExpression(name, lexerProductions, o.inner()));
-			case Repetition r -> new Repetition(convertExpression(name, lexerProductions, r.inner()));
+			case ZeroOrOne o -> new ZeroOrOne(convertExpression(name, lexerProductions, o.inner()));
+			case ZeroOrMore r -> new ZeroOrMore(convertExpression(name, lexerProductions, r.inner()));
 			case Sequence s ->
 				new Sequence(s.nodes().stream()
 						.map(n -> convertExpression(name, lexerProductions, n))
 						.toList());
-			case Alternation a ->
-				new Alternation(a.nodes().stream()
+			case Or a ->
+				new Or(a.nodes().stream()
 						.map(n -> convertExpression(name, lexerProductions, n))
 						.toList());
 			default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", e));
@@ -319,10 +320,11 @@ public final class Generator {
 		return switch (n) {
 			case Terminal ignored -> true;
 			case NonTerminal ignored -> false;
-			case OptionalNode o -> containsAtLeastOneTerminal(o.inner());
-			case Repetition r -> containsAtLeastOneTerminal(r.inner());
+			case ZeroOrOne zoo -> containsAtLeastOneTerminal(zoo.inner());
+			case ZeroOrMore zom -> containsAtLeastOneTerminal(zom.inner());
+			case OneOrMore oom -> containsAtLeastOneTerminal(oom.inner());
 			case Sequence s -> s.nodes().stream().anyMatch(Generator::containsAtLeastOneTerminal);
-			case Alternation a -> a.nodes().stream().anyMatch(Generator::containsAtLeastOneTerminal);
+			case Or or -> or.nodes().stream().anyMatch(Generator::containsAtLeastOneTerminal);
 			default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
 		};
 	}
@@ -518,7 +520,7 @@ public final class Generator {
 			final Queue<Node> q,
 			final IndentedStringBuilder sb,
 			final String productionName,
-			final Alternation a,
+			final Or a,
 			final Set<String> tokenNames) {
 		sb.append("private Alternation parse_" + productionName + "() {\n").indent();
 		final List<Expression> nodes = a.nodes();
@@ -545,7 +547,7 @@ public final class Generator {
 			final Queue<Node> q,
 			final IndentedStringBuilder sb,
 			final String productionName,
-			final Repetition r,
+			final ZeroOrMore r,
 			final Set<String> tokenNames) {
 		sb.append("private Repetition parse_" + productionName + "() {\n")
 				.indent()
@@ -559,7 +561,7 @@ public final class Generator {
 			sb.append("final Node n = parse_" + actualName + "();\n");
 			q.add(r.inner());
 		}
-		if (!(r.inner() instanceof Repetition)) {
+		if (!(r.inner() instanceof ZeroOrMore)) {
 			sb.append("if (n == null) {\n")
 					.indent()
 					.append("break;\n")
@@ -596,7 +598,7 @@ public final class Generator {
 				sb.append("final Node " + nodeName + " = parse_" + actualName + "();\n");
 				q.add(n);
 			}
-			if (!(n instanceof Repetition)) {
+			if (!(n instanceof ZeroOrMore)) {
 				sb.append("if (" + nodeName + " == null) {\n")
 						.indent()
 						.append("this.pos = stack.pop();\n")
@@ -641,9 +643,10 @@ public final class Generator {
 			q.add(p.result());
 		}
 
-		int optionalCounter = 0;
+		int zeroOrOneCounter = 0;
 		int sequenceCounter = 0;
-		int repetitionCounter = 0;
+		int zeroOrMoreCounter = 0;
+		int oneOrMoreCounter = 0;
 		int alternationCounter = 0;
 		while (!q.isEmpty()) {
 			final Node n = q.remove();
@@ -654,25 +657,30 @@ public final class Generator {
 			switch (n) {
 				case Terminal ignored -> {}
 				case NonTerminal nt -> NODE_NAMES.put(nt, nt.name().replace(' ', '_'));
-				case OptionalNode opt -> {
-					NODE_NAMES.put(opt, "optional_" + optionalCounter);
-					q.add(opt.inner());
-					optionalCounter++;
+				case ZeroOrOne zoo -> {
+					NODE_NAMES.put(zoo, "zero_or_one_" + zeroOrOneCounter);
+					q.add(zoo.inner());
+					zeroOrOneCounter++;
 				}
-				case Repetition r -> {
-					NODE_NAMES.put(r, "repetition_" + repetitionCounter);
-					repetitionCounter++;
-					q.add(r.inner());
+				case ZeroOrMore zom -> {
+					NODE_NAMES.put(zom, "zero_or_more_" + zeroOrMoreCounter);
+					zeroOrMoreCounter++;
+					q.add(zom.inner());
+				}
+				case OneOrMore oom -> {
+					NODE_NAMES.put(oom, "one_or_more_" + oneOrMoreCounter);
+					oneOrMoreCounter++;
+					q.add(oom.inner());
 				}
 				case Sequence s -> {
 					NODE_NAMES.put(s, "sequence_" + sequenceCounter);
 					sequenceCounter++;
 					q.addAll(s.nodes());
 				}
-				case Alternation a -> {
-					NODE_NAMES.put(a, "alternation_" + alternationCounter);
+				case Or or -> {
+					NODE_NAMES.put(or, "alternation_" + alternationCounter);
 					alternationCounter++;
-					q.addAll(a.nodes());
+					q.addAll(or.nodes());
 				}
 				default -> throw new IllegalArgumentException(String.format("Unknown Node '%s'.", n));
 			}
@@ -683,7 +691,7 @@ public final class Generator {
 			final Queue<Node> q,
 			final IndentedStringBuilder sb,
 			final String productionName,
-			final OptionalNode o,
+			final ZeroOrOne o,
 			final Set<String> tokenNames) {
 		sb.append("private OptionalNode parse_" + productionName + "() {\n").indent();
 		final String actualName = NODE_NAMES.get(o.inner());

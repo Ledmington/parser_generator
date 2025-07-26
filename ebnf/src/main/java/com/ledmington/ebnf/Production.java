@@ -34,7 +34,7 @@ public record Production(NonTerminal start, Expression result) implements Node {
 		Objects.requireNonNull(result);
 	}
 
-	private static boolean hasOnlyTerminals(final Expression e) {
+	/*private static boolean hasOnlyTerminals(final Expression e) {
 		return switch (e) {
 			case Terminal ignored -> true;
 			case NonTerminal ignored -> false;
@@ -50,6 +50,12 @@ public record Production(NonTerminal start, Expression result) implements Node {
 		// TODO: maybe cache this value?
 		return hasOnlyTerminals(result);
 		// return result instanceof Terminal;
+	}*/
+
+	public boolean isLexerProduction() {
+		return start.name()
+				.chars()
+				.allMatch(ch -> ch == '_' || (Character.isAlphabetic(ch) && Character.isUpperCase(ch)));
 	}
 
 	public boolean isSkippable() {

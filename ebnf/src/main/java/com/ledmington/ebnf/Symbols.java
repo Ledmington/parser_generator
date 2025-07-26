@@ -23,9 +23,6 @@ public enum Symbols implements Token {
 	/** The semicolon symbol (U+003B). */
 	SEMICOLON(';'),
 
-	/** The comma symbol (U+002C). */
-	COMMA(','),
-
 	/** The vertical line (or pipe?) symbol (U+007C). */
 	VERTICAL_LINE('|'),
 
@@ -48,7 +45,25 @@ public enum Symbols implements Token {
 	RIGHT_CURLY_BRACKET('}'),
 
 	/** The equal sign symbol (U+003D). */
-	EQUAL_SIGN('=');
+	EQUAL_SIGN('='),
+
+	/** The plus sign symbol (U+002B). */
+	PLUS('+'),
+
+	/** The low line symbol (U+005F). */
+	UNDERSCORE('_'),
+
+	/** The question mark symbol (U+003F). */
+	QUESTION_MARK('?'),
+
+	/** The full stop symbol (U+002E). */
+	DOT('.'),
+
+	/** The asterisk symbol (U+002A). */
+	ASTERISK('*'),
+
+	/** The hyphens minus symbol (U+002D). */
+	DASH('-');
 
 	private final char character;
 

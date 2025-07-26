@@ -29,14 +29,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.ledmington.ebnf.Alternation;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Node;
-import com.ledmington.ebnf.OptionalNode;
+import com.ledmington.ebnf.OneOrMore;
+import com.ledmington.ebnf.Or;
 import com.ledmington.ebnf.Production;
-import com.ledmington.ebnf.Repetition;
 import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
+import com.ledmington.ebnf.ZeroOrMore;
+import com.ledmington.ebnf.ZeroOrOne;
 
 // FIXME: find a better name or place for these functions
 public final class AutomataUtils {
@@ -86,22 +87,34 @@ public final class AutomataUtils {
 	private void convertNode(final Node n, final Set<StateTransition> transitions, final State start, final State end) {
 		switch (n) {
 			case Terminal t -> convertTerminal(t, transitions, start, end);
-			case OptionalNode o -> convertOptionalNode(o, transitions, start, end);
-			case Repetition r -> convertRepetition(r, transitions, start, end);
-			case Alternation a -> convertAlternation(a, transitions, start, end);
+			case ZeroOrOne zoo -> convertZeroOrOne(zoo, transitions, start, end);
+			case ZeroOrMore zom -> convertZeroOrMore(zom, transitions, start, end);
+			case OneOrMore oom -> convertOneOrMore(oom, transitions, start, end);
+			case Or a -> convertAlternation(a, transitions, start, end);
 			case Sequence s -> convertSequence(s, transitions, start, end);
 			default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
 		}
 	}
 
-	private void convertRepetition(
-			final Repetition r, final Set<StateTransition> transitions, final State start, final State end) {
+	private void convertOneOrMore(
+			final OneOrMore oom, final Set<StateTransition> transitions, final State start, final State end) {
+		final State a = state();
+		final State b = state();
+
+		transitions.add(new StateTransition(start, a, StateTransition.EPSILON));
+		convertNode(oom.inner(), transitions, a, b);
+		transitions.add(new StateTransition(b, a, StateTransition.EPSILON));
+		transitions.add(new StateTransition(b, end, StateTransition.EPSILON));
+	}
+
+	private void convertZeroOrMore(
+			final ZeroOrMore zom, final Set<StateTransition> transitions, final State start, final State end) {
 		final State a = state();
 		final State b = state();
 
 		transitions.add(new StateTransition(start, end, StateTransition.EPSILON));
 		transitions.add(new StateTransition(start, a, StateTransition.EPSILON));
-		convertNode(r.inner(), transitions, a, b);
+		convertNode(zom.inner(), transitions, a, b);
 		transitions.add(new StateTransition(b, a, StateTransition.EPSILON));
 		transitions.add(new StateTransition(b, end, StateTransition.EPSILON));
 	}
@@ -118,20 +131,20 @@ public final class AutomataUtils {
 		transitions.add(new StateTransition(prev, end, StateTransition.EPSILON));
 	}
 
-	private void convertOptionalNode(
-			final OptionalNode o, final Set<StateTransition> transitions, final State start, final State end) {
+	private void convertZeroOrOne(
+			final ZeroOrOne zoo, final Set<StateTransition> transitions, final State start, final State end) {
 		final State a = state();
 		final State b = state();
 
 		transitions.add(new StateTransition(start, end, StateTransition.EPSILON));
 		transitions.add(new StateTransition(start, a, StateTransition.EPSILON));
-		convertNode(o.inner(), transitions, a, b);
+		convertNode(zoo.inner(), transitions, a, b);
 		transitions.add(new StateTransition(b, end, StateTransition.EPSILON));
 	}
 
 	private void convertAlternation(
-			final Alternation a, final Set<StateTransition> transitions, final State start, final State end) {
-		for (final Node n : a.nodes()) {
+			final Or or, final Set<StateTransition> transitions, final State start, final State end) {
+		for (final Node n : or.nodes()) {
 			final State newStart = state();
 			final State newEnd = state();
 			transitions.add(new StateTransition(start, newStart, StateTransition.EPSILON));

@@ -21,15 +21,15 @@ import java.util.List;
 
 import org.junit.jupiter.params.provider.Arguments;
 
-import com.ledmington.ebnf.Alternation;
 import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.NonTerminal;
-import com.ledmington.ebnf.OptionalNode;
+import com.ledmington.ebnf.Or;
 import com.ledmington.ebnf.Production;
-import com.ledmington.ebnf.Repetition;
 import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
+import com.ledmington.ebnf.ZeroOrMore;
+import com.ledmington.ebnf.ZeroOrOne;
 
 public final class CorrectGrammars {
 
@@ -134,15 +134,15 @@ public final class CorrectGrammars {
 		return new Sequence(expressions);
 	}
 
-	private static OptionalNode opt(final Expression inner) {
-		return new OptionalNode(inner);
+	private static ZeroOrOne opt(final Expression inner) {
+		return new ZeroOrOne(inner);
 	}
 
-	private static Repetition rep(final Expression exp) {
-		return new Repetition(exp);
+	private static ZeroOrMore rep(final Expression exp) {
+		return new ZeroOrMore(exp);
 	}
 
-	private static Alternation alt(final Expression... expressions) {
-		return new Alternation(expressions);
+	private static Or alt(final Expression... expressions) {
+		return new Or(expressions);
 	}
 }
