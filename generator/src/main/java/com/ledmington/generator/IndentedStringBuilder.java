@@ -112,6 +112,9 @@ public final class IndentedStringBuilder {
 	}
 
 	public String toString() {
+		if (indentLevel != 0) {
+			throw new IllegalStateException("Indentation level not zero.");
+		}
 		return sb.toString();
 	}
 }

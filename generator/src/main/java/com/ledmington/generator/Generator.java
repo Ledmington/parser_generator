@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
@@ -74,21 +75,11 @@ public final class Generator {
 			final String startSymbol,
 			final String indent,
 			final boolean generateMainMethod) {
-
 		NODE_NAMES.clear();
 
 		final List<Production> lexerProductions = new ArrayList<>();
 		final List<Production> parserProductions = new ArrayList<>();
-		splitProductions((Grammar) root, lexerProductions, parserProductions);
-
-		{ // Debug
-			for (final Production p : parserProductions) {
-				System.out.printf(" %s -> PARSER%n", p.start().name());
-			}
-			for (final Production p : lexerProductions) {
-				System.out.printf(" %s -> LEXER%n", p.start().name());
-			}
-		}
+		splitProductions((Grammar) root, startSymbol, lexerProductions, parserProductions);
 
 		generateNames(parserProductions);
 
@@ -167,13 +158,7 @@ public final class Generator {
 				.append("try {\n")
 				.indent();
 
-		if (((Grammar) root)
-						.productions().stream()
-								.filter(p -> p.start().name().equals(startSymbol))
-								.findFirst()
-								.orElseThrow()
-								.result()
-				instanceof Terminal) {
+		if (lexerProductions.stream().anyMatch(p -> p.start().name().equals(startSymbol))) {
 			sb.append("result = parseTerminal(TokenType." + startSymbol + ");\n");
 		} else {
 			sb.append("result = parse_" + startSymbol + "();\n");
@@ -209,7 +194,6 @@ public final class Generator {
 				continue;
 			}
 			visited.add(n);
-			System.out.printf("Visiting '%s'%n", n);
 			switch (n) {
 				case OptionalNode opt -> generateOptionalNode(q, sb, NODE_NAMES.get(opt), opt, tokenNames);
 				case NonTerminal ignored -> {
@@ -264,10 +248,13 @@ public final class Generator {
 	}
 
 	private static void splitProductions(
-			final Grammar g, final List<Production> lexerProductions, final List<Production> parserProductions) {
+			final Grammar g,
+			final String startSymbol,
+			final List<Production> lexerProductions,
+			final List<Production> parserProductions) {
 		// Divide all trivial lexer productions from the rest
 		for (final Production p : g.productions()) {
-			if (p.isTrivialLexerProduction()) {
+			if (p.isLexerProduction()) {
 				lexerProductions.add(p);
 			} else {
 				parserProductions.add(p);
@@ -300,11 +287,20 @@ public final class Generator {
 			final Supplier<String> name, final List<Production> lexerProductions, final Expression e) {
 		return switch (e) {
 			case Terminal t -> {
-				final String newName = name.get();
-				final NonTerminal nt = new NonTerminal(newName);
-				lexerProductions.add(new Production(nt, t));
-				NODE_NAMES.put(nt, newName);
-				yield nt;
+				final Optional<Production> replacement = lexerProductions.stream()
+						.filter(p -> p.result() instanceof Terminal(final String literal)
+								&& t.literal().equals(literal))
+						.findFirst();
+				// Avoid generating fake non-terminal nodes for terminals already present in other productions
+				if (replacement.isPresent()) {
+					yield replacement.orElseThrow().start();
+				} else {
+					final String newName = name.get();
+					final NonTerminal nt = new NonTerminal(newName);
+					lexerProductions.add(new Production(nt, t));
+					NODE_NAMES.put(nt, newName);
+					yield nt;
+				}
 			}
 			case NonTerminal nt -> nt;
 			case OptionalNode o -> new OptionalNode(convertExpression(name, lexerProductions, o.inner()));
@@ -397,14 +393,18 @@ public final class Generator {
 		generateList(sb, allStates, s -> s.isAccepting() ? "true" : "false");
 		sb.append("};\n");
 
-		sb.append("private final List<Function<String, Token>> tokensToMatch = Arrays.asList(");
-		generateList(
-				sb,
-				allStates,
-				s -> s.isAccepting()
-						? "s -> new Token(TokenType." + ((AcceptingState) s).tokenName() + ", s)"
-						: "null");
-		sb.append(");\n");
+		sb.append("private final List<Function<String, Token>> tokensToMatch = Arrays.asList(\n")
+				.indent();
+		for (int i = 0; i < allStates.size(); i++) {
+			final State s = allStates.get(i);
+			sb.append(
+					s.isAccepting() ? "s -> new Token(TokenType." + ((AcceptingState) s).tokenName() + ", s)" : "null");
+			if (i < allStates.size() - 1) {
+				sb.append(',');
+			}
+			sb.append('\n');
+		}
+		sb.deindent().append(");\n");
 
 		// TODO: change this into three arrays for better performance
 		sb.append("private final Map<Integer, Map<Character, Integer>> transitions = Map.ofEntries(\n")
@@ -451,14 +451,18 @@ public final class Generator {
 				.append("this.pos = 0;\n")
 				.append("final List<Token> tokens = new ArrayList<>();\n")
 				.append("int currentState = 0;\n")
-				// .append("this.lastTokenMatched = isAccepting[currentState] ?
-				// tokensToMatch.get(currentState).apply(\"\") : null;\n")
 				.append("this.lastTokenMatched = null;\n")
 				.append("this.lastTokenMatchPosition = 0;\n")
 				.append("while (this.pos < v.length) {\n")
 				.indent()
 				.append("if (isAccepting[currentState]) {\n")
 				.indent()
+				.append("if (lastTokenMatchPosition == pos) {\n")
+				.indent()
+				.append(
+						"throw new IllegalArgumentException(String.format(\"No token emitted for empty match at index %,d.\", pos));\n")
+				.deindent()
+				.append("}\n")
 				.append("final String match = input.substring(lastTokenMatchPosition, pos);\n")
 				.append("lastTokenMatched = tokensToMatch.get(currentState).apply(match);\n")
 				.append("lastTokenMatchPosition = pos;\n")
@@ -477,7 +481,7 @@ public final class Generator {
 				.append("tokens.add(lastTokenMatched);\n")
 				.append("currentState = 0;\n")
 				.append("lastTokenMatched = null;\n")
-				.append("lastTokenMatchPosition = pos;\n")
+				.append("pos = lastTokenMatchPosition;\n")
 				.deindent()
 				.append("} else {\n")
 				.indent()
@@ -490,11 +494,15 @@ public final class Generator {
 				.append("}\n")
 				.append("if (isAccepting[currentState]) {\n")
 				.indent()
-				.append("final String match = input.substring(Math.max(0, lastTokenMatchPosition), pos);\n")
+				.append("final String match = input.substring(lastTokenMatchPosition, pos);\n")
 				.append("tokens.add(tokensToMatch.get(currentState).apply(match));\n")
+				.append("return tokens;\n")
+				.deindent()
+				.append("} else {\n")
+				.indent()
+				.append("throw new IllegalArgumentException(\"Could not tokenize input.\");\n")
 				.deindent()
 				.append("}\n")
-				.append("return tokens;\n")
 				.deindent()
 				.append("}\n")
 				.deindent()
@@ -518,7 +526,6 @@ public final class Generator {
 			final String productionName,
 			final Alternation a,
 			final Set<String> tokenNames) {
-		System.out.printf("Generating alternation '%s'%n", productionName);
 		sb.append("private Alternation parse_" + productionName + "() {\n").indent();
 		final List<Expression> nodes = a.nodes();
 		for (int i = 0; i < nodes.size(); i++) {

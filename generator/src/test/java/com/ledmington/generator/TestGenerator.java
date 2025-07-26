@@ -64,12 +64,20 @@ public final class TestGenerator {
 		return TEST_CASES.stream().map(tc -> Arguments.of(tc.get()[0]));
 	}
 
+	@SuppressWarnings("unchecked")
 	public static Stream<Arguments> correctCases() {
-		return TEST_CASES.stream().map(tc -> Arguments.of(tc.get()[0], tc.get()[1]));
+		return TEST_CASES.stream().flatMap(tc -> {
+			final Grammar g = (Grammar) tc.get()[0];
+			return ((List<String>) tc.get()[1]).stream().map(s -> Arguments.of(g, s));
+		});
 	}
 
+	@SuppressWarnings("unchecked")
 	public static Stream<Arguments> wrongCases() {
-		return TEST_CASES.stream().map(tc -> Arguments.of(tc.get()[0], tc.get()[2]));
+		return TEST_CASES.stream().flatMap(tc -> {
+			final Grammar g = (Grammar) tc.get()[0];
+			return ((List<String>) tc.get()[2]).stream().map(s -> Arguments.of(g, s));
+		});
 	}
 
 	private static final class JavaSourceFromString extends SimpleJavaFileObject {
@@ -182,44 +190,42 @@ public final class TestGenerator {
 
 	@ParameterizedTest
 	@MethodSource("correctCases")
-	void correctParsing(final Grammar g, final List<String> correctInputs)
+	void correctParsing(final Grammar g, final String correctInput)
 			throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
 		final String className = "MyCorrectParser";
-		final String sourceCode = Generator.generate(g, className, "", "S", "\t", true);
+		final String sourceCode = Generator.generate(g, className, "", "S", "\t", false);
 
 		final Class<?> klass = compileJavaSource(className, sourceCode);
+		final Object instance = klass.getConstructors()[0].newInstance();
 		final Method entrypoint = klass.getMethod("parse", String.class);
 
-		for (final String correct : correctInputs) {
-			final Object obj = entrypoint.invoke(klass.getConstructors()[0].newInstance(), correct);
-			assertNotNull(
-					obj,
-					// TODO: print parsed object
-					() -> String.format(
-							"Expected the following source code to be able to parse the input '%s' but it did not.%n%s%n",
-							correct, sourceCode));
-		}
+		final Object obj = entrypoint.invoke(instance, correctInput);
+		assertNotNull(
+				obj,
+				// TODO: print parsed object
+				() -> String.format(
+						"Expected the following grammar to be able to parse the input '%s' but it did not.%n%s%n",
+						correctInput, Utils.prettyPrint(g, "  ")));
 	}
 
 	@ParameterizedTest
 	@MethodSource("wrongCases")
-	void incorrectParsing(final Grammar g, final List<String> wrongInputs)
+	void incorrectParsing(final Grammar g, final String wrongInput)
 			throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
 		final String className = "MyWrongParser";
-		final String sourceCode = Generator.generate(g, className, "", "S", "\t", true);
+		final String sourceCode = Generator.generate(g, className, "", "S", "\t", false);
 
 		final Class<?> klass = compileJavaSource(className, sourceCode);
+		final Object instance = klass.getConstructors()[0].newInstance();
 		final Method entrypoint = klass.getMethod("parse", String.class);
 
-		for (final String wrong : wrongInputs) {
-			// TODO: print parsed object
-			final Object obj = entrypoint.invoke(klass.getConstructors()[0].newInstance(), wrong);
-			assertNull(
-					obj,
-					() -> String.format(
-							"Expected the following source code to NOT be able to parse the input '%s' but it did.%n%s%n",
-							wrong, sourceCode));
-		}
+		// TODO: print parsed object
+		final Object obj = entrypoint.invoke(instance, wrongInput);
+		assertNull(
+				obj,
+				() -> String.format(
+						"Expected the following grammar to NOT be able to parse the input '%s' but it did.%n%s%n",
+						wrongInput, Utils.prettyPrint(g, "  ")));
 	}
 
 	@ParameterizedTest

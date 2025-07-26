@@ -34,12 +34,24 @@ public record Production(NonTerminal start, Expression result) implements Node {
 		Objects.requireNonNull(result);
 	}
 
-	public boolean isTrivialLexerProduction() {
+	private static boolean hasOnlyTerminals(final Expression e) {
+		return switch (e) {
+			case Terminal ignored -> true;
+			case NonTerminal ignored -> false;
+			case OptionalNode o -> hasOnlyTerminals(o.inner());
+			case Repetition r -> hasOnlyTerminals(r.inner());
+			case Sequence s -> s.nodes().stream().allMatch(Production::hasOnlyTerminals);
+			case Alternation a -> a.nodes().stream().allMatch(Production::hasOnlyTerminals);
+			default -> throw new IllegalArgumentException(String.format("Unknown node '%s'", e));
+		};
+	}
+
+	public boolean isLexerProduction() {
 		// TODO: maybe cache this value?
-		return result instanceof Terminal;
+		return hasOnlyTerminals(result);
 	}
 
 	public boolean isSkippable() {
-		return isTrivialLexerProduction() && start.name().charAt(0) == '_';
+		return isLexerProduction() && start.name().charAt(0) == '_';
 	}
 }
