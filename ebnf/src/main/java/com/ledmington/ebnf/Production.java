@@ -49,6 +49,7 @@ public record Production(NonTerminal start, Expression result) implements Node {
 	public boolean isLexerProduction() {
 		// TODO: maybe cache this value?
 		return hasOnlyTerminals(result);
+		// return result instanceof Terminal;
 	}
 
 	public boolean isSkippable() {

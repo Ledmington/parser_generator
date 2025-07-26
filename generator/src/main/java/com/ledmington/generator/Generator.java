@@ -259,7 +259,7 @@ public final class Generator {
 		}
 
 		// Convert all terminal symbols still in the parser into "anonymous" non-terminal ones
-		final Supplier<String> name = new Supplier<>() {
+		final Supplier<String> nameSupplier = new Supplier<>() {
 			private int id = 0;
 
 			@Override
@@ -269,9 +269,10 @@ public final class Generator {
 		};
 		for (int i = 0; i < parserProductions.size(); i++) {
 			final Production p = parserProductions.get(i);
+			System.out.printf("'%s' -> %s%n", p, containsAtLeastOneTerminal(p.result()));
 			if (containsAtLeastOneTerminal(p.result())) {
 				parserProductions.set(
-						i, new Production(p.start(), convertExpression(name, lexerProductions, p.result())));
+						i, new Production(p.start(), convertExpression(nameSupplier, lexerProductions, p.result())));
 			}
 		}
 
@@ -372,6 +373,7 @@ public final class Generator {
 				.append("public Token {\n")
 				.indent()
 				.append("Objects.requireNonNull(type);\n")
+				.append("Objects.requireNonNull(content);\n")
 				.deindent()
 				.append("}\n")
 				.deindent()
@@ -487,13 +489,14 @@ public final class Generator {
 				.indent()
 				.append("final String match = input.substring(lastTokenMatchPosition, pos);\n")
 				.append("tokens.add(tokensToMatch.get(currentState).apply(match));\n")
-				.append("return tokens;\n")
 				.deindent()
-				.append("} else {\n")
+				.append("}\n")
+				.append("return tokens;\n")
+				/*.append("} else {\n")
 				.indent()
 				.append("throw new IllegalArgumentException(\"Could not tokenize input.\");\n")
 				.deindent()
-				.append("}\n")
+				.append("}\n")*/
 				.deindent()
 				.append("}\n")
 				.deindent()
