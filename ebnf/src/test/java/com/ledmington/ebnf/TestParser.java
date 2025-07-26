@@ -43,98 +43,58 @@ public final class TestParser {
 			Arguments.of("a=(**)\"a\";", g(p("a", t("a")))),
 			Arguments.of("a=\"a\"(**);", g(p("a", t("a")))),
 			Arguments.of("a=\"a\";(**)", g(p("a", t("a")))),
-			Arguments.of("my symbol = \"a\";", g(p("my symbol", t("a")))),
-			Arguments.of("a = \"a\", \"b\";", g(p("a", seq(t("a"), t("b"))))),
+			Arguments.of("my_symbol = \"a\";", g(p("my_symbol", t("a")))),
+			Arguments.of("a = \"a\" \"b\";", g(p("a", seq(t("a"), t("b"))))),
 			Arguments.of("a=\"a\";b=\"b\";", g(p("a", t("a")), p("b", t("b")))),
 			Arguments.of("a=\"a\";b=a;", g(p("a", t("a")), p("b", nt("a")))),
 			Arguments.of("a=b;b=a;", g(p("a", nt("b")), p("b", nt("a")))),
 			Arguments.of("a=\"a\"|\"b\";", g(p("a", alt(t("a"), t("b"))))),
-			Arguments.of("a=[\"a\"], \"b\";", g(p("a", seq(opt(t("a")), t("b"))))),
-			Arguments.of("a={\"a\"}, \"b\";", g(p("a", seq(rep(t("a")), t("b"))))),
+			Arguments.of("a=\"a\"? \"b\";", g(p("a", seq(zero_or_one(t("a")), t("b"))))),
+			Arguments.of("a=\"a\"* \"b\";", g(p("a", seq(zero_or_more(t("a")), t("b"))))),
+			Arguments.of("a=\"a\"+ \"b\";", g(p("a", seq(one_or_more(t("a")), t("b"))))),
 			Arguments.of("a=\"\\\"\";", g(p("a", t("\"")))),
 			Arguments.of("a=\"a\"|\"b\"|\"c\";", g(p("a", alt(t("a"), t("b"), t("c"))))),
-			Arguments.of("a1=\"a\";", g(p("a1", t("a")))),
-			Arguments.of("S=\"a\"|(\"b\",\"c\");", g(p("S", alt(t("a"), seq(t("b"), t("c")))))),
+			Arguments.of("S=\"a\"|(\"b\" \"c\");", g(p("S", alt(t("a"), seq(t("b"), t("c")))))),
 			//
 			Arguments.of(
 					readFile("ebnf.g"),
 					g(
+							p("grammar", one_or_more(nt("production"))),
 							p(
-									"letter",
-									alt(
-											t("A"), t("B"), t("C"), t("D"), t("E"), t("F"), t("G"), t("H"), t("I"),
-											t("J"), t("K"), t("L"), t("M"), t("N"), t("O"), t("P"), t("Q"), t("R"),
-											t("S"), t("T"), t("U"), t("V"), t("W"), t("X"), t("Y"), t("Z"), t("a"),
-											t("b"), t("c"), t("d"), t("e"), t("f"), t("g"), t("h"), t("i"), t("j"),
-											t("k"), t("l"), t("m"), t("n"), t("o"), t("p"), t("q"), t("r"), t("s"),
-											t("t"), t("u"), t("v"), t("w"), t("x"), t("y"), t("z"))),
-							p(
-									"digit",
-									alt(
-											t("0"), t("1"), t("2"), t("3"), t("4"), t("5"), t("6"), t("7"), t("8"),
-											t("9"))),
-							p(
-									"symbol",
-									alt(
-											t("["), t("]"), t("{"), t("}"), t("("), t(")"), t("<"), t(">"), t("'"),
-											t("="), t("|"), t("."), t(","), t(";"), t("-"), t("+"), t("*"), t("?"),
-											t("\\n"), t("\\t"))),
-							p("character without quotes", alt(nt("letter"), nt("digit"), nt("symbol"), t("_"), t(" "))),
-							p("identifier", seq(nt("letter"), rep(alt(nt("letter"), nt("digit"), t("_"))))),
-							p("whitespace", rep(alt(t(" "), t("\\n"), t("\\t")))),
-							p(
-									"terminal",
+									"production",
 									seq(
-											t("\""),
-											nt("character without quotes"),
-											rep(nt("character without quotes")),
-											t("\""))),
-							p("terminator", t(";")),
+											zero_or_one(alt(nt("parser_production"), nt("lexer_production"))),
+											nt("SEMICOLON"))),
+							p("parser_production", seq(nt("PARSER_SYMBOL"), nt("EQUALS"), nt("parser_expression"))),
+							p("lexer_production", seq(nt("LEXER_SYMBOL"), nt("EQUALS"), nt("lexer_expression"))),
 							p(
-									"term",
+									"parser_expression",
 									alt(
+											nt("PARSER_SYMBOL"),
+											nt("LEXER_SYMBOL"),
+											seq(nt("parser_expression"), nt("QUESTION_MARK")),
+											seq(nt("parser_expression"), nt("PLUS")),
+											seq(nt("parser_expression"), nt("ASTERISK")),
+											seq(nt("parser_expression"), nt("VERTICAL_LINE"), nt("parser_expression")),
 											seq(
-													alt(
-															seq(
-																	t("["),
-																	nt("whitespace"),
-																	nt("rhs"),
-																	nt("whitespace"),
-																	t("]")),
-															t("{")),
-													nt("whitespace"),
-													nt("rhs"),
-													nt("whitespace"),
-													t("}")),
-											nt("terminal"),
-											nt("identifier"))),
+													nt("LEFT_PARENTHESIS"),
+													nt("parser_expression"),
+													nt("RIGHT_PARENTHESIS")),
+											seq(nt("parser_expression"), nt("parser_expression")))),
 							p(
-									"concatenation",
-									seq(
-											nt("whitespace"),
-											nt("term"),
-											nt("whitespace"),
-											rep(seq(t(","), nt("whitespace"), nt("term"), nt("whitespace"))))),
-							p(
-									"alternation",
-									seq(
-											nt("whitespace"),
-											nt("concatenation"),
-											nt("whitespace"),
-											rep(seq(t("|"), nt("whitespace"), nt("concatenation"), nt("whitespace"))))),
-							p("rhs", nt("alternation")),
-							p("lhs", nt("identifier")),
-							p(
-									"rule",
-									seq(
-											nt("lhs"),
-											nt("whitespace"),
-											t("="),
-											nt("whitespace"),
-											nt("rhs"),
-											nt("whitespace"),
-											nt("terminator"))),
-							p("grammar", rep(seq(nt("whitespace"), nt("rule"), nt("whitespace")))))));
+									"lexer_expression",
+									alt(
+											seq(nt("lexer_expression"), nt("QUESTION_MARK")),
+											seq(nt("lexer_expression"), nt("PLUS")),
+											seq(nt("lexer_expression"), nt("ASTERISK")),
+											seq(nt("lexer_expression"), nt("VERTICAL_LINE"), nt("lexer_expression")),
+											seq(
+													nt("LEFT_PARENTHESIS"),
+													nt("lexer_expression"),
+													nt("RIGHT_PARENTHESIS")))),
+							p("SEMICOLON", t(";")),
+							p("UNDERSCORE", t("_")))),
+			Arguments.of(readFile("number.g"), g()));
 
 	private static final List<String> INVALID_TEST_CASES = List.of(
 			"=",
@@ -145,8 +105,6 @@ public final class TestParser {
 			"a=,\"a\";",
 			"a=\"a\",,\"a\";",
 			"a=\"a\nb\";",
-			"a_b=\"a\";",
-			"_a=\"a\";",
 			"1=\"a\";",
 			"1a=\"a\";",
 			"a=(\"a\";",
@@ -186,11 +144,15 @@ public final class TestParser {
 		return new Or(expressions);
 	}
 
-	private static ZeroOrOne opt(final Expression inner) {
+	private static ZeroOrOne zero_or_one(final Expression inner) {
 		return new ZeroOrOne(inner);
 	}
 
-	private static ZeroOrMore rep(final Expression exp) {
+	private static OneOrMore one_or_more(final Expression inner) {
+		return new OneOrMore(inner);
+	}
+
+	private static ZeroOrMore zero_or_more(final Expression exp) {
 		return new ZeroOrMore(exp);
 	}
 
@@ -201,7 +163,13 @@ public final class TestParser {
 	@ParameterizedTest
 	@MethodSource("correctTestCases")
 	void correct(final String input, final Grammar expected) {
-		assertEquals(expected, Parser.parse(input));
+		final Grammar actual = Parser.parse(input);
+		assertEquals(
+				Utils.prettyPrint(expected, "  "),
+				Utils.prettyPrint(actual, "  "),
+				() -> String.format(
+						"Expected the first grammar but parsed the second one.%n%s%n%s%n",
+						Utils.prettyPrint(expected, "  "), Utils.prettyPrint(actual, "  ")));
 	}
 
 	private static Stream<Arguments> invalidTestCases() {

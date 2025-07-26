@@ -95,18 +95,6 @@ public final class Parser {
 			} else if (ch == Symbols.RIGHT_PARENTHESIS.getCharacter()) {
 				tokens.add(Symbols.RIGHT_PARENTHESIS);
 				it.next();
-			} else if (ch == Symbols.LEFT_SQUARE_BRACKET.getCharacter()) {
-				tokens.add(Symbols.LEFT_SQUARE_BRACKET);
-				it.next();
-			} else if (ch == Symbols.RIGHT_SQUARE_BRACKET.getCharacter()) {
-				tokens.add(Symbols.RIGHT_SQUARE_BRACKET);
-				it.next();
-			} else if (ch == Symbols.LEFT_CURLY_BRACKET.getCharacter()) {
-				tokens.add(Symbols.LEFT_CURLY_BRACKET);
-				it.next();
-			} else if (ch == Symbols.RIGHT_CURLY_BRACKET.getCharacter()) {
-				tokens.add(Symbols.RIGHT_CURLY_BRACKET);
-				it.next();
 			} else if (ch == Symbols.PLUS.getCharacter()) {
 				tokens.add(Symbols.PLUS);
 				it.next();
@@ -213,32 +201,35 @@ public final class Parser {
 		}
 
 		while (v.size() > 1) {
-			System.out.println(IntStream.range(0, v.size())
-					.mapToObj(j -> String.format(
-							" %3d : %n%s",
-							j,
-							v.get(j) instanceof Token
-									? v.get(j).toString()
-									: Utils.prettyPrint((Node) v.get(j), " ".repeat(6))))
-					.collect(Collectors.joining("\n")));
-
 			// do one pass
 			final int initialSize = v.size();
 			for (int i = 0; i < v.size(); ) {
-				boolean atLeastOneMatch = false;
-
-				atLeastOneMatch |= asterisk(v, i);
-				atLeastOneMatch |= plus(v, i);
-				atLeastOneMatch |= questionMark(v, i);
-				atLeastOneMatch |= parenthesis(v, i);
-				atLeastOneMatch |= mergeSequence(v, i);
-				atLeastOneMatch |= mergeOr(v, i);
-				atLeastOneMatch |= createProduction(v, i);
-
-				// move only if we didn't apply any transformation
-				if (!atLeastOneMatch) {
-					i++;
+				if (asterisk(v, i)) {
+					continue;
 				}
+				if (plus(v, i)) {
+					continue;
+				}
+				if (questionMark(v, i)) {
+					continue;
+				}
+				if (parenthesis(v, i)) {
+					continue;
+				}
+				if (mergeSequence(v, i)) {
+					continue;
+				}
+				if (mergeOr(v, i)) {
+					continue;
+				}
+				if (createProduction(v, i)) {
+					continue;
+				}
+				if (mergeProductions(v, i)) {
+					continue;
+				}
+
+				i++;
 			}
 
 			if (v.size() == initialSize) {
@@ -267,6 +258,30 @@ public final class Parser {
 		}
 
 		return g;
+	}
+
+	private static boolean mergeProductions(final List<Object> v, final int i) {
+		final List<Production> productions = new ArrayList<>();
+		int count = 0;
+		int j = i;
+		for (; j < v.size(); j++) {
+			if (v.get(j) instanceof Grammar(final List<Production> prod)) {
+				productions.addAll(prod);
+				count++;
+			} else if (v.get(j) instanceof final Production p) {
+				productions.add(p);
+				count++;
+			} else {
+				break;
+			}
+		}
+		if (count <= 1) {
+			return false;
+		} else {
+			v.subList(i, j).clear();
+			v.add(i, new Grammar(productions));
+			return true;
+		}
 	}
 
 	private static boolean parenthesis(final List<Object> v, final int i) {
@@ -307,14 +322,14 @@ public final class Parser {
 			if (obj instanceof Sequence(final List<Expression> nodes)) {
 				expressions.addAll(nodes);
 				count++;
-			} else if (obj instanceof final Expression exp && !(obj instanceof Or)) {
+			} else if (obj instanceof final Expression exp /*&& !(obj instanceof Or)*/) {
 				expressions.add(exp);
 				count++;
 			} else {
 				break;
 			}
 		}
-		if (count == 0) {
+		if (count <= 1) {
 			return false;
 		} else {
 			v.subList(i, j).clear();
@@ -328,8 +343,9 @@ public final class Parser {
 		if (!(v.get(i) instanceof Expression)) {
 			return false;
 		}
+		expressions.add((Expression) v.get(i));
 		int count = 0;
-		int j = i;
+		int j = i + 1;
 		for (; j < v.size() - 1; j++) {
 			if (v.get(j).equals(Symbols.VERTICAL_LINE) && v.get(j + 1) instanceof Or(final List<Expression> nodes)) {
 				expressions.addAll(nodes);
@@ -353,10 +369,9 @@ public final class Parser {
 	}
 
 	private static boolean asterisk(final List<Object> v, final int i) {
-		if (i + 1 >= v.size()) {
-			return false;
-		}
-		if (v.get(i) instanceof final Expression exp && v.get(i + 1).equals(Symbols.ASTERISK)) {
+		if (i + 1 < v.size()
+				&& v.get(i) instanceof final Expression exp
+				&& v.get(i + 1).equals(Symbols.ASTERISK)) {
 			v.subList(i, i + 2).clear();
 			v.add(i, new ZeroOrMore(exp));
 			return true;
@@ -382,7 +397,7 @@ public final class Parser {
 		}
 		if (v.get(i) instanceof final Expression exp && v.get(i + 1).equals(Symbols.QUESTION_MARK)) {
 			v.subList(i, i + 2).clear();
-			v.add(i, new OneOrMore(exp));
+			v.add(i, new ZeroOrOne(exp));
 			return true;
 		}
 		return false;

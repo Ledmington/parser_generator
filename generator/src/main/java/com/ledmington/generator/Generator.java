@@ -270,7 +270,6 @@ public final class Generator {
 		};
 		for (int i = 0; i < parserProductions.size(); i++) {
 			final Production p = parserProductions.get(i);
-			System.out.printf("'%s' -> %s%n", p, containsAtLeastOneTerminal(p.result()));
 			if (containsAtLeastOneTerminal(p.result())) {
 				parserProductions.set(
 						i, new Production(p.start(), convertExpression(nameSupplier, lexerProductions, p.result())));
@@ -332,16 +331,16 @@ public final class Generator {
 	private static void generateLexer(
 			final IndentedStringBuilder sb, final String lexerName, final List<Production> lexerProductions) {
 		final Automaton epsilonNFA = AutomataUtils.grammarToEpsilonNFA(lexerProductions);
-		// System.out.println(epsilonNFA.toGraphviz());
+		System.out.println(epsilonNFA.toGraphviz());
 		AutomataUtils.assertEpsilonNFAValid(epsilonNFA);
 		final Automaton nfa = AutomataUtils.epsilonNFAtoNFA(epsilonNFA);
-		// System.out.println(nfa.toGraphviz());
+		System.out.println(nfa.toGraphviz());
 		AutomataUtils.assertNFAValid(nfa);
 		final Automaton dfa = AutomataUtils.NFAtoDFA(nfa);
-		// System.out.println(dfa.toGraphviz());
+		System.out.println(dfa.toGraphviz());
 		AutomataUtils.assertDFAValid(dfa);
 		final Automaton minimizedDFA = AutomataUtils.minimizeDFA(dfa);
-		// System.out.println(minimizedDFA.toGraphviz());
+		System.out.println(minimizedDFA.toGraphviz());
 		AutomataUtils.assertDFAValid(minimizedDFA);
 
 		// re-index DFA states

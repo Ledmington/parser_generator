@@ -23,6 +23,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.ledmington.ebnf.Utils;
+
 public final class Automaton {
 
 	private final State startingState;
@@ -73,7 +75,7 @@ public final class Automaton {
 					.append(" -> ")
 					.append(t.to().name())
 					.append(" [label=\"")
-					.append(t.character() == StateTransition.EPSILON ? "ε" : t.character())
+					.append(t.character() == StateTransition.EPSILON ? "ε" : (Utils.getEscapeCharacter(t.character())))
 					.append("\"];\n");
 		}
 

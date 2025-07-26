@@ -307,6 +307,7 @@ public final class AutomataUtils {
 			final Set<State> currentSet = queue.poll();
 			final State fromDFAState = stateMapping.get(currentSet);
 
+			System.out.printf("%,d remaining sets to check%n", queue.size());
 			for (final char symbol : alphabet) {
 				final Set<State> moveSet = move(currentSet, symbol, nfa.transitions());
 				if (moveSet.isEmpty()) {
@@ -477,6 +478,7 @@ public final class AutomataUtils {
 		}
 
 		if (!visited.equals(allStates)) {
+			System.out.println(automaton.toGraphviz());
 			throw new IllegalArgumentException("The automaton is not a single strongly connected component.");
 		}
 
