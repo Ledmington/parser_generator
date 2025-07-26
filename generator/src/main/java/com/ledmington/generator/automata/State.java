@@ -21,7 +21,6 @@ import java.util.Objects;
 
 public sealed class State permits AcceptingState {
 
-	private static int ID = 1;
 	protected final String name;
 
 	public State(final String name) {
@@ -30,10 +29,6 @@ public sealed class State permits AcceptingState {
 			throw new IllegalArgumentException("Empty name.");
 		}
 		this.name = name;
-	}
-
-	public State() {
-		this("S" + (ID++));
 	}
 
 	public String name() {

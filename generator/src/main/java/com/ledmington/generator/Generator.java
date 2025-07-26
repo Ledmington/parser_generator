@@ -79,7 +79,7 @@ public final class Generator {
 
 		final List<Production> lexerProductions = new ArrayList<>();
 		final List<Production> parserProductions = new ArrayList<>();
-		splitProductions((Grammar) root, startSymbol, lexerProductions, parserProductions);
+		splitProductions((Grammar) root, lexerProductions, parserProductions);
 
 		generateNames(parserProductions);
 
@@ -248,10 +248,7 @@ public final class Generator {
 	}
 
 	private static void splitProductions(
-			final Grammar g,
-			final String startSymbol,
-			final List<Production> lexerProductions,
-			final List<Production> parserProductions) {
+			final Grammar g, final List<Production> lexerProductions, final List<Production> parserProductions) {
 		// Divide all trivial lexer productions from the rest
 		for (final Production p : g.productions()) {
 			if (p.isLexerProduction()) {
@@ -455,6 +452,14 @@ public final class Generator {
 				.append("this.lastTokenMatchPosition = 0;\n")
 				.append("while (this.pos < v.length) {\n")
 				.indent()
+				.append("final char ch = v[pos];\n")
+				.append("if (transitions.get(currentState).containsKey(ch)) {\n")
+				.indent()
+				.append("currentState = transitions.get(currentState).get(ch);\n")
+				.append("pos++;\n")
+				.deindent()
+				.append("} else {\n")
+				.indent()
 				.append("if (isAccepting[currentState]) {\n")
 				.indent()
 				.append("if (lastTokenMatchPosition == pos) {\n")
@@ -465,23 +470,9 @@ public final class Generator {
 				.append("}\n")
 				.append("final String match = input.substring(lastTokenMatchPosition, pos);\n")
 				.append("lastTokenMatched = tokensToMatch.get(currentState).apply(match);\n")
-				.append("lastTokenMatchPosition = pos;\n")
-				.deindent()
-				.append("}\n")
-				.append("final char ch = v[pos];\n")
-				.append("if (transitions.get(currentState).containsKey(ch)) {\n")
-				.indent()
-				.append("currentState = transitions.get(currentState).get(ch);\n")
-				.append("pos++;\n")
-				.deindent()
-				.append("} else {\n")
-				.indent()
-				.append("if (lastTokenMatched != null) {\n")
-				.indent()
 				.append("tokens.add(lastTokenMatched);\n")
+				.append("lastTokenMatchPosition = pos;\n")
 				.append("currentState = 0;\n")
-				.append("lastTokenMatched = null;\n")
-				.append("pos = lastTokenMatchPosition;\n")
 				.deindent()
 				.append("} else {\n")
 				.indent()
@@ -531,10 +522,11 @@ public final class Generator {
 		for (int i = 0; i < nodes.size(); i++) {
 			final Node n = nodes.get(i);
 			final String nodeName = "n_" + i;
-			if (n instanceof NonTerminal(final String tokenName) && tokenNames.contains(tokenName)) {
-				sb.append("final Node " + nodeName + " = parseTerminal(TokenType." + tokenName + ");\n");
+			final String actualName = NODE_NAMES.get(n);
+			if (n instanceof NonTerminal && tokenNames.contains(actualName)) {
+				sb.append("final Node " + nodeName + " = parseTerminal(TokenType." + actualName + ");\n");
 			} else {
-				sb.append("final Node " + nodeName + " = parse_" + NODE_NAMES.get(n) + "();\n");
+				sb.append("final Node " + nodeName + " = parse_" + actualName + "();\n");
 				q.add(n);
 			}
 			sb.append("if (" + nodeName + " != null) {\n")
@@ -557,10 +549,11 @@ public final class Generator {
 				.append("final List<Node> nodes = new ArrayList<>();\n")
 				.append("while (true) {\n")
 				.indent();
-		if (r.inner() instanceof NonTerminal(final String tokenName) && tokenNames.contains(tokenName)) {
-			sb.append("final Node n = parseTerminal(TokenType." + tokenName + ");\n");
+		final String actualName = NODE_NAMES.get(r.inner());
+		if (r.inner() instanceof NonTerminal && tokenNames.contains(actualName)) {
+			sb.append("final Node n = parseTerminal(TokenType." + actualName + ");\n");
 		} else {
-			sb.append("final Node n = parse_" + NODE_NAMES.get(r.inner()) + "();\n");
+			sb.append("final Node n = parse_" + actualName + "();\n");
 			q.add(r.inner());
 		}
 		if (!(r.inner() instanceof Repetition)) {
@@ -593,10 +586,11 @@ public final class Generator {
 		for (int i = 0; i < seq.size(); i++) {
 			final Node n = seq.get(i);
 			final String nodeName = "n_" + i;
-			if (n instanceof NonTerminal(final String tokenName) && tokenNames.contains(tokenName)) {
-				sb.append("final Node " + nodeName + " = parseTerminal(TokenType." + tokenName + ");\n");
+			final String actualName = NODE_NAMES.get(n);
+			if (n instanceof NonTerminal && tokenNames.contains(actualName)) {
+				sb.append("final Node " + nodeName + " = parseTerminal(TokenType." + actualName + ");\n");
 			} else {
-				sb.append("final Node " + nodeName + " = parse_" + NODE_NAMES.get(n) + "();\n");
+				sb.append("final Node " + nodeName + " = parse_" + actualName + "();\n");
 				q.add(n);
 			}
 			if (!(n instanceof Repetition)) {
@@ -689,10 +683,11 @@ public final class Generator {
 			final OptionalNode o,
 			final Set<String> tokenNames) {
 		sb.append("private OptionalNode parse_" + productionName + "() {\n").indent();
-		if (o.inner() instanceof NonTerminal(final String tokenName) && tokenNames.contains(tokenName)) {
-			sb.append("final Node inner = parseTerminal(TokenType." + tokenName + ");\n");
+		final String actualName = NODE_NAMES.get(o.inner());
+		if (o.inner() instanceof NonTerminal && tokenNames.contains(actualName)) {
+			sb.append("final Node inner = parseTerminal(TokenType." + actualName + ");\n");
 		} else {
-			sb.append("final Node inner = parse_" + NODE_NAMES.get(o.inner()) + "();\n");
+			sb.append("final Node inner = parse_" + actualName + "();\n");
 			q.add(o.inner());
 		}
 		sb.append("return new OptionalNode(inner);\n").deindent().append("}\n");

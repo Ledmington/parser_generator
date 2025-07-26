@@ -18,6 +18,7 @@
 package com.ledmington.generator;
 
 import static com.ledmington.generator.CorrectGrammars.TEST_CASES;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -215,7 +216,11 @@ public final class TestGenerator {
 		final String className = "MyWrongParser";
 		final String sourceCode = Generator.generate(g, className, "", "S", "\t", false);
 
-		final Class<?> klass = compileJavaSource(className, sourceCode);
+		final Class<?> klass = assertDoesNotThrow(
+				() -> compileJavaSource(className, sourceCode),
+				() -> String.format(
+						"The source code for the following grammar did not compile.%n%s%n",
+						Utils.prettyPrint(g, "  ")));
 		final Object instance = klass.getConstructors()[0].newInstance();
 		final Method entrypoint = klass.getMethod("parse", String.class);
 
