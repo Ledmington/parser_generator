@@ -41,24 +41,39 @@ import com.ledmington.ebnf.Terminal;
 // FIXME: find a better name or place for these functions
 public final class AutomataUtils {
 
+	private int stateID = 1;
+
 	private AutomataUtils() {}
 
+	private State state() {
+		return new State("S" + (stateID++));
+	}
+
+	private AcceptingState acceptingState(final String productionName) {
+		return new AcceptingState("S" + (stateID++), productionName);
+	}
+
 	public static Automaton grammarToEpsilonNFA(final Grammar g) {
-		return grammarToEpsilonNFA(g.productions().stream()
+		return AutomataUtils.grammarToEpsilonNFA(g.productions().stream()
 				.filter(Production::isLexerProduction)
 				.sorted(Comparator.comparing(p -> p.start().name()))
 				.toList());
 	}
 
 	public static Automaton grammarToEpsilonNFA(final List<Production> lexerProductions) {
+		final AutomataUtils converter = new AutomataUtils();
+		return converter.convertGrammarToEpsilonNFA(lexerProductions);
+	}
+
+	private Automaton convertGrammarToEpsilonNFA(final List<Production> lexerProductions) {
 		final Set<StateTransition> transitions = new HashSet<>();
 
-		final State globalStart = new State();
+		final State globalStart = state();
 
 		for (final Production p : lexerProductions) {
 			final String productionName = p.start().name().replace(' ', '_');
-			final State productionStart = new State();
-			final State productionEnd = new AcceptingState(productionName);
+			final State productionStart = state();
+			final State productionEnd = acceptingState(productionName);
 
 			transitions.add(new StateTransition(globalStart, productionStart, StateTransition.EPSILON));
 
@@ -68,8 +83,7 @@ public final class AutomataUtils {
 		return new Automaton(globalStart, transitions);
 	}
 
-	private static void convertNode(
-			final Node n, final Set<StateTransition> transitions, final State start, final State end) {
+	private void convertNode(final Node n, final Set<StateTransition> transitions, final State start, final State end) {
 		switch (n) {
 			case Terminal t -> convertTerminal(t, transitions, start, end);
 			case OptionalNode o -> convertOptionalNode(o, transitions, start, end);
@@ -80,10 +94,10 @@ public final class AutomataUtils {
 		}
 	}
 
-	private static void convertRepetition(
+	private void convertRepetition(
 			final Repetition r, final Set<StateTransition> transitions, final State start, final State end) {
-		final State a = new State();
-		final State b = new State();
+		final State a = state();
+		final State b = state();
 
 		transitions.add(new StateTransition(start, end, StateTransition.EPSILON));
 		transitions.add(new StateTransition(start, a, StateTransition.EPSILON));
@@ -92,22 +106,22 @@ public final class AutomataUtils {
 		transitions.add(new StateTransition(b, end, StateTransition.EPSILON));
 	}
 
-	private static void convertSequence(
+	private void convertSequence(
 			final Sequence s, final Set<StateTransition> transitions, final State start, final State end) {
-		State prev = new State();
+		State prev = state();
 		transitions.add(new StateTransition(start, prev, StateTransition.EPSILON));
 		for (int i = 0; i < s.nodes().size(); i++) {
-			final State tmp = new State();
+			final State tmp = state();
 			convertNode(s.nodes().get(i), transitions, prev, tmp);
 			prev = tmp;
 		}
 		transitions.add(new StateTransition(prev, end, StateTransition.EPSILON));
 	}
 
-	private static void convertOptionalNode(
+	private void convertOptionalNode(
 			final OptionalNode o, final Set<StateTransition> transitions, final State start, final State end) {
-		final State a = new State();
-		final State b = new State();
+		final State a = state();
+		final State b = state();
 
 		transitions.add(new StateTransition(start, end, StateTransition.EPSILON));
 		transitions.add(new StateTransition(start, a, StateTransition.EPSILON));
@@ -115,23 +129,23 @@ public final class AutomataUtils {
 		transitions.add(new StateTransition(b, end, StateTransition.EPSILON));
 	}
 
-	private static void convertAlternation(
+	private void convertAlternation(
 			final Alternation a, final Set<StateTransition> transitions, final State start, final State end) {
 		for (final Node n : a.nodes()) {
-			final State newStart = new State();
-			final State newEnd = new State();
+			final State newStart = state();
+			final State newEnd = state();
 			transitions.add(new StateTransition(start, newStart, StateTransition.EPSILON));
 			transitions.add(new StateTransition(newEnd, end, StateTransition.EPSILON));
 			convertNode(n, transitions, newStart, newEnd);
 		}
 	}
 
-	private static void convertTerminal(
+	private void convertTerminal(
 			final Terminal t, final Set<StateTransition> transitions, final State start, final State end) {
-		State prev = new State();
+		State prev = state();
 		transitions.add(new StateTransition(start, prev, StateTransition.EPSILON));
 		for (int i = 0; i < t.literal().length(); i++) {
-			final State s = new State();
+			final State s = state();
 			transitions.add(new StateTransition(prev, s, t.literal().charAt(i)));
 			prev = s;
 		}
@@ -163,6 +177,11 @@ public final class AutomataUtils {
 	}
 
 	public static Automaton epsilonNFAtoNFA(final Automaton epsilonNFA) {
+		final AutomataUtils converter = new AutomataUtils();
+		return converter.convertEpsilonNFAToNFA(epsilonNFA);
+	}
+
+	private Automaton convertEpsilonNFAToNFA(final Automaton epsilonNFA) {
 		final Set<State> oldStates = epsilonNFA.states();
 		final Map<State, Set<State>> epsilonClosures = new HashMap<>();
 
@@ -178,12 +197,12 @@ public final class AutomataUtils {
 			stateMapping.put(
 					s,
 					isAccepting
-							? new AcceptingState(((AcceptingState) closure.stream()
+							? acceptingState(((AcceptingState) closure.stream()
 											.filter(State::isAccepting)
 											.findFirst()
 											.orElseThrow())
 									.tokenName())
-							: new State());
+							: state());
 		}
 
 		final Set<StateTransition> newTransitions = new HashSet<>();
@@ -246,6 +265,11 @@ public final class AutomataUtils {
 	}
 
 	public static Automaton NFAtoDFA(final Automaton nfa) {
+		final AutomataUtils converter = new AutomataUtils();
+		return converter.convertNFAToDFA(nfa);
+	}
+
+	private Automaton convertNFAToDFA(final Automaton nfa) {
 		final Map<Set<State>, State> stateMapping = new HashMap<>();
 		final Set<StateTransition> newTransitions = new HashSet<>();
 		final Queue<Set<State>> queue = new LinkedList<>();
@@ -257,12 +281,12 @@ public final class AutomataUtils {
 		startSet.add(nfa.startingState());
 		final boolean isAccepting = startSet.stream().anyMatch(State::isAccepting);
 		final State dfaStartState = isAccepting
-				? new AcceptingState(((AcceptingState) startSet.stream()
+				? acceptingState(((AcceptingState) startSet.stream()
 								.filter(State::isAccepting)
 								.findFirst()
 								.orElseThrow())
 						.tokenName())
-				: new State();
+				: state();
 		stateMapping.put(startSet, dfaStartState);
 		queue.add(startSet);
 
@@ -282,12 +306,12 @@ public final class AutomataUtils {
 				} else {
 					final boolean accept = moveSet.stream().anyMatch(State::isAccepting);
 					toDFAState = accept
-							? new AcceptingState(((AcceptingState) moveSet.stream()
+							? acceptingState(((AcceptingState) moveSet.stream()
 											.filter(State::isAccepting)
 											.findFirst()
 											.orElseThrow())
 									.tokenName())
-							: new State();
+							: state();
 					stateMapping.put(moveSet, toDFAState);
 					queue.add(moveSet);
 				}
@@ -300,6 +324,11 @@ public final class AutomataUtils {
 	}
 
 	public static Automaton minimizeDFA(final Automaton dfa) {
+		final AutomataUtils converter = new AutomataUtils();
+		return converter.convertDFAToMinimizedDFA(dfa);
+	}
+
+	private Automaton convertDFAToMinimizedDFA(final Automaton dfa) {
 		// Myhill-Nerode theorem
 		final List<State> oldStates = dfa.states().stream().toList();
 		final int n = oldStates.size();
@@ -380,12 +409,12 @@ public final class AutomataUtils {
 		for (final Set<State> eqClass : new HashSet<>(equivalentGroups.values())) {
 			final boolean isAccept = eqClass.stream().anyMatch(State::isAccepting);
 			final State rep = isAccept
-					? new AcceptingState(((AcceptingState) eqClass.stream()
+					? acceptingState(((AcceptingState) eqClass.stream()
 									.filter(State::isAccepting)
 									.findFirst()
 									.orElseThrow())
 							.tokenName())
-					: new State();
+					: state();
 			for (final State s : eqClass) {
 				oldToNew.put(s, rep);
 			}

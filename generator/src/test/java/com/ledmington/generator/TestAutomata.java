@@ -19,6 +19,7 @@ package com.ledmington.generator;
 
 import static com.ledmington.generator.CorrectGrammars.TEST_CASES;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.stream.Stream;
 
@@ -27,6 +28,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.ledmington.ebnf.Grammar;
+import com.ledmington.ebnf.Utils;
 import com.ledmington.generator.automata.AutomataUtils;
 import com.ledmington.generator.automata.Automaton;
 
@@ -76,5 +78,61 @@ public final class TestAutomata {
 				() -> AutomataUtils.assertDFAValid(minimizedDFA),
 				() -> String.format(
 						"Expected this automaton to be valid but it wasn't:\n%s\n", minimizedDFA.toGraphviz()));
+	}
+
+	@ParameterizedTest
+	@MethodSource("onlyGrammars")
+	void epsilonNFADeterministicGeneration(final Grammar g) {
+		final Automaton epsilonNFA1 = AutomataUtils.grammarToEpsilonNFA(g);
+		final Automaton epsilonNFA2 = AutomataUtils.grammarToEpsilonNFA(g);
+		assertEquals(
+				epsilonNFA1,
+				epsilonNFA2,
+				() -> String.format(
+						"Expected epsilon-NFA generation to be deterministic, but the following grammar generated two different automata.%n%s%n%s%n%s%n",
+						Utils.prettyPrint(g, "  "), epsilonNFA1.toGraphviz(), epsilonNFA2.toGraphviz()));
+	}
+
+	@ParameterizedTest
+	@MethodSource("onlyGrammars")
+	void nfaDeterministicGeneration(final Grammar g) {
+		final Automaton nfa1 = AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g));
+		final Automaton nfa2 = AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g));
+		assertEquals(
+				nfa1,
+				nfa2,
+				() -> String.format(
+						"Expected NFA generation to be deterministic, but the following grammar generated two different automata.%n%s%n%s%n%s%n",
+						Utils.prettyPrint(g, "  "), nfa1.toGraphviz(), nfa2.toGraphviz()));
+	}
+
+	@ParameterizedTest
+	@MethodSource("onlyGrammars")
+	void dfaDeterministicGeneration(final Grammar g) {
+		final Automaton dfa1 =
+				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g)));
+		final Automaton dfa2 =
+				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g)));
+		assertEquals(
+				dfa1,
+				dfa2,
+				() -> String.format(
+						"Expected DFA generation to be deterministic, but the following grammar generated two different automata.%n%s%n%s%n%s%n",
+						Utils.prettyPrint(g, "  "), dfa1.toGraphviz(), dfa2.toGraphviz()));
+	}
+
+	@ParameterizedTest
+	@MethodSource("onlyGrammars")
+	void minimizedDFADeterministicGeneration(final Grammar g) {
+		final Automaton minimizedDFA1 = AutomataUtils.minimizeDFA(
+				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g))));
+		final Automaton minimizedDFA2 = AutomataUtils.minimizeDFA(
+				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g))));
+		assertEquals(
+				minimizedDFA1,
+				minimizedDFA2,
+				() -> String.format(
+						"Expected min-DFA generation to be deterministic, but the following grammar generated two different automata.%n%s%n%s%n%s%n",
+						Utils.prettyPrint(g, "  "), minimizedDFA1.toGraphviz(), minimizedDFA2.toGraphviz()));
 	}
 }

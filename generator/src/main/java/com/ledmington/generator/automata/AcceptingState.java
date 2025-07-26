@@ -24,8 +24,8 @@ public final class AcceptingState extends State {
 
 	private final String tokenName;
 
-	public AcceptingState(final String tokenName) {
-		super();
+	public AcceptingState(final String name, final String tokenName) {
+		super(name);
 		Objects.requireNonNull(tokenName);
 		if (tokenName.isBlank()) {
 			throw new IllegalArgumentException("Empty token name.");

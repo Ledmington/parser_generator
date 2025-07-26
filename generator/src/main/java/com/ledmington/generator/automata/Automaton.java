@@ -80,4 +80,31 @@ public final class Automaton {
 		sb.append("}\n");
 		return sb.toString();
 	}
+
+	@Override
+	public String toString() {
+		return "Automaton[startingState=" + startingState + ";transitions=" + transitions + "]";
+	}
+
+	@Override
+	public int hashCode() {
+		int h = 17;
+		h = 31 * h + startingState.hashCode();
+		h = 31 * h + transitions.hashCode();
+		return h;
+	}
+
+	@Override
+	public boolean equals(final Object other) {
+		if (other == null) {
+			return false;
+		}
+		if (this == other) {
+			return true;
+		}
+		if (!(other instanceof Automaton a)) {
+			return false;
+		}
+		return this.startingState.equals(a.startingState) && this.transitions.equals(a.transitions);
+	}
 }
