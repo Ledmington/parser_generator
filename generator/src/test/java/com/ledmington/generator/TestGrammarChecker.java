@@ -39,7 +39,7 @@ public final class TestGrammarChecker {
 	@Test
 	void unusableNonTerminals() {
 		assertThrows(
-				UnusableNonTerminalException.class,
+				UnknownNonTerminalException.class,
 				() -> GrammarChecker.check(new Grammar(new Production(new NonTerminal("S"), new NonTerminal("T")))));
 	}
 

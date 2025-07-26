@@ -17,6 +17,8 @@
  */
 package com.ledmington.ebnf;
 
+import java.util.Objects;
+
 /**
  * The most important element of an EBNF grammar, maps a non-terminal symbol to an expression which represents the
  * possible expansions.
@@ -25,4 +27,38 @@ package com.ledmington.ebnf;
  *     production.
  * @param result The expression to replace the non-terminal.c
  */
-public record Production(NonTerminal start, Expression result) implements Node {}
+public record Production(NonTerminal start, Expression result) implements Node {
+
+	public Production {
+		Objects.requireNonNull(start);
+		Objects.requireNonNull(result);
+	}
+
+	/*private static boolean hasOnlyTerminals(final Expression e) {
+		return switch (e) {
+			case Terminal ignored -> true;
+			case NonTerminal ignored -> false;
+			case OptionalNode o -> hasOnlyTerminals(o.inner());
+			case Repetition r -> hasOnlyTerminals(r.inner());
+			case Sequence s -> s.nodes().stream().allMatch(Production::hasOnlyTerminals);
+			case Alternation a -> a.nodes().stream().allMatch(Production::hasOnlyTerminals);
+			default -> throw new IllegalArgumentException(String.format("Unknown node '%s'", e));
+		};
+	}
+
+	public boolean isLexerProduction() {
+		// TODO: maybe cache this value?
+		return hasOnlyTerminals(result);
+		// return result instanceof Terminal;
+	}*/
+
+	public boolean isLexerProduction() {
+		return start.name()
+				.chars()
+				.allMatch(ch -> ch == '_' || (Character.isAlphabetic(ch) && Character.isUpperCase(ch)));
+	}
+
+	public boolean isSkippable() {
+		return isLexerProduction() && start.name().charAt(0) == '_';
+	}
+}

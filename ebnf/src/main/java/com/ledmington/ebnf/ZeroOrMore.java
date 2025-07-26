@@ -17,21 +17,16 @@
  */
 package com.ledmington.ebnf;
 
-import java.util.List;
+import java.util.Objects;
 
 /**
- * An object representing all the productions and symbols of an EBNF grammar.
+ * An element of an EBNF grammar which represents the ability to repeat a given expression as many times as needed (even
+ * zero).
  *
- * @param productions The ordered sequence of productions of the grammar.
+ * @param inner The repeated Expression.
  */
-public record Grammar(List<Production> productions) implements Node {
-
-	/**
-	 * Creates a new Grammar with the given Productions.
-	 *
-	 * @param productions The list of productions of the grammar.
-	 */
-	public Grammar(final Production... productions) {
-		this(List.of(productions));
+public record ZeroOrMore(Expression inner) implements Expression {
+	public ZeroOrMore {
+		Objects.requireNonNull(inner);
 	}
 }

@@ -27,6 +27,10 @@ public final class NoUniqueStartSymbolException extends RuntimeException {
 
 	/** Creates a new instance with a standard message. */
 	public NoUniqueStartSymbolException() {
-		super("No unique start symbol in grammar.");
+		super("No starting symbol found in the grammar.");
+	}
+
+	public NoUniqueStartSymbolException(final String message) {
+		super(message);
 	}
 }

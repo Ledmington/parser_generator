@@ -15,12 +15,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.ebnf;
+package com.ledmington.generator.automata;
 
-/**
- * An element of an EBNF grammar which represents the ability to repeat a given expression as many times as needed (even
- * zero).
- *
- * @param inner The repeated Expression.
- */
-public record Repetition(Expression inner) implements Expression {}
+import java.util.Objects;
+
+public record StateTransition(State from, State to, char character) {
+
+	public static final char EPSILON = (char) -1;
+
+	public StateTransition {
+		Objects.requireNonNull(from);
+		Objects.requireNonNull(to);
+	}
+}

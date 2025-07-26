@@ -17,21 +17,15 @@
  */
 package com.ledmington.ebnf;
 
-import java.util.List;
+import java.util.Objects;
 
 /**
- * An element of an EBNF grammar which represents different possibilities of expressions.
+ * An element of an EBNF grammar representing an expression which may or may not be present.
  *
- * @param nodes The alternated expressions.
+ * @param inner The optional Expression.
  */
-public record Alternation(List<Expression> nodes) implements Expression {
-
-	/**
-	 * Creates a new Alternation Node with the given expressions.
-	 *
-	 * @param nodes The expressions to be alternated.
-	 */
-	public Alternation(final Expression... nodes) {
-		this(List.of(nodes));
+public record ZeroOrOne(Expression inner) implements Expression {
+	public ZeroOrOne {
+		Objects.requireNonNull(inner);
 	}
 }

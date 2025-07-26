@@ -15,22 +15,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.generator;
+package com.ledmington.ebnf;
 
-import java.io.Serial;
-
-/** The proper RuntimeException for a grammar which has non-terminal symbols without a corresponding production. */
-public final class UnusableNonTerminalException extends RuntimeException {
-
-	@Serial
-	private static final long serialVersionUID = 8643487188267532790L;
-
-	/**
-	 * Creates a new instance with a message for the given non-terminal symbol.
-	 *
-	 * @param nonTerminalName The name of the non-terminal symbol which does not have a corresponding production.
-	 */
-	public UnusableNonTerminalException(final String nonTerminalName) {
-		super(String.format("The non-terminal '%s' does not have a production.", nonTerminalName));
-	}
-}
+public record OneOrMore(Expression inner) implements Expression {}

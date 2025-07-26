@@ -15,20 +15,53 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.ebnf;
+package com.ledmington.generator.automata;
 
 import java.util.Objects;
 
-/**
- * An element of the EBNF grammar which represents a symbol which can be expanded into other symbols.
- *
- * @param name The name used in the grammar to refer to this non-terminal symbol.
- */
-public record NonTerminal(String name) implements Expression {
-	public NonTerminal {
+public sealed class State permits AcceptingState {
+
+	protected final String name;
+
+	public State(final String name) {
 		Objects.requireNonNull(name);
 		if (name.isBlank()) {
-			throw new IllegalArgumentException("Empty non-terminal name.");
+			throw new IllegalArgumentException("Empty name.");
 		}
+		this.name = name;
+	}
+
+	public String name() {
+		return name;
+	}
+
+	public boolean isAccepting() {
+		return false;
+	}
+
+	@Override
+	public String toString() {
+		return "State[name=" + name + "]";
+	}
+
+	@Override
+	public int hashCode() {
+		int h = 17;
+		h = 31 * h + name.hashCode();
+		return h;
+	}
+
+	@Override
+	public boolean equals(final Object other) {
+		if (other == null) {
+			return false;
+		}
+		if (this == other) {
+			return true;
+		}
+		if (!(other instanceof State s)) {
+			return false;
+		}
+		return this.name.equals(s.name);
 	}
 }

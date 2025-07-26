@@ -143,6 +143,7 @@ spotless {
             include path('cli', '**', '*.java')
             include path('ebnf', '**', '*.java')
             include path('generator', '**', '*.java')
+            include path('bench', '**', '*.java')
             exclude path('**', 'build', '**'), path('**', 'build-*', '**'), path('**', 'bin', '**')
         }
         setEncoding('utf-8')

@@ -6,3 +6,4 @@ rootProject.name = 'parser_gen'
 include('ebnf')
 include('generator')
 include('cli')
+include('bench')

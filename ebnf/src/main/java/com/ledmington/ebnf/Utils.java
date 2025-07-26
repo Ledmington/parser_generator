@@ -60,9 +60,10 @@ public final class Utils {
 				sb.append('\n').append(indentString).append("}");
 			}
 			case Sequence c -> prettyPrintList(sb, "Sequence", c.nodes(), indentString, indent);
-			case Alternation a -> prettyPrintList(sb, "Alternation", a.nodes(), indentString, indent);
-			case Repetition r -> prettyPrintContainer(sb, "Repetition", r.inner(), indentString, indent);
-			case OptionalNode o -> prettyPrintContainer(sb, "OptionalNode", o.inner(), indentString, indent);
+			case Or a -> prettyPrintList(sb, "Or", a.nodes(), indentString, indent);
+			case ZeroOrMore zom -> prettyPrintContainer(sb, "ZeroOrMore", zom.inner(), indentString, indent);
+			case ZeroOrOne zoo -> prettyPrintContainer(sb, "ZeroOrOne", zoo.inner(), indentString, indent);
+			case OneOrMore oom -> prettyPrintContainer(sb, "OneOrMore", oom.inner(), indentString, indent);
 			case NonTerminal n ->
 				sb.append(indentString)
 						.append("NonTerminal { ")
@@ -104,5 +105,40 @@ public final class Utils {
 			}
 		}
 		sb.append(indentString).append("}");
+	}
+
+	private static boolean needsEscaping(final char ch) {
+		return ch == '\'' || ch == '\"' || ch == '\\';
+	}
+
+	private static boolean needsEscaping(final String s) {
+		for (int i = 0; i < s.length(); i++) {
+			if (needsEscaping(s.charAt(i))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public static String getEscapeCharacter(final char ch) {
+		return (needsEscaping(ch) ? "\\" : "") + ch;
+	}
+
+	private static String escape(final String s) {
+		final StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < s.length(); i++) {
+			if (needsEscaping(s.charAt(i))) {
+				sb.append('\\');
+			}
+			sb.append(s.charAt(i));
+		}
+		return sb.toString();
+	}
+
+	public static String getEscapedString(final String literal) {
+		if (needsEscaping(literal)) {
+			return escape(literal);
+		}
+		return literal;
 	}
 }
