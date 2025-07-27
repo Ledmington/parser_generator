@@ -17,21 +17,25 @@
  */
 package com.ledmington.ebnf;
 
-import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.stream.Stream;
 
-/**
- * An object representing all the productions and symbols of an EBNF grammar.
- *
- * @param productions The ordered sequence of productions of the grammar.
- */
-public record Grammar(List<Production> productions) implements Node {
+/** An object representing all the productions and symbols of an EBNF grammar. */
+public record Grammar(Map<NonTerminal, Expression> productions) implements Node {
 
-	/**
-	 * Creates a new Grammar with the given Productions.
-	 *
-	 * @param productions The list of productions of the grammar.
-	 */
-	public Grammar(final Production... productions) {
-		this(List.of(productions));
+	public Grammar {
+		Objects.requireNonNull(productions);
+	}
+
+	public Stream<Entry<NonTerminal, Expression>> lexerProductions() {
+		return productions.entrySet().stream()
+				.filter(e -> Production.isLexerProduction(e.getKey().name()));
+	}
+
+	public Stream<Entry<NonTerminal, Expression>> parserProductions() {
+		return productions.entrySet().stream()
+				.filter(e -> !Production.isLexerProduction(e.getKey().name()));
 	}
 }

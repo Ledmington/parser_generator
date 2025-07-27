@@ -19,6 +19,7 @@ package com.ledmington.ebnf;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 /** A collection of various utilities. */
 public final class Utils {
@@ -44,9 +45,11 @@ public final class Utils {
 			case Grammar g -> {
 				sb.append(indentString).append("Grammar {\n");
 				if (!g.productions().isEmpty()) {
-					final Iterator<Production> it = g.productions().iterator();
+					final Iterator<Map.Entry<NonTerminal, Expression>> it =
+							g.productions().entrySet().iterator();
 					do {
-						prettyPrint(sb, it.next(), indentString + indent, indent);
+						final Map.Entry<NonTerminal, Expression> cur = it.next();
+						prettyPrint(sb, new Production(cur.getKey(), cur.getValue()), indentString + indent, indent);
 						sb.append('\n');
 					} while (it.hasNext());
 				}

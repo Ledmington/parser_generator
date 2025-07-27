@@ -25,7 +25,7 @@ import com.ledmington.generator.automata.Automaton;
 
 public class Main {
 
-	private static interface TriConsumer<X, Y, Z> {
+	private interface TriConsumer<X, Y, Z> {
 		void accept(X x, Y y, Z z);
 	}
 
@@ -41,13 +41,13 @@ public class Main {
 
 		final String grammarText =
 				"""
-				S = sign , number ;
-				number = zero | non zero ;
-				sign = [ "+" | "-" ] ;
-				zero = "0" ;
-				non zero = digit excluding zero, { digit } ;
-				digit excluding zero = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
-				digit = zero | digit excluding zero ;
+				S = SIGN number ;
+				number = ZERO | non_zero ;
+				non_zero = DIGIT_EXCLUDING_ZERO DIGIT* ;
+				ZERO = "0" ;
+				SIGN = ( "+" | "-" )? ;
+				DIGIT_EXCLUDING_ZERO = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+				DIGIT = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
 				""";
 
 		final int iterations = 10;

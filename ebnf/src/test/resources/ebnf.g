@@ -17,7 +17,7 @@ lexer_expression = lexer_expression QUESTION_MARK
                  | lexer_expression ASTERISK
                  | lexer_expression VERTICAL_LINE lexer_expression
                  | LEFT_PARENTHESIS lexer_expression RIGHT_PARENTHESIS
-                 | DOUBLE_QUOTES .* DOUBLE_QUOTES ;
+                 | DOUBLE_QUOTES .+ DOUBLE_QUOTES ;
 
 SEMICOLON = ";" ;
 EQUALS = "=" ;

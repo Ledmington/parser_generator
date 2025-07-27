@@ -52,10 +52,14 @@ public record Production(NonTerminal start, Expression result) implements Node {
 		// return result instanceof Terminal;
 	}*/
 
-	public boolean isLexerProduction() {
-		return start.name()
+	public static boolean isLexerProduction(final String productionName) {
+		return productionName
 				.chars()
 				.allMatch(ch -> ch == '_' || (Character.isAlphabetic(ch) && Character.isUpperCase(ch)));
+	}
+
+	public boolean isLexerProduction() {
+		return isLexerProduction(start.name());
 	}
 
 	public boolean isSkippable() {

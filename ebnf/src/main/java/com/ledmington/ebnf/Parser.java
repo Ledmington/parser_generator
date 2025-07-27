@@ -20,7 +20,10 @@ package com.ledmington.ebnf;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -44,6 +47,7 @@ public final class Parser {
 		try {
 			final String stripped = removeComments(input);
 			final List<Token> tokens = tokenize(stripped);
+			System.out.println(tokens);
 			return parse(tokens);
 		} catch (final IndexOutOfBoundsException ioobe) {
 			throw new ParsingException(ioobe);
@@ -200,36 +204,26 @@ public final class Parser {
 			}
 		}
 
+		final List<BiPredicate<List<Object>, Integer>> transformations = List.of(
+				Parser::asterisk,
+				Parser::plus,
+				Parser::questionMark,
+				Parser::parenthesis,
+				Parser::mergeSequence,
+				Parser::mergeOr,
+				Parser::createProduction,
+				Parser::mergeProductions);
+
 		while (v.size() > 1) {
 			// do one pass
 			final int initialSize = v.size();
-			for (int i = 0; i < v.size(); ) {
-				if (asterisk(v, i)) {
-					continue;
-				}
-				if (plus(v, i)) {
-					continue;
-				}
-				if (questionMark(v, i)) {
-					continue;
-				}
-				if (parenthesis(v, i)) {
-					continue;
-				}
-				if (mergeSequence(v, i)) {
-					continue;
-				}
-				if (mergeOr(v, i)) {
-					continue;
-				}
-				if (createProduction(v, i)) {
-					continue;
-				}
-				if (mergeProductions(v, i)) {
-					continue;
-				}
 
-				i++;
+			for (final BiPredicate<List<Object>, Integer> p : transformations) {
+				for (int i = 0; i < v.size(); ) {
+					if (!p.test(v, i)) {
+						i++;
+					}
+				}
 			}
 
 			if (v.size() == initialSize) {
@@ -249,8 +243,8 @@ public final class Parser {
 		if (v.size() != 1) {
 			throw new AssertionError();
 		}
-		if (v.getFirst() instanceof final Production p) {
-			return new Grammar(p);
+		if (v.getFirst() instanceof Production(final NonTerminal start, final Expression result)) {
+			return new Grammar(Map.of(start, result));
 		}
 		if (!(v.getFirst() instanceof final Grammar g)) {
 			throw new ParsingException(
@@ -261,15 +255,15 @@ public final class Parser {
 	}
 
 	private static boolean mergeProductions(final List<Object> v, final int i) {
-		final List<Production> productions = new ArrayList<>();
+		final Map<NonTerminal, Expression> productions = new HashMap<>();
 		int count = 0;
 		int j = i;
 		for (; j < v.size(); j++) {
-			if (v.get(j) instanceof Grammar(final List<Production> prod)) {
-				productions.addAll(prod);
+			if (v.get(j) instanceof Grammar(final Map<NonTerminal, Expression> productions1)) {
+				productions.putAll(productions1);
 				count++;
-			} else if (v.get(j) instanceof final Production p) {
-				productions.add(p);
+			} else if (v.get(j) instanceof Production(final NonTerminal start, final Expression result)) {
+				productions.put(start, result);
 				count++;
 			} else {
 				break;

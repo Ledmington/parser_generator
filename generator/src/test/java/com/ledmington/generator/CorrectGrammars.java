@@ -17,7 +17,9 @@
  */
 package com.ledmington.generator;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.params.provider.Arguments;
 
@@ -115,7 +117,7 @@ public final class CorrectGrammars {
 					List.of("", "\\", "\n", "\t", "n", "t")));
 
 	private static Grammar g(final Production... productions) {
-		return new Grammar(productions);
+		return new Grammar(Arrays.stream(productions).collect(Collectors.toMap(Production::start, Production::result)));
 	}
 
 	private static Production p(final NonTerminal nt, final Expression exp) {

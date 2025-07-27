@@ -34,7 +34,6 @@ import com.ledmington.ebnf.Node;
 import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.OneOrMore;
 import com.ledmington.ebnf.Or;
-import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.ZeroOrMore;
@@ -56,35 +55,31 @@ public final class GrammarChecker {
 
 		// Gather all non-terminals
 		final Set<String> allNonTerminals = new HashSet<>();
-		for (final Production p : g.productions()) {
-			allNonTerminals.add(p.start().name());
-			allNonTerminals.addAll(findAllNonTerminals(p.result()));
+		for (final Map.Entry<NonTerminal, Expression> e : g.productions().entrySet()) {
+			allNonTerminals.add(e.getKey().name());
+			allNonTerminals.addAll(findAllNonTerminals(e.getValue()));
 		}
 
 		for (final String name : allNonTerminals) {
-			if (g.productions().stream().noneMatch(p -> p.start().name().equals(name))) {
+			if (g.productions().keySet().stream().noneMatch(nt -> nt.name().equals(name))) {
 				throw new UnknownNonTerminalException(name);
 			}
 		}
 
 		final Set<String> uniqueNonTerminals =
-				g.productions().stream().map(p -> p.start().name()).collect(Collectors.toUnmodifiableSet());
+				g.productions().keySet().stream().map(NonTerminal::name).collect(Collectors.toUnmodifiableSet());
 		if (uniqueNonTerminals.size() != g.productions().size()) {
-			for (final Production prod : g.productions()) {
-				if (g.productions().stream()
-						.anyMatch(p -> !p.equals(prod)
-								&& p.start().name().equals(prod.start().name()))) {
-					throw new DuplicatedNonTerminalException(prod.start().name());
+			for (final Map.Entry<NonTerminal, Expression> prod : g.productions().entrySet()) {
+				if (g.productions().entrySet().stream()
+						.anyMatch(e -> !e.equals(prod)
+								&& e.getKey().name().equals(prod.getKey().name()))) {
+					throw new DuplicatedNonTerminalException(prod.getKey().name());
 				}
 			}
 		}
 
 		// remove all lexer symbols
-		for (final Production p : g.productions()) {
-			if (p.isLexerProduction()) {
-				allNonTerminals.remove(p.start().name());
-			}
-		}
+		g.lexerProductions().forEach(e -> allNonTerminals.remove(e.getKey().name()));
 
 		return findStartSymbol(g, allNonTerminals);
 	}
@@ -92,26 +87,19 @@ public final class GrammarChecker {
 	private static String findStartSymbol(final Grammar g, final Set<String> nonTerminals) {
 		// Building the graph of reachable symbols
 		final Map<String, Set<String>> graph = new HashMap<>();
-		for (final Production p : g.productions()) {
-			if (p.isLexerProduction()) {
-				continue;
-			}
-			final String s = p.start().name();
-			final Set<String> outEdges = findAllNonTerminals(p.result());
+		g.parserProductions().forEach(e -> {
+			final String s = e.getKey().name();
+			final Set<String> outEdges = findAllNonTerminals(e.getValue());
 
 			graph.put(s, outEdges);
-		}
+		});
 
 		final List<String> possibleStartSymbols = new ArrayList<>();
 		for (final Map.Entry<String, Set<String>> e : graph.entrySet()) {
 			final String possibleStartSymbol = e.getKey();
 			final Set<String> visited = bfs(possibleStartSymbol, graph);
 			// remove all lexer symbols
-			for (final Production p : g.productions()) {
-				if (p.isLexerProduction()) {
-					visited.remove(p.start().name());
-				}
-			}
+			g.lexerProductions().forEach(p -> visited.remove(p.getKey().name()));
 			if (visited.equals(nonTerminals)) {
 				possibleStartSymbols.add(possibleStartSymbol);
 			}

@@ -1,11 +1,14 @@
 S = expression ;
-
-expression = term, { ("+" | "-"), term } ;
-term = factor, { ("*" | "/"), factor } ;
-factor = ( "(", expression, ")" ) | number ;
-
-number = zero | non zero number ;
-zero = "0" ;
-non zero number = non zero digit, { digit } ;
-non zero digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
-digit = zero | non zero digit ;
+expression = term ( SIGN term )* ;
+term = factor ( (ASTERISK | SLASH) factor )* ;
+factor = LEFT_PARENTHESIS expression RIGHT_PARENTHESIS | number ;
+LEFT_PARENTHESIS = "(" ;
+RIGHT_PARENTHESIS = ")" ;
+ASTERISK = "*" ;
+SLASH = "/" ;
+number = ZERO | non_zero ;
+non_zero = DIGIT_EXCLUDING_ZERO DIGIT* ;
+ZERO = "0" ;
+SIGN = "+" | "-" ;
+DIGIT_EXCLUDING_ZERO = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+DIGIT = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;

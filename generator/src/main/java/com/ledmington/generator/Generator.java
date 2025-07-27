@@ -251,13 +251,8 @@ public final class Generator {
 	private static void splitProductions(
 			final Grammar g, final List<Production> lexerProductions, final List<Production> parserProductions) {
 		// Divide all trivial lexer productions from the rest
-		for (final Production p : g.productions()) {
-			if (p.isLexerProduction()) {
-				lexerProductions.add(p);
-			} else {
-				parserProductions.add(p);
-			}
-		}
+		g.lexerProductions().forEach(e -> lexerProductions.add(new Production(e.getKey(), e.getValue())));
+		g.parserProductions().forEach(e -> parserProductions.add(new Production(e.getKey(), e.getValue())));
 
 		// Convert all terminal symbols still in the parser into "anonymous" non-terminal ones
 		final Supplier<String> nameSupplier = new Supplier<>() {

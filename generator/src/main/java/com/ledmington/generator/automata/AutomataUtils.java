@@ -55,8 +55,8 @@ public final class AutomataUtils {
 	}
 
 	public static Automaton grammarToEpsilonNFA(final Grammar g) {
-		return AutomataUtils.grammarToEpsilonNFA(g.productions().stream()
-				.filter(Production::isLexerProduction)
+		return AutomataUtils.grammarToEpsilonNFA(g.lexerProductions()
+				.map(e -> new Production(e.getKey(), e.getValue()))
 				.sorted(Comparator.comparing(p -> p.start().name()))
 				.toList());
 	}
