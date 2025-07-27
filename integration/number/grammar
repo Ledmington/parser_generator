@@ -1,4 +1,4 @@
-S = SIGN number ;
+start = SIGN number ;
 number = ZERO | non_zero ;
 non_zero = DIGIT_EXCLUDING_ZERO DIGIT* ;
 ZERO = "0" ;

@@ -33,23 +33,14 @@ public final class TestGrammarChecker {
 		assertThrows(
 				NoUniqueStartSymbolException.class,
 				() -> GrammarChecker.check(new Grammar(Map.of(
-						new NonTerminal("S"), new Terminal("a"),
-						new NonTerminal("T"), new Terminal("b")))));
+						new NonTerminal("s"), new Terminal("a"),
+						new NonTerminal("t"), new Terminal("b")))));
 	}
 
 	@Test
 	void unusableNonTerminals() {
 		assertThrows(
 				UnknownNonTerminalException.class,
-				() -> GrammarChecker.check(new Grammar(Map.of(new NonTerminal("S"), new NonTerminal("T")))));
-	}
-
-	@Test
-	void duplicatedNonTerminals() {
-		assertThrows(
-				DuplicatedNonTerminalException.class,
-				() -> GrammarChecker.check(new Grammar(Map.of(
-						new NonTerminal("S"), new Terminal("a"),
-						new NonTerminal("S"), new Terminal("b")))));
+				() -> GrammarChecker.check(new Grammar(Map.of(new NonTerminal("s"), new NonTerminal("t")))));
 	}
 }

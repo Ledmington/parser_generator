@@ -194,7 +194,7 @@ public final class TestGenerator {
 	void correctParsing(final Grammar g, final String correctInput)
 			throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
 		final String className = "MyCorrectParser";
-		final String sourceCode = Generator.generate(g, className, "", "S", "\t", false);
+		final String sourceCode = Generator.generate(g, className, "", "\t", false);
 
 		final Class<?> klass = compileJavaSource(className, sourceCode);
 		final Object instance = klass.getConstructors()[0].newInstance();
@@ -214,7 +214,7 @@ public final class TestGenerator {
 	void incorrectParsing(final Grammar g, final String wrongInput)
 			throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
 		final String className = "MyWrongParser";
-		final String sourceCode = Generator.generate(g, className, "", "S", "\t", false);
+		final String sourceCode = Generator.generate(g, className, "", "\t", false);
 
 		final Class<?> klass = assertDoesNotThrow(
 				() -> compileJavaSource(className, sourceCode),
@@ -236,8 +236,8 @@ public final class TestGenerator {
 	@ParameterizedTest
 	@MethodSource("onlyGrammars")
 	void determinism(final Grammar g) {
-		final String text1 = Generator.generate(g, "MyParser", "", "S", "\t", true);
-		final String text2 = Generator.generate(g, "MyParser", "", "S", "\t", true);
+		final String text1 = Generator.generate(g, "MyParser", "", "\t", true);
+		final String text2 = Generator.generate(g, "MyParser", "", "\t", true);
 		assertEquals(
 				text1,
 				text2,

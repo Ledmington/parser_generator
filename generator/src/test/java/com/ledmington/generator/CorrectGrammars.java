@@ -38,81 +38,88 @@ public final class CorrectGrammars {
 	private CorrectGrammars() {}
 
 	public static final List<Arguments> TEST_CASES = List.of(
-			Arguments.of(g(p(nt("S"), t("a"))), List.of("a"), List.of("", "b", "aa")),
-			Arguments.of(g(p(nt("S"), t("abc"))), List.of("abc"), List.of("", "a", "b", "c", "ab", "bc", "cba")),
-			Arguments.of(g(p(nt("S"), opt(t("a")))), List.of("", "a"), List.of("b", "aa")),
-			Arguments.of(g(p(nt("S"), nt("T")), p(nt("T"), t("a"))), List.of("a"), List.of("", "b", "aa")),
-			Arguments.of(g(p(nt("S"), nt("T")), p(nt("T"), opt(t("a")))), List.of("", "a"), List.of("b", "aa")),
-			Arguments.of(g(p(nt("S"), cat(t("a"), t("b")))), List.of("ab"), List.of("", "a", "b", "aab", "abb", "c")),
+			Arguments.of(g(p(nt("start"), t("a"))), List.of("a"), List.of("", "b", "aa")),
+			Arguments.of(g(p(nt("start"), t("abc"))), List.of("abc"), List.of("", "a", "b", "c", "ab", "bc", "cba")),
+			Arguments.of(g(p(nt("start"), zero_or_one(t("a")))), List.of("", "a"), List.of("b", "aa")),
+			Arguments.of(g(p(nt("start"), nt("t")), p(nt("t"), t("a"))), List.of("a"), List.of("", "b", "aa")),
 			Arguments.of(
-					g(p(nt("S"), cat(t("a"), opt(t("b")), t("c")))),
+					g(p(nt("start"), nt("t")), p(nt("t"), zero_or_one(t("a")))), List.of("", "a"), List.of("b", "aa")),
+			Arguments.of(
+					g(p(nt("start"), cat(t("a"), t("b")))), List.of("ab"), List.of("", "a", "b", "aab", "abb", "c")),
+			Arguments.of(
+					g(p(nt("start"), cat(t("a"), zero_or_one(t("b")), t("c")))),
 					List.of("ac", "abc"),
 					List.of("", "a", "c", "ab", "bc")),
 			Arguments.of(
-					g(p(nt("S"), cat(opt(t("a")), opt(t("b")), opt(t("c"))))),
+					g(p(nt("start"), cat(zero_or_one(t("a")), zero_or_one(t("b")), zero_or_one(t("c"))))),
 					List.of("", "a", "b", "c", "ab", "ac", "bc", "abc"),
 					List.of("ba", "ca", "cb", "cba", "abb", "acb", "d")),
 			Arguments.of(
-					g(p(nt("S"), opt(cat(t("a"), t("b"))))), List.of("", "ab"), List.of("a", "b", "ba", "aa", "bb")),
+					g(p(nt("start"), zero_or_one(cat(t("a"), t("b"))))),
+					List.of("", "ab"),
+					List.of("a", "b", "ba", "aa", "bb")),
 			Arguments.of(
 					g(
-							p(nt("S"), cat(opt(cat(nt("T"), t("b"))), opt(cat(t("c"), nt("U"))))),
-							p(nt("T"), t("a")),
-							p(nt("U"), t("d"))),
+							p(nt("start"), cat(zero_or_one(cat(nt("t"), t("b"))), zero_or_one(cat(t("c"), nt("u"))))),
+							p(nt("t"), t("a")),
+							p(nt("u"), t("d"))),
 					List.of("", "ab", "cd", "abcd"),
 					List.of("a", "b", "c", "d", "bc", "ad", "abc", "bcd")),
 			Arguments.of(
 					g(
-							p(nt("S"), cat(nt("T"), nt("U"), nt("V"))),
-							p(nt("T"), opt(t("a"))),
-							p(nt("U"), opt(t("b"))),
-							p(nt("V"), opt(t("c")))),
+							p(nt("start"), cat(nt("t"), nt("u"), nt("v"))),
+							p(nt("t"), zero_or_one(t("a"))),
+							p(nt("u"), zero_or_one(t("b"))),
+							p(nt("v"), zero_or_one(t("c")))),
 					List.of("", "a", "b", "c", "ab", "ac", "bc", "abc"),
 					List.of("cb", "ca", "ba", "cba", "aba", "bcb", "aabc", "abd")),
 			Arguments.of(
-					g(p(nt("S"), cat(nt("T"), t("a"))), p(nt("T"), t("a"))), List.of("aa"), List.of("", "a", "aaa")),
+					g(p(nt("start"), cat(nt("t"), t("a"))), p(nt("t"), t("a"))),
+					List.of("aa"),
+					List.of("", "a", "aaa")),
 			Arguments.of(
-					g(p(nt("S"), rep(t("a")))),
+					g(p(nt("start"), rep(t("a")))),
 					List.of("", "a", "aa", "aaa", "aaaa", "aaaaa"),
 					List.of("b", "ab", "aba", "bab")),
 			Arguments.of(
-					g(p(nt("S"), cat(rep(cat(t("a"), t("b"))), t("c")))),
+					g(p(nt("start"), cat(rep(cat(t("a"), t("b"))), t("c")))),
 					List.of("c", "abc", "ababc", "abababc"),
 					List.of("", "a", "b", "ab", "abcab", "aabc", "abbc")),
 			Arguments.of(
-					g(p(nt("S"), rep(cat(t("a"), opt(t("b")), t("c"))))),
+					g(p(nt("start"), rep(cat(t("a"), zero_or_one(t("b")), t("c"))))),
 					List.of("", "ac", "abc", "acac", "abcabc", "acabc", "abcac"),
 					List.of("a", "b", "c", "ab", "bc", "aac", "acc", "abbc")),
-			Arguments.of(g(p(nt("S"), alt(t("a"), t("b")))), List.of("a", "b"), List.of("", "ab", "aa", "bb", "ba")),
 			Arguments.of(
-					g(p(nt("S"), rep(alt(t("a"), t("b"))))),
+					g(p(nt("start"), alt(t("a"), t("b")))), List.of("a", "b"), List.of("", "ab", "aa", "bb", "ba")),
+			Arguments.of(
+					g(p(nt("start"), rep(alt(t("a"), t("b"))))),
 					List.of("", "a", "b", "aa", "ab", "bb", "ba", "aba", "bab", "aaa"),
 					List.of("c", "ac", "cb", "bc", "abc")),
 			Arguments.of(
 					g(
 							p(
-									nt("S"),
+									nt("start"),
 									cat(
-											opt(nt("sign")),
-											alt(nt("zero"), cat(nt("digit excluding zero"), rep(nt("digit")))))),
+											zero_or_one(nt("sign")),
+											alt(nt("zero"), cat(nt("digit_excluding_zero"), rep(nt("digit")))))),
 							p(nt("sign"), alt(t("+"), t("-"))),
 							p(nt("zero"), t("0")),
 							p(
-									nt("digit excluding zero"),
+									nt("digit_excluding_zero"),
 									alt(t("1"), t("2"), t("3"), t("4"), t("5"), t("6"), t("7"), t("8"), t("9"))),
-							p(nt("digit"), alt(nt("zero"), nt("digit excluding zero")))),
+							p(nt("digit"), alt(nt("zero"), nt("digit_excluding_zero")))),
 					List.of("0", "+0", "-0", "1", "+99", "-69", "123456789"),
 					List.of("", "01", "001", "1a", "1.0")),
 			Arguments.of(
-					g(p(nt("S"), cat(t("'"), alt(t("a"), t("b")), t("'")))),
+					g(p(nt("start"), cat(t("'"), alt(t("a"), t("b")), t("'")))),
 					List.of("'a'", "'b'"),
 					List.of("", "'a", "a'", "'''", "'a''", "'a'b'")),
 			Arguments.of(
-					g(p(nt("S"), cat(t("\""), alt(t("a"), t("b")), t("\"")))),
+					g(p(nt("start"), cat(t("\""), alt(t("a"), t("b")), t("\"")))),
 					List.of("\"a\"", "\"b\""),
 					List.of("", "\"a", "a\"", "\"\"\"", "\"a\"\"", "\"a\"b\"")),
 			Arguments.of(
-					g(p(nt("S"), cat(t("\\"), alt(t("n"), t("t"))))),
+					g(p(nt("start"), cat(t("\\"), alt(t("n"), t("t"))))),
 					List.of("\\n", "\\t"),
 					List.of("", "\\", "\n", "\t", "n", "t")));
 
@@ -136,7 +143,7 @@ public final class CorrectGrammars {
 		return new Sequence(expressions);
 	}
 
-	private static ZeroOrOne opt(final Expression inner) {
+	private static ZeroOrOne zero_or_one(final Expression inner) {
 		return new ZeroOrOne(inner);
 	}
 

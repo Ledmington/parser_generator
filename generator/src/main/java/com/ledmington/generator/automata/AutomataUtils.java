@@ -72,7 +72,7 @@ public final class AutomataUtils {
 		final State globalStart = state();
 
 		for (final Production p : lexerProductions) {
-			final String productionName = p.start().name().replace(' ', '_');
+			final String productionName = p.start().name();
 			final State productionStart = state();
 			final State productionEnd = acceptingState(productionName);
 
@@ -307,7 +307,6 @@ public final class AutomataUtils {
 			final Set<State> currentSet = queue.poll();
 			final State fromDFAState = stateMapping.get(currentSet);
 
-			System.out.printf("%,d remaining sets to check%n", queue.size());
 			for (final char symbol : alphabet) {
 				final Set<State> moveSet = move(currentSet, symbol, nfa.transitions());
 				if (moveSet.isEmpty()) {

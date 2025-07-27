@@ -63,6 +63,10 @@ public record Production(NonTerminal start, Expression result) implements Node {
 	}
 
 	public boolean isSkippable() {
-		return isLexerProduction() && start.name().charAt(0) == '_';
+		return isSkippable(start.name());
+	}
+
+	public static boolean isSkippable(final String productionName) {
+		return isLexerProduction(productionName) && productionName.charAt(0) == '_';
 	}
 }

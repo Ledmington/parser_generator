@@ -47,7 +47,6 @@ public final class Parser {
 		try {
 			final String stripped = removeComments(input);
 			final List<Token> tokens = tokenize(stripped);
-			System.out.println(tokens);
 			return parse(tokens);
 		} catch (final IndexOutOfBoundsException ioobe) {
 			throw new ParsingException(ioobe);

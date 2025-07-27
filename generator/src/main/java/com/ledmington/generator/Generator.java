@@ -61,26 +61,25 @@ public final class Generator {
 	/**
 	 * Generates a String containing Java source code to parse the given EBNF grammar.
 	 *
-	 * @param root The root of the Node tree representing the structure of the EBNF grammar.
 	 * @param parserName The name of the parser class produced.
 	 * @param packageName The name of the package to output.
-	 * @param startSymbol The name of the symbol to start matching from.
 	 * @param indent The level of indentation to use when generating source code.
 	 * @param generateMainMethod True to generate a self-contained executable parser which prints the resulting match.
 	 * @return The indented Java source code of the parser of the given EBNF grammar.
 	 */
 	public static String generate(
-			final Node root,
+			final Grammar g,
 			final String parserName,
 			final String packageName,
-			final String startSymbol,
 			final String indent,
 			final boolean generateMainMethod) {
 		NODE_NAMES.clear();
 
 		final List<Production> lexerProductions = new ArrayList<>();
 		final List<Production> parserProductions = new ArrayList<>();
-		splitProductions((Grammar) root, lexerProductions, parserProductions);
+		splitProductions(g, lexerProductions, parserProductions);
+
+		final String startSymbol = GrammarChecker.check(g);
 
 		generateNames(parserProductions);
 
@@ -178,9 +177,8 @@ public final class Generator {
 		}
 		sb.deindent().append("}\n");
 
-		final Set<String> tokenNames = lexerProductions.stream()
-				.map(p -> p.start().name().replace(' ', '_'))
-				.collect(Collectors.toUnmodifiableSet());
+		final Set<String> tokenNames =
+				lexerProductions.stream().map(p -> p.start().name()).collect(Collectors.toUnmodifiableSet());
 
 		final Queue<Node> q = new ArrayDeque<>();
 		final Set<Node> visited = new HashSet<>();
@@ -358,7 +356,7 @@ public final class Generator {
 		sb.append("public enum TokenType {\n")
 				.indent()
 				.append(lexerProductions.stream()
-						.map(p -> p.start().name().replace(' ', '_'))
+						.map(p -> p.start().name())
 						.sorted()
 						.collect(Collectors.joining(",\n")))
 				.append('\n')
@@ -650,7 +648,7 @@ public final class Generator {
 			visited.add(n);
 			switch (n) {
 				case Terminal ignored -> {}
-				case NonTerminal nt -> NODE_NAMES.put(nt, nt.name().replace(' ', '_'));
+				case NonTerminal nt -> NODE_NAMES.put(nt, nt.name());
 				case ZeroOrOne zoo -> {
 					NODE_NAMES.put(zoo, "zero_or_one_" + zeroOrOneCounter);
 					q.add(zoo.inner());

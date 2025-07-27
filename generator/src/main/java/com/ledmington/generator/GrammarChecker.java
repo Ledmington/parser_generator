@@ -34,6 +34,7 @@ import com.ledmington.ebnf.Node;
 import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.OneOrMore;
 import com.ledmington.ebnf.Or;
+import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.ZeroOrMore;
@@ -66,20 +67,10 @@ public final class GrammarChecker {
 			}
 		}
 
-		final Set<String> uniqueNonTerminals =
-				g.productions().keySet().stream().map(NonTerminal::name).collect(Collectors.toUnmodifiableSet());
-		if (uniqueNonTerminals.size() != g.productions().size()) {
-			for (final Map.Entry<NonTerminal, Expression> prod : g.productions().entrySet()) {
-				if (g.productions().entrySet().stream()
-						.anyMatch(e -> !e.equals(prod)
-								&& e.getKey().name().equals(prod.getKey().name()))) {
-					throw new DuplicatedNonTerminalException(prod.getKey().name());
-				}
-			}
-		}
-
-		// remove all lexer symbols
-		g.lexerProductions().forEach(e -> allNonTerminals.remove(e.getKey().name()));
+		// remove all skippable lexer symbols
+		g.productions().entrySet().stream()
+				.filter(e -> Production.isSkippable(e.getKey().name()))
+				.forEach(e -> allNonTerminals.remove(e.getKey().name()));
 
 		return findStartSymbol(g, allNonTerminals);
 	}
@@ -87,19 +78,20 @@ public final class GrammarChecker {
 	private static String findStartSymbol(final Grammar g, final Set<String> nonTerminals) {
 		// Building the graph of reachable symbols
 		final Map<String, Set<String>> graph = new HashMap<>();
-		g.parserProductions().forEach(e -> {
-			final String s = e.getKey().name();
-			final Set<String> outEdges = findAllNonTerminals(e.getValue());
-
-			graph.put(s, outEdges);
-		});
+		g.productions().entrySet().stream()
+				.filter(e -> !Production.isSkippable(e.getKey().name()))
+				.forEach(e -> {
+					final String s = e.getKey().name();
+					final Set<String> outEdges = findAllNonTerminals(e.getValue());
+					graph.put(s, outEdges);
+				});
 
 		final List<String> possibleStartSymbols = new ArrayList<>();
 		for (final Map.Entry<String, Set<String>> e : graph.entrySet()) {
 			final String possibleStartSymbol = e.getKey();
 			final Set<String> visited = bfs(possibleStartSymbol, graph);
 			// remove all lexer symbols
-			g.lexerProductions().forEach(p -> visited.remove(p.getKey().name()));
+			// g.lexerProductions().forEach(p -> visited.remove(p.getKey().name()));
 			if (visited.equals(nonTerminals)) {
 				possibleStartSymbols.add(possibleStartSymbol);
 			}
