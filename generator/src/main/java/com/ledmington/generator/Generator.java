@@ -23,6 +23,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -75,11 +76,25 @@ public final class Generator {
 			final boolean generateMainMethod) {
 		NODE_NAMES.clear();
 
+		final String startSymbol = GrammarChecker.check(g);
+
+		final Map<NonTerminal, Expression> productions = g.productions();
+		final NonTerminal start = productions.keySet().stream()
+				.filter(x -> x.name().equals(startSymbol))
+				.findFirst()
+				.orElseThrow();
+		if (Production.isLexerProduction(start.name())) {
+			final Expression expr = productions.get(start);
+			productions.remove(start);
+			final NonTerminal tmp = new NonTerminal("NEW_" + startSymbol);
+			final NonTerminal newStart = new NonTerminal(startSymbol.toLowerCase(Locale.US));
+			productions.put(newStart, tmp);
+			productions.put(tmp, expr);
+		}
+
 		final List<Production> lexerProductions = new ArrayList<>();
 		final List<Production> parserProductions = new ArrayList<>();
-		splitProductions(g, lexerProductions, parserProductions);
-
-		final String startSymbol = GrammarChecker.check(g);
+		splitProductions(productions, lexerProductions, parserProductions);
 
 		generateNames(parserProductions);
 
@@ -247,10 +262,16 @@ public final class Generator {
 	}
 
 	private static void splitProductions(
-			final Grammar g, final List<Production> lexerProductions, final List<Production> parserProductions) {
+			final Map<NonTerminal, Expression> productions,
+			final List<Production> lexerProductions,
+			final List<Production> parserProductions) {
 		// Divide all trivial lexer productions from the rest
-		g.lexerProductions().forEach(e -> lexerProductions.add(new Production(e.getKey(), e.getValue())));
-		g.parserProductions().forEach(e -> parserProductions.add(new Production(e.getKey(), e.getValue())));
+		productions.entrySet().stream()
+				.filter(e -> Production.isLexerProduction(e.getKey().name()))
+				.forEach(e -> lexerProductions.add(new Production(e.getKey(), e.getValue())));
+		productions.entrySet().stream()
+				.filter(e -> !Production.isLexerProduction(e.getKey().name()))
+				.forEach(e -> parserProductions.add(new Production(e.getKey(), e.getValue())));
 
 		// Convert all terminal symbols still in the parser into "anonymous" non-terminal ones
 		final Supplier<String> nameSupplier = new Supplier<>() {
