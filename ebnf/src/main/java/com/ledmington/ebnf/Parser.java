@@ -243,7 +243,7 @@ public final class Parser {
 			throw new AssertionError();
 		}
 		if (v.getFirst() instanceof Production(final NonTerminal start, final Expression result)) {
-			return new Grammar(Map.of(start, result));
+			return new Grammar(new HashMap<>(Map.of(start, result)));
 		}
 		if (!(v.getFirst() instanceof final Grammar g)) {
 			throw new ParsingException(
