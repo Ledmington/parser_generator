@@ -29,6 +29,12 @@ import java.util.Objects;
  */
 public record Production(NonTerminal start, Expression result) implements Node {
 
+	/**
+	 * Creates a new production with the given non-terminal symbol and the given expression.
+	 *
+	 * @param start The non-terminal symbol representing this production.
+	 * @param result The expression which the symbol maps to.
+	 */
 	public Production {
 		Objects.requireNonNull(start);
 		Objects.requireNonNull(result);
@@ -52,20 +58,42 @@ public record Production(NonTerminal start, Expression result) implements Node {
 		// return result instanceof Terminal;
 	}*/
 
+	/**
+	 * Checks where the given production name corresponds to a lexer production.
+	 *
+	 * @param productionName The name of the production to check.
+	 * @return True is the given production belongs to a lexer, false otherwise.
+	 */
 	public static boolean isLexerProduction(final String productionName) {
 		return productionName
 				.chars()
 				.allMatch(ch -> ch == '_' || (Character.isAlphabetic(ch) && Character.isUpperCase(ch)));
 	}
 
+	/**
+	 * Checks where this production belongs to a lexer.
+	 *
+	 * @return True is this production belongs to a lexer, false otherwise.
+	 */
 	public boolean isLexerProduction() {
 		return isLexerProduction(start.name());
 	}
 
+	/**
+	 * Checks where this production is skippable.
+	 *
+	 * @return True is this production is skippable, false otherwise.
+	 */
 	public boolean isSkippable() {
 		return isSkippable(start.name());
 	}
 
+	/**
+	 * Checks where the given production name corresponds to a skippable production.
+	 *
+	 * @param productionName The name of the production to check.
+	 * @return True is the given production is skippable, false otherwise.
+	 */
 	public static boolean isSkippable(final String productionName) {
 		return isLexerProduction(productionName) && productionName.charAt(0) == '_';
 	}

@@ -46,6 +46,11 @@ public final class AcceptingState extends State {
 		return true;
 	}
 
+	/**
+	 * Retusn the name of the token this accepting state refers to.
+	 *
+	 * @return The name of the token this accepting state refers to.
+	 */
 	public String tokenName() {
 		return tokenName;
 	}

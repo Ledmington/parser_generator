@@ -60,6 +60,7 @@ public final class Generator {
 	/**
 	 * Generates a String containing Java source code to parse the given EBNF grammar.
 	 *
+	 * @param g The EBNF grammar to convert.
 	 * @param parserName The name of the parser class produced.
 	 * @param packageName The name of the package to output.
 	 * @param indent The level of indentation to use when generating source code.

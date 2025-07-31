@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 
 import com.ledmington.ebnf.Utils;
 
+/** A finite-state automaton. */
 @SuppressWarnings("PMD.AvoidFieldNameMatchingMethodName")
 public final class Automaton {
 
@@ -32,25 +33,51 @@ public final class Automaton {
 	// FIXME: convert to Map<State, Map<Character, State>>? How to deal with NFAs?
 	private final Set<StateTransition> transitions;
 
+	/**
+	 * Creates a new automaton with the given starting state and the given set of transitions.
+	 *
+	 * @param startingState The starting state of the automaton.
+	 * @param transitions The set of transitions of this automaton.
+	 */
 	public Automaton(final State startingState, final Set<StateTransition> transitions) {
 		this.startingState = Objects.requireNonNull(startingState);
 		this.transitions = new HashSet<>(transitions);
 	}
 
+	/**
+	 * Returns the starting state of this automaton.
+	 *
+	 * @return The starting state of this automaton.
+	 */
 	public State startingState() {
 		return startingState;
 	}
 
+	/**
+	 * Returns the set of transitions of this automaton.
+	 *
+	 * @return The set of transitions of this automaton.
+	 */
 	public Set<StateTransition> transitions() {
 		return transitions;
 	}
 
+	/**
+	 * Returns an unmodifiable set of all state involved in this automaton.
+	 *
+	 * @return The states of this automaton.
+	 */
 	public Set<State> states() {
 		return Stream.concat(Stream.of(startingState), transitions.stream().flatMap(t -> Stream.of(t.from(), t.to())))
 				.collect(Collectors.toUnmodifiableSet());
 	}
 
-	// just for debugging: outputs graphviz code to be used in tools such as https://graph.flyte.org
+	/**
+	 * Returns a string graphviz representation of this automaton. Useful for debugging when visualized through tools
+	 * such as <a href="https://graph.flyte.org">this</a>.
+	 *
+	 * @return A string graphviz representation of this automaton.
+	 */
 	public String toGraphviz() {
 		final Set<State> allStates = states();
 		final StringBuilder sb = new StringBuilder();

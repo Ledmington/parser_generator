@@ -26,6 +26,12 @@ import java.util.Objects;
  * @param productions The productions which map each non-terminal symbol to its corresponding expression.
  */
 public record Grammar(Map<NonTerminal, Expression> productions) implements Node {
+
+	/**
+	 * Creates a new Grammar with the given Map of productions.
+	 *
+	 * @param productions The productions of this grammar.
+	 */
 	public Grammar {
 		Objects.requireNonNull(productions);
 	}

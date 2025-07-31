@@ -40,8 +40,9 @@ import com.ledmington.ebnf.ZeroOrMore;
 import com.ledmington.ebnf.ZeroOrOne;
 import com.ledmington.generator.GrammarUtils;
 
-// FIXME: find a better name or place for these functions
+/** A collection of common algorithms on finite-state automata. */
 public final class AutomataUtils {
+	// FIXME: find a better name or place for these functions
 
 	private int stateID = 1;
 
@@ -55,6 +56,12 @@ public final class AutomataUtils {
 		return new AcceptingState("S" + (stateID++), productionName);
 	}
 
+	/**
+	 * Converts the given grammar into an epsilon-NFA by first extracting the lexer productions.
+	 *
+	 * @param g The grammar to be converted.
+	 * @return A new epsilon-NFA representing all the lexer productions of the grammar combined.
+	 */
 	public static Automaton grammarToEpsilonNFA(final Grammar g) {
 		final List<Production> lexerProductions = new ArrayList<>();
 		final List<Production> parserProductions = new ArrayList<>();
@@ -62,6 +69,12 @@ public final class AutomataUtils {
 		return grammarToEpsilonNFA(lexerProductions);
 	}
 
+	/**
+	 * Converts the given list of productions into an epsilon-NFA.
+	 *
+	 * @param lexerProductions The productions to be converted.
+	 * @return A new epsilon-NFA.
+	 */
 	public static Automaton grammarToEpsilonNFA(final List<Production> lexerProductions) {
 		final AutomataUtils converter = new AutomataUtils();
 		return converter.convertGrammarToEpsilonNFA(lexerProductions);
@@ -190,6 +203,12 @@ public final class AutomataUtils {
 		return closure;
 	}
 
+	/**
+	 * Converts the given epsilon-NFA to an NFA without epsilon transitions.
+	 *
+	 * @param epsilonNFA The epsilon-NFA to be converted.
+	 * @return A new NFA without epsilon transitions.
+	 */
 	public static Automaton epsilonNFAtoNFA(final Automaton epsilonNFA) {
 		final AutomataUtils converter = new AutomataUtils();
 		return converter.convertEpsilonNFAToNFA(epsilonNFA);
@@ -278,6 +297,12 @@ public final class AutomataUtils {
 		return result;
 	}
 
+	/**
+	 * Converts the given NFA into a DFA.
+	 *
+	 * @param nfa The NFA to be converted.
+	 * @return A new DFA.
+	 */
 	public static Automaton NFAtoDFA(final Automaton nfa) {
 		final AutomataUtils converter = new AutomataUtils();
 		return converter.convertNFAToDFA(nfa);
@@ -337,6 +362,12 @@ public final class AutomataUtils {
 		return new Automaton(dfaStartState, newTransitions);
 	}
 
+	/**
+	 * Converts the given DFA into a minimized DFA.
+	 *
+	 * @param dfa The DFA to be minimized.
+	 * @return A new minimized DFA.
+	 */
 	public static Automaton minimizeDFA(final Automaton dfa) {
 		final AutomataUtils converter = new AutomataUtils();
 		return converter.convertDFAToMinimizedDFA(dfa);
@@ -447,6 +478,11 @@ public final class AutomataUtils {
 		return new Automaton(newStart, newTransitions);
 	}
 
+	/**
+	 * Checks whether the given automaton is a valid epsilon-NFA.
+	 *
+	 * @param automaton The epsilon-NFA to check.
+	 */
 	public static void assertEpsilonNFAValid(final Automaton automaton) {
 		final Set<State> allStates = Stream.concat(
 						Stream.of(automaton.startingState()),
@@ -491,6 +527,11 @@ public final class AutomataUtils {
 		}
 	}
 
+	/**
+	 * Checks whether the given automaton is a valid NFA without epsilon transitions.
+	 *
+	 * @param automaton The NFA to check.
+	 */
 	public static void assertNFAValid(final Automaton automaton) {
 		assertEpsilonNFAValid(automaton);
 
@@ -499,6 +540,11 @@ public final class AutomataUtils {
 		}
 	}
 
+	/**
+	 * Checks whether the given automaton is a valid DFA.
+	 *
+	 * @param automaton The DFA to check.
+	 */
 	public static void assertDFAValid(final Automaton automaton) {
 		assertNFAValid(automaton);
 

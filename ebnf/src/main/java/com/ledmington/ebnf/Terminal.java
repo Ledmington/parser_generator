@@ -25,6 +25,12 @@ import java.util.Objects;
  * @param literal The content of the terminal symbol.c
  */
 public record Terminal(String literal) implements Expression {
+
+	/**
+	 * Creates a new terminal symbol with the given string literal.
+	 *
+	 * @param literal The string literal representing this terminal symbol.
+	 */
 	public Terminal {
 		Objects.requireNonNull(literal);
 		if (literal.isEmpty()) {

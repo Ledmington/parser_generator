@@ -19,11 +19,18 @@ package com.ledmington.generator.automata;
 
 import java.util.Objects;
 
+/** A state of a finite-state automaton. */
 @SuppressWarnings("PMD.AvoidFieldNameMatchingMethodName")
 public sealed class State permits AcceptingState {
 
+	/** The name of this state. */
 	protected final String name;
 
+	/**
+	 * Creates a new state with the given name.
+	 *
+	 * @param name The name of this state.
+	 */
 	public State(final String name) {
 		Objects.requireNonNull(name);
 		if (name.isBlank()) {
@@ -32,6 +39,11 @@ public sealed class State permits AcceptingState {
 		this.name = name;
 	}
 
+	/**
+	 * Returns the name of this state.
+	 *
+	 * @return The name of this state.
+	 */
 	public String name() {
 		return name;
 	}

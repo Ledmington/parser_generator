@@ -32,6 +32,7 @@ import com.ledmington.ebnf.Utils;
 import com.ledmington.generator.automata.AutomataUtils;
 import com.ledmington.generator.automata.Automaton;
 
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public final class TestAutomata {
 
 	private TestAutomata() {}

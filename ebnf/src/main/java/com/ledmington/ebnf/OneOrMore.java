@@ -17,4 +17,9 @@
  */
 package com.ledmington.ebnf;
 
+/**
+ * An EBNF expression which maps to the same expression one or more times.
+ *
+ * @param inner The inner expression which can be repeated.
+ */
 public record OneOrMore(Expression inner) implements Expression {}

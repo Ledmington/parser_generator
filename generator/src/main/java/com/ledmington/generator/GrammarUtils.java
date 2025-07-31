@@ -34,10 +34,18 @@ import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.ZeroOrMore;
 import com.ledmington.ebnf.ZeroOrOne;
 
+/** A collection of common operations to perform on EBNF grammars. */
 public final class GrammarUtils {
 
 	private GrammarUtils() {}
 
+	/**
+	 * Splits the given set of productions into the ones going into a lexer and the ones going into a parser.
+	 *
+	 * @param productions The set of grammar productions.
+	 * @param lexerProductions The productions belonging to a lexer.
+	 * @param parserProductions The productions belonging to a parser.
+	 */
 	public static void splitProductions(
 			final Map<NonTerminal, Expression> productions,
 			final List<Production> lexerProductions,

@@ -26,6 +26,12 @@ import java.util.Objects;
  * @param inner The repeated Expression.
  */
 public record ZeroOrMore(Expression inner) implements Expression {
+
+	/**
+	 * Creates a new ZeroOrMore object with the given inner expression.
+	 *
+	 * @param inner The repeated expressio.
+	 */
 	public ZeroOrMore {
 		Objects.requireNonNull(inner);
 	}

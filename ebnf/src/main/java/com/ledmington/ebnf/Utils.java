@@ -123,6 +123,12 @@ public final class Utils {
 		return false;
 	}
 
+	/**
+	 * Escapes a single character, if needed.
+	 *
+	 * @param ch The character to be escaped.
+	 * @return The same input character escaped, if needed.
+	 */
 	public static String getEscapeCharacter(final char ch) {
 		return (needsEscaping(ch) ? "\\" : "") + ch;
 	}
@@ -138,6 +144,12 @@ public final class Utils {
 		return sb.toString();
 	}
 
+	/**
+	 * Converts the given string by escaping all character which need it.
+	 *
+	 * @param literal The string to be escaped.
+	 * @return A new string with all characters escaped.
+	 */
 	public static String getEscapedString(final String literal) {
 		if (needsEscaping(literal)) {
 			return escape(literal);

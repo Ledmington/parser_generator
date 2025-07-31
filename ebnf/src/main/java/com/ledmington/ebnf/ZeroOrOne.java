@@ -25,6 +25,12 @@ import java.util.Objects;
  * @param inner The optional Expression.
  */
 public record ZeroOrOne(Expression inner) implements Expression {
+
+	/**
+	 * Creates a new ZeroOrOne object with the given inner expression.
+	 *
+	 * @param inner The optional expression.
+	 */
 	public ZeroOrOne {
 		Objects.requireNonNull(inner);
 	}

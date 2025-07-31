@@ -19,10 +19,25 @@ package com.ledmington.generator.automata;
 
 import java.util.Objects;
 
+/**
+ * A transition of a finite-state automaton. It is essentially a triplet of (source, destination, symbol).
+ *
+ * @param from The source of this transition.
+ * @param to The destination of this transition.
+ * @param character The symbol that needs to be consumed in order to traverse this transition.
+ */
 public record StateTransition(State from, State to, char character) {
 
+	/** The symbol of an epsilon transition. */
 	public static final char EPSILON = (char) -1;
 
+	/**
+	 * Creates a new transition with the given source, destination and character.
+	 *
+	 * @param from The source of this transition.
+	 * @param to The destination of this transition.
+	 * @param character The symbol that needs to be consumed in order to traverse this transition.
+	 */
 	public StateTransition {
 		Objects.requireNonNull(from);
 		Objects.requireNonNull(to);
