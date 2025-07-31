@@ -97,10 +97,11 @@ public final class GrammarChecker {
 			}
 		}
 
+		final int expectedStartSymbols = 1;
 		if (possibleStartSymbols.isEmpty()) {
 			throw new NoUniqueStartSymbolException();
 		}
-		if (possibleStartSymbols.size() == 1) {
+		if (possibleStartSymbols.size() == expectedStartSymbols) {
 			return possibleStartSymbols.getFirst();
 		}
 		throw new NoUniqueStartSymbolException(String.format(

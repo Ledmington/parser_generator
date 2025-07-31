@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 
 import com.ledmington.ebnf.Utils;
 
+@SuppressWarnings("PMD.AvoidFieldNameMatchingMethodName")
 public final class Automaton {
 
 	private final State startingState;

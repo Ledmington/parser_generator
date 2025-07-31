@@ -33,6 +33,7 @@ import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.ZeroOrMore;
 import com.ledmington.ebnf.ZeroOrOne;
 
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public final class CorrectGrammars {
 
 	private CorrectGrammars() {}

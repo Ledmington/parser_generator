@@ -25,6 +25,12 @@ import java.util.Objects;
  * @param name The name used in the grammar to refer to this non-terminal symbol.
  */
 public record NonTerminal(String name) implements Expression {
+
+	/**
+	 * Creates a new NonTerminal with the given name.
+	 *
+	 * @param name The name of the non-terminal symbol.
+	 */
 	public NonTerminal {
 		Objects.requireNonNull(name);
 		if (name.isBlank()) {

@@ -18,24 +18,15 @@
 package com.ledmington.ebnf;
 
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.stream.Stream;
 
-/** An object representing all the productions and symbols of an EBNF grammar. */
+/**
+ * An object representing all the productions and symbols of an EBNF grammar.
+ *
+ * @param productions The productions which map each non-terminal symbol to its corresponding expression.
+ */
 public record Grammar(Map<NonTerminal, Expression> productions) implements Node {
-
 	public Grammar {
 		Objects.requireNonNull(productions);
-	}
-
-	public Stream<Entry<NonTerminal, Expression>> lexerProductions() {
-		return productions.entrySet().stream()
-				.filter(e -> Production.isLexerProduction(e.getKey().name()));
-	}
-
-	public Stream<Entry<NonTerminal, Expression>> parserProductions() {
-		return productions.entrySet().stream()
-				.filter(e -> !Production.isLexerProduction(e.getKey().name()));
 	}
 }

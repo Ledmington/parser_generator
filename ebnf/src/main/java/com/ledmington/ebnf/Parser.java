@@ -268,7 +268,8 @@ public final class Parser {
 				break;
 			}
 		}
-		if (count <= 1) {
+		final int minimumProductions = 1;
+		if (count <= minimumProductions) {
 			return false;
 		} else {
 			v.subList(i, j).clear();
@@ -322,7 +323,8 @@ public final class Parser {
 				break;
 			}
 		}
-		if (count <= 1) {
+		final int minimumSequences = 1;
+		if (count <= minimumSequences) {
 			return false;
 		} else {
 			v.subList(i, j).clear();

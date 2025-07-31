@@ -19,16 +19,24 @@ package com.ledmington.generator.automata;
 
 import java.util.Objects;
 
-// TODO: instead of a different type, maybe it's better to have a common method which may throw
+/** A finite-automaton which is accepting. */
+@SuppressWarnings("PMD.AvoidFieldNameMatchingMethodName")
 public final class AcceptingState extends State {
+	// TODO: instead of a different type, maybe it's better to have a common method which may throw
 
 	private final String tokenName;
 
-	public AcceptingState(final String name, final String tokenName) {
-		super(name);
+	/**
+	 * Creates a new AcceptingState with the given name and the token it represents.
+	 *
+	 * @param stateName The name of this state.
+	 * @param tokenName The name of the represented token.
+	 */
+	public AcceptingState(final String stateName, final String tokenName) {
+		super(stateName);
 		Objects.requireNonNull(tokenName);
 		if (tokenName.isBlank()) {
-			throw new IllegalArgumentException("Empty token name.");
+			throw new IllegalArgumentException("Empty token stateName.");
 		}
 		this.tokenName = tokenName;
 	}

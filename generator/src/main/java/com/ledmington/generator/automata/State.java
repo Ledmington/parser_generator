@@ -19,6 +19,7 @@ package com.ledmington.generator.automata;
 
 import java.util.Objects;
 
+@SuppressWarnings("PMD.AvoidFieldNameMatchingMethodName")
 public sealed class State permits AcceptingState {
 
 	protected final String name;
@@ -35,6 +36,11 @@ public sealed class State permits AcceptingState {
 		return name;
 	}
 
+	/**
+	 * Tells whether this State is accepting or not.
+	 *
+	 * @return True if this state is accepting, false otherwise.
+	 */
 	public boolean isAccepting() {
 		return false;
 	}

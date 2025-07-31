@@ -34,6 +34,7 @@ public class Main {
 		return runtime.totalMemory() - runtime.freeMemory();
 	}
 
+	@SuppressWarnings("PMD.DoNotCallGarbageCollectionExplicitly")
 	public static void main(final String[] args) {
 		if (args.length > 0) {
 			System.err.println("Arguments provided but not needed. Ignoring them.");
