@@ -7,19 +7,25 @@ if [[ $# -ne 1 ]] ; then
   exit 1
 fi
 
-JAVA=`which java`
-if [[ $? -ne 0 ]] ; then
+if ! JAVA=$(which java) ; then
   echo "Could not find java command"
   exit 1
 fi
 
 JAR_FILE=$1
 INTEGRATION_TEST_DIR="$(dirname "${BASH_SOURCE[0]}")"
-for test_dir in "${INTEGRATION_TEST_DIR}"/*/ ; do
-  cd "${test_dir}"
-  ${JAVA} -jar "${JAR_FILE}" -g grammar -o /tmp/Main.java --main --overwrite
-  ${JAVA} /tmp/Main.java input > /tmp/actual
-  diff /tmp/actual expected
-  echo "${test_dir}... OK"
-  cd ..
+TEST_CASES=$(ls "${INTEGRATION_TEST_DIR}")
+for test_dir in ${TEST_CASES} ; do
+  DIR="$(mktemp -d)"
+  GENERATED="${DIR}/Main.java"
+  OUTPUT="$(mktemp)"
+  INPUT="${INTEGRATION_TEST_DIR}/${test_dir}"
+
+  echo " - ${test_dir}..."
+  ${JAVA} -jar "${JAR_FILE}" -g "${INPUT}/grammar" -o "${GENERATED}" --main --overwrite
+  ${JAVA} "${GENERATED}" "${INPUT}/input" > "${OUTPUT}"
+  diff "${OUTPUT}" "${INPUT}/expected"
+  echo -e " - ${test_dir} \e[32mOK\e[0m"
 done
+
+echo "All tests passed!"
