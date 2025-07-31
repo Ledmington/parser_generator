@@ -41,7 +41,7 @@ public class Main {
 
 		final String grammarText =
 				"""
-				S = SIGN number ;
+				start = SIGN number ;
 				number = ZERO | non_zero ;
 				non_zero = DIGIT_EXCLUDING_ZERO DIGIT* ;
 				ZERO = "0" ;
@@ -52,7 +52,7 @@ public class Main {
 
 		final int iterations = 10;
 		long t;
-		for (int i = 0; i < iterations * 10; i++) {
+		for (int i = 0; i < iterations; i++) {
 			System.gc();
 			final long initialUsedMemory = memory();
 
@@ -138,28 +138,26 @@ public class Main {
 					+ minimizingDFAMemory
 					+ minimizedDFACheckingMemory;
 
-			if (i % iterations == 0) {
-				final TriConsumer<String, Long, Long> printer = (name, time, memory) -> System.out.printf(
-						" %-16s : %,15d ns | %6.2f %%  |  %,11d B | %6.2f %%%n",
-						name,
-						time,
-						(double) time / (double) totalTime * 100.0,
-						memory,
-						(double) memory / (double) totalMemory * 100.0);
+			final TriConsumer<String, Long, Long> printer = (name, time, memory) -> System.out.printf(
+					" %-16s : %,15d ns | %6.2f %%  |  %,11d B | %6.2f %%%n",
+					name,
+					time,
+					(double) time / (double) totalTime * 100.0,
+					memory,
+					(double) memory / (double) totalMemory * 100.0);
 
-				printer.accept("Grammar parse", grammarParsingTime, grammarParsingMemory);
-				printer.accept("Grammar check", grammarCheckingTime, grammarCheckingMemory);
-				printer.accept("Grammar to ε-NFA", grammarToEpsilonNFATime, grammarToEpsilonNFAMemory);
-				printer.accept("ε-NFA check", epsilonNFACheckingTime, epsilonNFACheckingMemory);
-				printer.accept("ε-NFA to NFA", epsilonNFAToNFATime, epsilonNFAToNFAMemory);
-				printer.accept("NFA check", NFACheckingTime, NFACheckingMemory);
-				printer.accept("NFA to DFA", NFAToDFATime, NFAToDFAMemory);
-				printer.accept("DFA check", DFACheckingTime, DFACheckingMemory);
-				printer.accept("DFA minimization", minimizingDFATime, minimizingDFAMemory);
-				printer.accept("Min-DFA check", minimizedDFACheckingTime, minimizedDFACheckingMemory);
-				printer.accept("Total", totalTime, totalMemory);
-				System.out.println();
-			}
+			printer.accept("Grammar parse", grammarParsingTime, grammarParsingMemory);
+			printer.accept("Grammar check", grammarCheckingTime, grammarCheckingMemory);
+			printer.accept("Grammar to ε-NFA", grammarToEpsilonNFATime, grammarToEpsilonNFAMemory);
+			printer.accept("ε-NFA check", epsilonNFACheckingTime, epsilonNFACheckingMemory);
+			printer.accept("ε-NFA to NFA", epsilonNFAToNFATime, epsilonNFAToNFAMemory);
+			printer.accept("NFA check", NFACheckingTime, NFACheckingMemory);
+			printer.accept("NFA to DFA", NFAToDFATime, NFAToDFAMemory);
+			printer.accept("DFA check", DFACheckingTime, DFACheckingMemory);
+			printer.accept("DFA minimization", minimizingDFATime, minimizingDFAMemory);
+			printer.accept("Min-DFA check", minimizedDFACheckingTime, minimizedDFACheckingMemory);
+			printer.accept("Total", totalTime, totalMemory);
+			System.out.println();
 		}
 	}
 }

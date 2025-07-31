@@ -26,11 +26,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.ledmington.ebnf.Expression;
@@ -94,7 +92,7 @@ public final class Generator {
 
 		final List<Production> lexerProductions = new ArrayList<>();
 		final List<Production> parserProductions = new ArrayList<>();
-		splitProductions(productions, lexerProductions, parserProductions);
+		GrammarUtils.splitProductions(productions, lexerProductions, parserProductions);
 
 		generateNames(parserProductions);
 
@@ -261,100 +259,15 @@ public final class Generator {
 		return sb.deindent().append("}").toString();
 	}
 
-	private static void splitProductions(
-			final Map<NonTerminal, Expression> productions,
-			final List<Production> lexerProductions,
-			final List<Production> parserProductions) {
-		// Divide all trivial lexer productions from the rest
-		productions.entrySet().stream()
-				.filter(e -> Production.isLexerProduction(e.getKey().name()))
-				.forEach(e -> lexerProductions.add(new Production(e.getKey(), e.getValue())));
-		productions.entrySet().stream()
-				.filter(e -> !Production.isLexerProduction(e.getKey().name()))
-				.forEach(e -> parserProductions.add(new Production(e.getKey(), e.getValue())));
-
-		// Convert all terminal symbols still in the parser into "anonymous" non-terminal ones
-		final Supplier<String> nameSupplier = new Supplier<>() {
-			private int id = 0;
-
-			@Override
-			public String get() {
-				return "terminal_" + (id++);
-			}
-		};
-		for (int i = 0; i < parserProductions.size(); i++) {
-			final Production p = parserProductions.get(i);
-			if (containsAtLeastOneTerminal(p.result())) {
-				parserProductions.set(
-						i, new Production(p.start(), convertExpression(nameSupplier, lexerProductions, p.result())));
-			}
-		}
-
-		// Final sort by name the productions
-		lexerProductions.sort(Comparator.comparing(a -> a.start().name()));
-		parserProductions.sort(Comparator.comparing(a -> a.start().name()));
-	}
-
-	private static Expression convertExpression(
-			final Supplier<String> name, final List<Production> lexerProductions, final Expression e) {
-		return switch (e) {
-			case Terminal t -> {
-				final Optional<Production> replacement = lexerProductions.stream()
-						.filter(p -> p.result() instanceof Terminal(final String literal)
-								&& t.literal().equals(literal))
-						.findFirst();
-				// Avoid generating fake non-terminal nodes for terminals already present in other productions
-				if (replacement.isPresent()) {
-					yield replacement.orElseThrow().start();
-				} else {
-					final String newName = name.get();
-					final NonTerminal nt = new NonTerminal(newName);
-					lexerProductions.add(new Production(nt, t));
-					NODE_NAMES.put(nt, newName);
-					yield nt;
-				}
-			}
-			case NonTerminal nt -> nt;
-			case ZeroOrOne o -> new ZeroOrOne(convertExpression(name, lexerProductions, o.inner()));
-			case ZeroOrMore r -> new ZeroOrMore(convertExpression(name, lexerProductions, r.inner()));
-			case Sequence s ->
-				new Sequence(s.nodes().stream()
-						.map(n -> convertExpression(name, lexerProductions, n))
-						.toList());
-			case Or a ->
-				new Or(a.nodes().stream()
-						.map(n -> convertExpression(name, lexerProductions, n))
-						.toList());
-			default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", e));
-		};
-	}
-
-	private static boolean containsAtLeastOneTerminal(final Node n) {
-		return switch (n) {
-			case Terminal ignored -> true;
-			case NonTerminal ignored -> false;
-			case ZeroOrOne zoo -> containsAtLeastOneTerminal(zoo.inner());
-			case ZeroOrMore zom -> containsAtLeastOneTerminal(zom.inner());
-			case OneOrMore oom -> containsAtLeastOneTerminal(oom.inner());
-			case Sequence s -> s.nodes().stream().anyMatch(Generator::containsAtLeastOneTerminal);
-			case Or or -> or.nodes().stream().anyMatch(Generator::containsAtLeastOneTerminal);
-			default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
-		};
-	}
-
 	private static void generateLexer(
 			final IndentedStringBuilder sb, final String lexerName, final List<Production> lexerProductions) {
 		final Automaton epsilonNFA = AutomataUtils.grammarToEpsilonNFA(lexerProductions);
-		System.out.println(epsilonNFA.toGraphviz());
 		AutomataUtils.assertEpsilonNFAValid(epsilonNFA);
 		final Automaton nfa = AutomataUtils.epsilonNFAtoNFA(epsilonNFA);
-		System.out.println(nfa.toGraphviz());
 		AutomataUtils.assertNFAValid(nfa);
 		final Automaton dfa = AutomataUtils.NFAtoDFA(nfa);
-		System.out.println(dfa.toGraphviz());
 		AutomataUtils.assertDFAValid(dfa);
 		final Automaton minimizedDFA = AutomataUtils.minimizeDFA(dfa);
-		System.out.println(minimizedDFA.toGraphviz());
 		AutomataUtils.assertDFAValid(minimizedDFA);
 
 		// re-index DFA states

@@ -18,7 +18,7 @@
 package com.ledmington.generator.automata;
 
 import java.util.ArrayDeque;
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -38,6 +38,7 @@ import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.ZeroOrMore;
 import com.ledmington.ebnf.ZeroOrOne;
+import com.ledmington.generator.GrammarUtils;
 
 // FIXME: find a better name or place for these functions
 public final class AutomataUtils {
@@ -55,10 +56,10 @@ public final class AutomataUtils {
 	}
 
 	public static Automaton grammarToEpsilonNFA(final Grammar g) {
-		return AutomataUtils.grammarToEpsilonNFA(g.lexerProductions()
-				.map(e -> new Production(e.getKey(), e.getValue()))
-				.sorted(Comparator.comparing(p -> p.start().name()))
-				.toList());
+		final List<Production> lexerProductions = new ArrayList<>();
+		final List<Production> parserProductions = new ArrayList<>();
+		GrammarUtils.splitProductions(g.productions(), lexerProductions, parserProductions);
+		return grammarToEpsilonNFA(lexerProductions);
 	}
 
 	public static Automaton grammarToEpsilonNFA(final List<Production> lexerProductions) {
@@ -477,7 +478,6 @@ public final class AutomataUtils {
 		}
 
 		if (!visited.equals(allStates)) {
-			System.out.println(automaton.toGraphviz());
 			throw new IllegalArgumentException("The automaton is not a single strongly connected component.");
 		}
 

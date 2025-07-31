@@ -1,4 +1,4 @@
-S = expression ;
+start = expression ;
 expression = term ( SIGN term )* ;
 term = factor ( (ASTERISK | SLASH) factor )* ;
 factor = LEFT_PARENTHESIS expression RIGHT_PARENTHESIS | number ;
