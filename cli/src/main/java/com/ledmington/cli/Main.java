@@ -23,13 +23,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Objects;
 
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Parser;
 import com.ledmington.ebnf.Utils;
 import com.ledmington.generator.Generator;
-import com.ledmington.generator.GrammarChecker;
 
 public class Main {
 
@@ -116,9 +114,6 @@ public class Main {
 			die("No output file was set.%n");
 		}
 
-		Objects.requireNonNull(grammarFile);
-		Objects.requireNonNull(outputFile);
-
 		final Grammar g;
 		try {
 			g = Parser.parse(Files.readString(Path.of(grammarFile)));
@@ -128,8 +123,6 @@ public class Main {
 		} catch (final IOException e) {
 			throw new RuntimeException(e);
 		}
-
-		final String startSymbol = GrammarChecker.check(g);
 
 		if (outputFile.endsWith(".java")) {
 			outputFile = outputFile.substring(0, outputFile.length() - 5);
@@ -145,7 +138,7 @@ public class Main {
 			final int idx = outputFile.lastIndexOf(File.separator);
 			final String className = idx < 0 ? outputFile : outputFile.substring(idx + 1);
 			final String indent = "\t";
-			bw.write(Generator.generate(g, className, packageName, startSymbol, indent, generateMainMethod));
+			bw.write(Generator.generate(g, className, packageName, indent, generateMainMethod));
 		} catch (final IOException e) {
 			throw new RuntimeException(e);
 		}

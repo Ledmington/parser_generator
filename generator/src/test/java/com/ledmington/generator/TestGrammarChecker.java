@@ -19,11 +19,12 @@ package com.ledmington.generator;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.NonTerminal;
-import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Terminal;
 
 public final class TestGrammarChecker {
@@ -31,24 +32,15 @@ public final class TestGrammarChecker {
 	void multipleStartSymbols() {
 		assertThrows(
 				NoUniqueStartSymbolException.class,
-				() -> GrammarChecker.check(new Grammar(
-						new Production(new NonTerminal("S"), new Terminal("a")),
-						new Production(new NonTerminal("T"), new Terminal("b")))));
+				() -> GrammarChecker.check(new Grammar(Map.of(
+						new NonTerminal("s"), new Terminal("a"),
+						new NonTerminal("t"), new Terminal("b")))));
 	}
 
 	@Test
 	void unusableNonTerminals() {
 		assertThrows(
-				UnusableNonTerminalException.class,
-				() -> GrammarChecker.check(new Grammar(new Production(new NonTerminal("S"), new NonTerminal("T")))));
-	}
-
-	@Test
-	void duplicatedNonTerminals() {
-		assertThrows(
-				DuplicatedNonTerminalException.class,
-				() -> GrammarChecker.check(new Grammar(
-						new Production(new NonTerminal("S"), new Terminal("a")),
-						new Production(new NonTerminal("S"), new Terminal("b")))));
+				UnknownNonTerminalException.class,
+				() -> GrammarChecker.check(new Grammar(Map.of(new NonTerminal("s"), new NonTerminal("t")))));
 	}
 }

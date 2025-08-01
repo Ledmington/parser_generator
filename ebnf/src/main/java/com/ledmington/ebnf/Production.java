@@ -17,6 +17,8 @@
  */
 package com.ledmington.ebnf;
 
+import java.util.Objects;
+
 /**
  * The most important element of an EBNF grammar, maps a non-terminal symbol to an expression which represents the
  * possible expansions.
@@ -25,4 +27,38 @@ package com.ledmington.ebnf;
  *     production.
  * @param result The expression to replace the non-terminal.c
  */
-public record Production(NonTerminal start, Expression result) implements Node {}
+public record Production(NonTerminal start, Expression result) implements Node {
+
+	/**
+	 * Creates a new production with the given non-terminal symbol and the given expression.
+	 *
+	 * @param start The non-terminal symbol representing this production.
+	 * @param result The expression which the symbol maps to.
+	 */
+	public Production {
+		Objects.requireNonNull(start);
+		Objects.requireNonNull(result);
+	}
+
+	/**
+	 * Checks where the given production name corresponds to a lexer production.
+	 *
+	 * @param productionName The name of the production to check.
+	 * @return True is the given production belongs to a lexer, false otherwise.
+	 */
+	public static boolean isLexerProduction(final String productionName) {
+		return productionName
+				.chars()
+				.allMatch(ch -> ch == '_' || (Character.isAlphabetic(ch) && Character.isUpperCase(ch)));
+	}
+
+	/**
+	 * Checks where the given production name corresponds to a skippable production.
+	 *
+	 * @param productionName The name of the production to check.
+	 * @return True is the given production is skippable, false otherwise.
+	 */
+	public static boolean isSkippable(final String productionName) {
+		return isLexerProduction(productionName) && productionName.charAt(0) == '_';
+	}
+}

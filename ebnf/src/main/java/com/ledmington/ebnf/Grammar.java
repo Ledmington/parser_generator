@@ -17,21 +17,22 @@
  */
 package com.ledmington.ebnf;
 
-import java.util.Set;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * An object representing all the productions and symbols of an EBNF grammar.
  *
- * @param productions The ordered sequence of productions of the grammar.
+ * @param productions The productions which map each non-terminal symbol to its corresponding expression.
  */
-public record Grammar(Set<Production> productions) implements Node {
+public record Grammar(Map<NonTerminal, Expression> productions) implements Node {
 
 	/**
-	 * Creates a new Grammar with the given Productions.
+	 * Creates a new Grammar with the given Map of productions.
 	 *
-	 * @param productions The list of productions of the grammar.
+	 * @param productions The productions of this grammar.
 	 */
-	public Grammar(final Production... productions) {
-		this(Set.of(productions));
+	public Grammar {
+		Objects.requireNonNull(productions);
 	}
 }

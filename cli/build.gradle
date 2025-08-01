@@ -39,7 +39,6 @@ tasks.register('fatJar', Jar) {
     manifest {
         archiveBaseName = appNameLowerCase
         attributes(
-                // "Implementation-Title": "Gradle",
                 "Implementation-Version": "${cliVersion}",
                 "Main-Class": "$mainClassName"
         )
@@ -57,6 +56,9 @@ tasks.register('integrationTest', Exec) {
     description = 'Runs the integration tests using the fat JAR and a bash script.'
     dependsOn fatJar
     commandLine path("${rootProject.projectDir}", "integration", "run_tests.sh"), fatJarPath
+    standardOutput = System.out
+    errorOutput = System.err
+    ignoreExitValue = false
 }
 
 tasks.test.dependsOn(integrationTest)

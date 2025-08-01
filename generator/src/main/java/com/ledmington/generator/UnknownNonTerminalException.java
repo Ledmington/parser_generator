@@ -15,23 +15,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.ebnf;
+package com.ledmington.generator;
 
-import java.util.List;
+import java.io.Serial;
 
-/**
- * An element of an EBNF grammar which represents different possibilities of expressions.
- *
- * @param nodes The alternated expressions.
- */
-public record Alternation(List<Expression> nodes) implements Expression {
+/** The proper RuntimeException for a grammar which has non-terminal symbols without a corresponding production. */
+public final class UnknownNonTerminalException extends RuntimeException {
+
+	@Serial
+	private static final long serialVersionUID = 8643487188267532790L;
 
 	/**
-	 * Creates a new Alternation Node with the given expressions.
+	 * Creates a new instance with a message for the given non-terminal symbol.
 	 *
-	 * @param nodes The expressions to be alternated.
+	 * @param nonTerminalName The name of the non-terminal symbol which does not have a corresponding production.
 	 */
-	public Alternation(final Expression... nodes) {
-		this(List.of(nodes));
+	public UnknownNonTerminalException(final String nonTerminalName) {
+		super(String.format("The non-terminal '%s' does not have a production.", nonTerminalName));
 	}
 }

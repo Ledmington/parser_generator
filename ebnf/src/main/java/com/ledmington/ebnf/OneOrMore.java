@@ -18,9 +18,8 @@
 package com.ledmington.ebnf;
 
 /**
- * An element of an EBNF grammar which represents the ability to repeat a given expression as many times as needed (even
- * zero).
+ * An EBNF expression which maps to the same expression one or more times.
  *
- * @param inner The repeated Expression.
+ * @param inner The inner expression which can be repeated.
  */
-public record Repetition(Expression inner) implements Expression {}
+public record OneOrMore(Expression inner) implements Expression {}

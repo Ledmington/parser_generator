@@ -15,25 +15,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.generator;
+package com.ledmington.ebnf;
 
-import java.io.Serial;
+import java.util.Objects;
 
 /**
- * The proper RuntimeException for an EBNF grammar which presents multiple productions associated to the same
- * non-terminal symbol.
+ * An element of an EBNF grammar which represents the ability to repeat a given expression as many times as needed (even
+ * zero).
+ *
+ * @param inner The repeated Expression.
  */
-public final class DuplicatedNonTerminalException extends RuntimeException {
-
-	@Serial
-	private static final long serialVersionUID = 2409866301090230895L;
+public record ZeroOrMore(Expression inner) implements Expression {
 
 	/**
-	 * Creates a new instance with the proper message for the given non-terminal symbol.
+	 * Creates a new ZeroOrMore object with the given inner expression.
 	 *
-	 * @param nonTerminalName The name of the non-terminal symbol with more than one production associated.
+	 * @param inner The repeated expressio.
 	 */
-	public DuplicatedNonTerminalException(final String nonTerminalName) {
-		super(String.format("The non-terminal '%s' has more than one production associated.", nonTerminalName));
+	public ZeroOrMore {
+		Objects.requireNonNull(inner);
 	}
 }

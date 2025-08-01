@@ -19,6 +19,7 @@ package com.ledmington.ebnf;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 /** A collection of various utilities. */
 public final class Utils {
@@ -44,9 +45,11 @@ public final class Utils {
 			case Grammar g -> {
 				sb.append(indentString).append("Grammar {\n");
 				if (!g.productions().isEmpty()) {
-					final Iterator<Production> it = g.productions().iterator();
+					final Iterator<Map.Entry<NonTerminal, Expression>> it =
+							g.productions().entrySet().iterator();
 					do {
-						prettyPrint(sb, it.next(), indentString + indent, indent);
+						final Map.Entry<NonTerminal, Expression> cur = it.next();
+						prettyPrint(sb, new Production(cur.getKey(), cur.getValue()), indentString + indent, indent);
 						sb.append('\n');
 					} while (it.hasNext());
 				}
@@ -60,9 +63,10 @@ public final class Utils {
 				sb.append('\n').append(indentString).append("}");
 			}
 			case Sequence c -> prettyPrintList(sb, "Sequence", c.nodes(), indentString, indent);
-			case Alternation a -> prettyPrintList(sb, "Alternation", a.nodes(), indentString, indent);
-			case Repetition r -> prettyPrintContainer(sb, "Repetition", r.inner(), indentString, indent);
-			case OptionalNode o -> prettyPrintContainer(sb, "OptionalNode", o.inner(), indentString, indent);
+			case Or a -> prettyPrintList(sb, "Or", a.nodes(), indentString, indent);
+			case ZeroOrMore zom -> prettyPrintContainer(sb, "ZeroOrMore", zom.inner(), indentString, indent);
+			case ZeroOrOne zoo -> prettyPrintContainer(sb, "ZeroOrOne", zoo.inner(), indentString, indent);
+			case OneOrMore oom -> prettyPrintContainer(sb, "OneOrMore", oom.inner(), indentString, indent);
 			case NonTerminal n ->
 				sb.append(indentString)
 						.append("NonTerminal { ")
@@ -104,5 +108,19 @@ public final class Utils {
 			}
 		}
 		sb.append(indentString).append("}");
+	}
+
+	private static boolean needsEscaping(final char ch) {
+		return ch == '\'' || ch == '\"' || ch == '\\';
+	}
+
+	/**
+	 * Escapes a single character, if needed.
+	 *
+	 * @param ch The character to be escaped.
+	 * @return The same input character escaped, if needed.
+	 */
+	public static String getEscapeCharacter(final char ch) {
+		return (needsEscaping(ch) ? "\\" : "") + ch;
 	}
 }
