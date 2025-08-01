@@ -9,12 +9,21 @@ fi
 
 if ! JAVA=$(which java) ; then
   echo "Could not find java command"
-  exit 1
+  if [[ -v JAVA_HOME ]] ; then
+    JAVA="${JAVA_HOME}/bin/java"
+  else
+    echo "Could not find JAVA_HOME"
+    exit 1
+  fi
 fi
+
+echo "Using java at '${JAVA}'"
+${JAVA} --version
+echo ""
 
 JAR_FILE=$1
 INTEGRATION_TEST_DIR="$(dirname "${BASH_SOURCE[0]}")"
-TEST_CASES=$(ls "${INTEGRATION_TEST_DIR}")
+TEST_CASES=$(find "${INTEGRATION_TEST_DIR}" -mindepth 1 -maxdepth 1 -type d -printf "%f\n" | sort)
 for test_dir in ${TEST_CASES} ; do
   DIR="$(mktemp -d)"
   GENERATED="${DIR}/Main.java"

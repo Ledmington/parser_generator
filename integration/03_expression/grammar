@@ -1,16 +1,15 @@
 start = expression ;
 expression = term ( ( PLUS | MINUS ) term )* ;
 term = factor ( ( ASTERISK | SLASH ) factor )* ;
-factor = LEFT_PARENTHESIS expression RIGHT_PARENTHESIS | number ;
-sign = PLUS | MINUS ;
+factor = LEFT_PARENTHESIS expression RIGHT_PARENTHESIS | NUMBER ;
 LEFT_PARENTHESIS = "(" ;
 RIGHT_PARENTHESIS = ")" ;
 ASTERISK = "*" ;
 SLASH = "/" ;
-number = ZERO | sign? non_zero_number ;
-non_zero_number = DIGIT_EXCLUDING_ZERO digit* ;
-digit = ZERO | DIGIT_EXCLUDING_ZERO ;
-ZERO = "0" ;
 PLUS = "+" ;
 MINUS = "-" ;
-DIGIT_EXCLUDING_ZERO = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+NUMBER = "0" |
+    (
+        ("1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9")
+        ("0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9")*
+    ) ;
