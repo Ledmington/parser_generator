@@ -328,7 +328,8 @@ public final class Generator {
 		sb.deindent().append(");\n");
 
 		// TODO: change this into three arrays for better performance
-		sb.append("private final Map<Integer, Map<Character, Integer>> transitions = Map.ofEntries(\n")
+		sb.append(
+						"private final Map<Integer, Map<Character, Integer>> transitions = Map.<Integer, Map<Character, Integer>>ofEntries(\n")
 				.indent();
 		for (int i = 0; i < allStates.size(); i++) {
 			final int final_i = i;
@@ -336,7 +337,7 @@ public final class Generator {
 					.filter(t -> t.from().equals(allStates.get(final_i)))
 					.sorted(Comparator.comparing(StateTransition::character))
 					.toList();
-			sb.append("Map.entry(").append(i).append(", Map.ofEntries(");
+			sb.append("Map.entry(").append(i).append(", Map.<Character, Integer>ofEntries(");
 			if (!transitions.isEmpty()) {
 				sb.append('\n').indent();
 				for (int j = 0; j < transitions.size(); j++) {
