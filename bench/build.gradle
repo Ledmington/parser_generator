@@ -63,6 +63,8 @@ if (System.getProperty("os.name").toLowerCase().contains("windows")) {
     println("Check this for news: https://github.com/async-profiler/async-profiler/issues/188")
 } else {
     tasks.register('downloadAsyncProfiler', Download) {
+        group 'utilities'
+        description 'Downloads async-profiler'
         src "https://github.com/async-profiler/async-profiler/releases/download/v${asyncProfilerVersion}/async-profiler-${asyncProfilerVersion}-linux-x64.tar.gz"
         dest new File("${project.layout.buildDirectory.get().toString()}", "async-profiler.tar.gz")
         overwrite false
@@ -70,6 +72,8 @@ if (System.getProperty("os.name").toLowerCase().contains("windows")) {
 
     tasks.register('asyncProfiler', Copy) {
         dependsOn downloadAsyncProfiler
+        group 'utilities'
+        description 'Prepares async-profiler into the build directory'
         from tarTree(downloadAsyncProfiler.dest)
         into path("${project.layout.buildDirectory.get().toString()}", "async-profiler")
         includeEmptyDirs(false)
@@ -80,7 +84,7 @@ if (System.getProperty("os.name").toLowerCase().contains("windows")) {
 
     tasks.register('flamegraph', JavaExec) {
         dependsOn([asyncProfiler, fatJar])
-        group 'useful'
+        group 'utilities'
         description 'Runs the app with async-profiler attached and generates a flamegraph'
         String flamegraphFile = path("${project.layout.buildDirectory.get().toString()}", "flamegraphs", "flamegraph-cpu-${getDate()}.html")
         doFirst {

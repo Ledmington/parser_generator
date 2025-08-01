@@ -84,7 +84,6 @@ public final class Automaton {
 
 		sb.append("digraph Automaton {\n");
 		sb.append("    rankdir=LR;\n");
-		sb.append("    size=\"8,5\"\n");
 		sb.append("    node [shape = doublecircle];\n");
 
 		for (final State s : allStates) {
