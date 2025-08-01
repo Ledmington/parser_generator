@@ -308,14 +308,7 @@ public final class Generator {
 				.deindent()
 				.append("}\n");
 
-		sb.append("public static final class ")
-				.append(lexerName)
-				.append(" {\n")
-				.indent()
-				.append("private char[] v = null;\n")
-				.append("private int pos = 0;\n")
-				.append("private Token lastTokenMatched = null;\n")
-				.append("private int lastTokenMatchPosition = 0;\n");
+		sb.append("public static final class ").append(lexerName).append(" {\n").indent();
 
 		sb.append("private final boolean[] isAccepting = new boolean[] {");
 		generateList(sb, allStates, s -> s.isAccepting() ? "true" : "false");
@@ -375,13 +368,13 @@ public final class Generator {
 				.append("() {}\n")
 				.append("public List<Token> tokenize(final String input) {\n")
 				.indent()
-				.append("this.v = input.toCharArray();\n")
-				.append("this.pos = 0;\n")
+				.append("final char[] v = input.toCharArray();\n")
+				.append("int pos = 0;\n")
+				.append("Token lastTokenMatched = null;\n")
+				.append("int lastTokenMatchPosition = 0;\n")
 				.append("final List<Token> tokens = new ArrayList<>();\n")
 				.append("int currentState = 0;\n")
-				.append("this.lastTokenMatched = null;\n")
-				.append("this.lastTokenMatchPosition = 0;\n")
-				.append("while (this.pos < v.length) {\n")
+				.append("while (pos < v.length) {\n")
 				.indent()
 				.append("final char ch = v[pos];\n")
 				.append("if (transitions.get(currentState).containsKey(ch)) {\n")
@@ -421,11 +414,6 @@ public final class Generator {
 				.deindent()
 				.append("}\n")
 				.append("return tokens;\n")
-				/*.append("} else {\n")
-				.indent()
-				.append("throw new IllegalArgumentException(\"Could not tokenize input.\");\n")
-				.deindent()
-				.append("}\n")*/
 				.deindent()
 				.append("}\n")
 				.deindent()
