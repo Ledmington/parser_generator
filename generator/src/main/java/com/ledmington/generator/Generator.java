@@ -308,7 +308,7 @@ public final class Generator {
 				.deindent()
 				.append("}\n");
 
-		sb.append("public final class ")
+		sb.append("public static final class ")
 				.append(lexerName)
 				.append(" {\n")
 				.indent()
