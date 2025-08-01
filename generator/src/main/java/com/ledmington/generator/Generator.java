@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.ledmington.ebnf.Expression;
@@ -308,18 +307,23 @@ public final class Generator {
 				.deindent()
 				.append("}\n");
 
-		sb.append("public final class ")
-				.append(lexerName)
-				.append(" {\n")
-				.indent()
-				.append("private char[] v = null;\n")
-				.append("private int pos = 0;\n")
-				.append("private Token lastTokenMatched = null;\n")
-				.append("private int lastTokenMatchPosition = 0;\n");
+		sb.append("public static final class ").append(lexerName).append(" {\n").indent();
 
-		sb.append("private final boolean[] isAccepting = new boolean[] {");
-		generateList(sb, allStates, s -> s.isAccepting() ? "true" : "false");
-		sb.append("};\n");
+		final int maxPerRow = 10;
+		sb.append("private final boolean[] isAccepting = new boolean[] {\n").indent();
+		for (int i = 0; i < allStates.size(); i++) {
+			final State s = allStates.get(i);
+			sb.append(s.isAccepting() ? "true" : "false");
+			if (i < allStates.size() - 1) {
+				sb.append(',');
+				if (i % maxPerRow == maxPerRow - 1) {
+					sb.append('\n');
+				} else {
+					sb.append(' ');
+				}
+			}
+		}
+		sb.deindent().append("\n};\n");
 
 		sb.append("private final List<Function<String, Token>> tokensToMatch = Arrays.asList(\n")
 				.indent();
@@ -335,7 +339,8 @@ public final class Generator {
 		sb.deindent().append(");\n");
 
 		// TODO: change this into three arrays for better performance
-		sb.append("private final Map<Integer, Map<Character, Integer>> transitions = Map.ofEntries(\n")
+		sb.append(
+						"private final Map<Integer, Map<Character, Integer>> transitions = Map.<Integer, Map<Character, Integer>>ofEntries(\n")
 				.indent();
 		for (int i = 0; i < allStates.size(); i++) {
 			final int final_i = i;
@@ -343,7 +348,7 @@ public final class Generator {
 					.filter(t -> t.from().equals(allStates.get(final_i)))
 					.sorted(Comparator.comparing(StateTransition::character))
 					.toList();
-			sb.append("Map.entry(").append(i).append(", Map.ofEntries(");
+			sb.append("Map.entry(").append(i).append(", Map.<Character, Integer>ofEntries(");
 			if (!transitions.isEmpty()) {
 				sb.append('\n').indent();
 				for (int j = 0; j < transitions.size(); j++) {
@@ -375,13 +380,13 @@ public final class Generator {
 				.append("() {}\n")
 				.append("public List<Token> tokenize(final String input) {\n")
 				.indent()
-				.append("this.v = input.toCharArray();\n")
-				.append("this.pos = 0;\n")
+				.append("final char[] v = input.toCharArray();\n")
+				.append("int pos = 0;\n")
+				.append("Token lastTokenMatched = null;\n")
+				.append("int lastTokenMatchPosition = 0;\n")
 				.append("final List<Token> tokens = new ArrayList<>();\n")
 				.append("int currentState = 0;\n")
-				.append("this.lastTokenMatched = null;\n")
-				.append("this.lastTokenMatchPosition = 0;\n")
-				.append("while (this.pos < v.length) {\n")
+				.append("while (pos < v.length) {\n")
 				.indent()
 				.append("final char ch = v[pos];\n")
 				.append("if (transitions.get(currentState).containsKey(ch)) {\n")
@@ -421,26 +426,10 @@ public final class Generator {
 				.deindent()
 				.append("}\n")
 				.append("return tokens;\n")
-				/*.append("} else {\n")
-				.indent()
-				.append("throw new IllegalArgumentException(\"Could not tokenize input.\");\n")
-				.deindent()
-				.append("}\n")*/
 				.deindent()
 				.append("}\n")
 				.deindent()
 				.append("}\n");
-	}
-
-	private static <X> void generateList(
-			final IndentedStringBuilder sb, final List<X> elements, final Function<X, String> serializer) {
-		if (elements.isEmpty()) {
-			return;
-		}
-		sb.append(serializer.apply(elements.getFirst()));
-		for (int i = 1; i < elements.size(); i++) {
-			sb.append(", ").append(serializer.apply(elements.get(i)));
-		}
 	}
 
 	private static void generateAlternation(
