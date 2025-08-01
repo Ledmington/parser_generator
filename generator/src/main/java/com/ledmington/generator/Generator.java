@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.ledmington.ebnf.Expression;
@@ -310,9 +309,21 @@ public final class Generator {
 
 		sb.append("public static final class ").append(lexerName).append(" {\n").indent();
 
-		sb.append("private final boolean[] isAccepting = new boolean[] {");
-		generateList(sb, allStates, s -> s.isAccepting() ? "true" : "false");
-		sb.append("};\n");
+		final int maxPerRow = 10;
+		sb.append("private final boolean[] isAccepting = new boolean[] {\n").indent();
+		for (int i = 0; i < allStates.size(); i++) {
+			final State s = allStates.get(i);
+			sb.append(s.isAccepting() ? "true" : "false");
+			if (i < allStates.size() - 1) {
+				sb.append(',');
+				if (i % maxPerRow == maxPerRow - 1) {
+					sb.append('\n');
+				} else {
+					sb.append(' ');
+				}
+			}
+		}
+		sb.deindent().append("\n};\n");
 
 		sb.append("private final List<Function<String, Token>> tokensToMatch = Arrays.asList(\n")
 				.indent();
@@ -419,17 +430,6 @@ public final class Generator {
 				.append("}\n")
 				.deindent()
 				.append("}\n");
-	}
-
-	private static <X> void generateList(
-			final IndentedStringBuilder sb, final List<X> elements, final Function<X, String> serializer) {
-		if (elements.isEmpty()) {
-			return;
-		}
-		sb.append(serializer.apply(elements.getFirst()));
-		for (int i = 1; i < elements.size(); i++) {
-			sb.append(", ").append(serializer.apply(elements.get(i)));
-		}
 	}
 
 	private static void generateAlternation(
