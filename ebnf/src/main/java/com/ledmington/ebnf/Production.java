@@ -40,24 +40,6 @@ public record Production(NonTerminal start, Expression result) implements Node {
 		Objects.requireNonNull(result);
 	}
 
-	/*private static boolean hasOnlyTerminals(final Expression e) {
-		return switch (e) {
-			case Terminal ignored -> true;
-			case NonTerminal ignored -> false;
-			case OptionalNode o -> hasOnlyTerminals(o.inner());
-			case Repetition r -> hasOnlyTerminals(r.inner());
-			case Sequence s -> s.nodes().stream().allMatch(Production::hasOnlyTerminals);
-			case Alternation a -> a.nodes().stream().allMatch(Production::hasOnlyTerminals);
-			default -> throw new IllegalArgumentException(String.format("Unknown node '%s'", e));
-		};
-	}
-
-	public boolean isLexerProduction() {
-		// TODO: maybe cache this value?
-		return hasOnlyTerminals(result);
-		// return result instanceof Terminal;
-	}*/
-
 	/**
 	 * Checks where the given production name corresponds to a lexer production.
 	 *
@@ -68,24 +50,6 @@ public record Production(NonTerminal start, Expression result) implements Node {
 		return productionName
 				.chars()
 				.allMatch(ch -> ch == '_' || (Character.isAlphabetic(ch) && Character.isUpperCase(ch)));
-	}
-
-	/**
-	 * Checks where this production belongs to a lexer.
-	 *
-	 * @return True is this production belongs to a lexer, false otherwise.
-	 */
-	public boolean isLexerProduction() {
-		return isLexerProduction(start.name());
-	}
-
-	/**
-	 * Checks where this production is skippable.
-	 *
-	 * @return True is this production is skippable, false otherwise.
-	 */
-	public boolean isSkippable() {
-		return isSkippable(start.name());
 	}
 
 	/**

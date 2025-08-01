@@ -114,15 +114,6 @@ public final class Utils {
 		return ch == '\'' || ch == '\"' || ch == '\\';
 	}
 
-	private static boolean needsEscaping(final String s) {
-		for (int i = 0; i < s.length(); i++) {
-			if (needsEscaping(s.charAt(i))) {
-				return true;
-			}
-		}
-		return false;
-	}
-
 	/**
 	 * Escapes a single character, if needed.
 	 *
@@ -131,29 +122,5 @@ public final class Utils {
 	 */
 	public static String getEscapeCharacter(final char ch) {
 		return (needsEscaping(ch) ? "\\" : "") + ch;
-	}
-
-	private static String escape(final String s) {
-		final StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < s.length(); i++) {
-			if (needsEscaping(s.charAt(i))) {
-				sb.append('\\');
-			}
-			sb.append(s.charAt(i));
-		}
-		return sb.toString();
-	}
-
-	/**
-	 * Converts the given string by escaping all character which need it.
-	 *
-	 * @param literal The string to be escaped.
-	 * @return A new string with all characters escaped.
-	 */
-	public static String getEscapedString(final String literal) {
-		if (needsEscaping(literal)) {
-			return escape(literal);
-		}
-		return literal;
 	}
 }
