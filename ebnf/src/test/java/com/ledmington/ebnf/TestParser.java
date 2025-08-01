@@ -59,6 +59,9 @@ public final class TestParser {
 			Arguments.of("S=\"a\"|(\"b\" \"c\");", g(p("S", alt(t("a"), seq(t("b"), t("c")))))),
 			Arguments.of("S=\"a\" \"b\" | \"c\" \"d\";", g(p("S", alt(seq(t("a"), t("b")), seq(t("c"), t("d")))))),
 			Arguments.of("S=\"a\" (\"b\" | \"c\") \"d\";", g(p("S", seq(t("a"), alt(t("b"), t("c")), t("d"))))),
+			Arguments.of(
+					"S=(\"a\" | \"b\") (\"a\" | \"b\" | \"c\")*;",
+					g(p("S", seq(alt(t("a"), t("b")), zero_or_more(alt(t("a"), t("b"), t("c"))))))),
 			//
 			Arguments.of(
 					readFile("ebnf.g"),

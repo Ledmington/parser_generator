@@ -218,10 +218,16 @@ public final class Parser {
 			final int initialSize = v.size();
 
 			for (final BiPredicate<List<Object>, Integer> p : transformations) {
+				boolean done = false;
 				for (int i = 0; i < v.size(); ) {
 					if (!p.test(v, i)) {
 						i++;
+					} else {
+						done = true;
 					}
+				}
+				if (done) {
+					break;
 				}
 			}
 
