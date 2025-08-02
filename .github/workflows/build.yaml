@@ -20,6 +20,9 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+      - name: Gradle wrapper validation
+        uses: gradle/actions/wrapper-validation@v4
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
