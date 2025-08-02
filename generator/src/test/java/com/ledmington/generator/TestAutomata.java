@@ -21,16 +21,29 @@ import static com.ledmington.generator.CorrectGrammars.TEST_CASES;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.ledmington.ebnf.Grammar;
+import com.ledmington.ebnf.NonTerminal;
+import com.ledmington.ebnf.OneOrMore;
+import com.ledmington.ebnf.Or;
+import com.ledmington.ebnf.Production;
+import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.Utils;
+import com.ledmington.generator.automata.AcceptingState;
 import com.ledmington.generator.automata.AutomataUtils;
 import com.ledmington.generator.automata.Automaton;
+import com.ledmington.generator.automata.State;
+import com.ledmington.generator.automata.StateTransition;
 
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public final class TestAutomata {
@@ -135,5 +148,87 @@ public final class TestAutomata {
 				() -> String.format(
 						"Expected min-DFA generation to be deterministic, but the following grammar generated two different automata.%n%s%n%s%n%s%n",
 						Utils.prettyPrint(g, "  "), minimizedDFA1.toGraphviz(), minimizedDFA2.toGraphviz()));
+	}
+
+	private record Match(String name, String content) {}
+
+	List<Match> tryMatch(final Automaton dfa, final String input) {
+		final Map<State, Map<Character, State>> transitions = new HashMap<>();
+		{
+			// Converting transitions into a map
+			for (final StateTransition t : dfa.transitions()) {
+				if (!transitions.containsKey(t.from())) {
+					transitions.put(t.from(), new HashMap<>());
+				}
+				transitions.get(t.from()).put(t.character(), t.to());
+			}
+		}
+
+		final char[] v = input.toCharArray();
+		int pos = 0;
+		State currentState = dfa.startingState();
+		final List<Match> matches = new ArrayList<>();
+		int lastMatchStart = 0;
+		int lastMatchEnd = 0;
+		while (pos < v.length) {
+			if (currentState.isAccepting()) {
+				lastMatchEnd = pos;
+			}
+			final char ch = v[pos];
+			if (transitions.get(currentState).containsKey(ch)) {
+				currentState = transitions.get(currentState).get(ch);
+				pos++;
+			} else {
+				// no more transitions, emit last match if present
+				if (!currentState.isAccepting()) {
+					throw new IllegalArgumentException("No match.");
+				} else {
+					final int length = lastMatchEnd - lastMatchStart;
+					if (length == 0) {
+						throw new IllegalArgumentException("Empty match.");
+					}
+					final AcceptingState as = (AcceptingState) currentState;
+					matches.add(new Match(as.tokenName(), String.copyValueOf(v, lastMatchStart, length)));
+					lastMatchStart = pos;
+					lastMatchEnd = -1;
+					currentState = dfa.startingState();
+				}
+			}
+		}
+		if (currentState.isAccepting()) {
+			lastMatchEnd = pos;
+		}
+		final int length = lastMatchEnd - lastMatchStart;
+		if (currentState.isAccepting() && length > 0) {
+			final AcceptingState as = (AcceptingState) currentState;
+			matches.add(new Match(as.tokenName(), String.copyValueOf(v, lastMatchStart, length)));
+		}
+		return matches;
+	}
+
+	@Test
+	void checkDFAMatchesSubTokens() {
+		final List<Production> productions = List.of(
+				new Production(new NonTerminal("AN"), new Terminal("an")),
+				new Production(
+						new NonTerminal("ID"),
+						new OneOrMore(new Or(new Terminal("a"), new Terminal("b"), new Terminal("n")))));
+		final Automaton dfa =
+				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(productions)));
+		final List<Match> tokens = tryMatch(dfa, "banana");
+		assertEquals(List.of(new Match("ID", "banana")), tokens);
+	}
+
+	@Test
+	void checkMinimizedDFAMatchesSubTokens() {
+		final List<Production> productions = List.of(
+				new Production(new NonTerminal("AN"), new Terminal("an")),
+				new Production(
+						new NonTerminal("ID"),
+						new OneOrMore(new Or(new Terminal("a"), new Terminal("b"), new Terminal("n")))));
+		final Automaton dfa = AutomataUtils.minimizeDFA(
+				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(productions))));
+		final List<Match> tokens = tryMatch(dfa, "banana");
+		assertEquals(List.of(new Match("ID", "banana")), tokens);
 	}
 }
