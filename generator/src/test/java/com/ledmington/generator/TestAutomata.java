@@ -54,14 +54,6 @@ public final class TestAutomata {
 		return TEST_CASES.stream().map(tc -> Arguments.of(tc.get()[0]));
 	}
 
-	@SuppressWarnings("unchecked")
-	public static Stream<Arguments> correctCases() {
-		return TEST_CASES.stream().flatMap(tc -> {
-			final Grammar g = (Grammar) tc.get()[0];
-			return ((List<String>) tc.get()[1]).stream().map(s -> Arguments.of(g, s));
-		});
-	}
-
 	@ParameterizedTest
 	@MethodSource("onlyGrammars")
 	void checkValidEpsilonNFA(final Grammar g) {
@@ -161,19 +153,23 @@ public final class TestAutomata {
 	private record Match(String name, String content) {}
 
 	List<Match> tryMatch(final Automaton dfa, final String input) {
+		final Map<State, Map<Character, State>> transitions = new HashMap<>();
+		{
+			// Converting transitions into a map
+			for (final StateTransition t : dfa.transitions()) {
+				if (!transitions.containsKey(t.from())) {
+					transitions.put(t.from(), new HashMap<>());
+				}
+				transitions.get(t.from()).put(t.character(), t.to());
+			}
+		}
+
 		final char[] v = input.toCharArray();
 		int pos = 0;
 		State currentState = dfa.startingState();
-		final Map<State, Map<Character, State>> transitions = new HashMap<>();
-		for (final StateTransition t : dfa.transitions()) {
-			if (!transitions.containsKey(t.from())) {
-				transitions.put(t.from(), new HashMap<>());
-			}
-			transitions.get(t.from()).put(t.character(), t.to());
-		}
 		final List<Match> matches = new ArrayList<>();
-		int lastMatchStart = pos;
-		int lastMatchEnd = -1;
+		int lastMatchStart = 0;
+		int lastMatchEnd = 0;
 		while (pos < v.length) {
 			if (currentState.isAccepting()) {
 				lastMatchEnd = pos;
@@ -187,9 +183,12 @@ public final class TestAutomata {
 				if (!currentState.isAccepting()) {
 					throw new IllegalArgumentException("No match.");
 				} else {
+					final int length = lastMatchEnd - lastMatchStart;
+					if (length == 0) {
+						throw new IllegalArgumentException("Empty match.");
+					}
 					final AcceptingState as = (AcceptingState) currentState;
-					matches.add(new Match(
-							as.tokenName(), String.copyValueOf(v, lastMatchStart, lastMatchEnd - lastMatchStart + 1)));
+					matches.add(new Match(as.tokenName(), String.copyValueOf(v, lastMatchStart, length)));
 					lastMatchStart = pos;
 					lastMatchEnd = -1;
 					currentState = dfa.startingState();
@@ -197,9 +196,12 @@ public final class TestAutomata {
 			}
 		}
 		if (currentState.isAccepting()) {
+			lastMatchEnd = pos;
+		}
+		final int length = lastMatchEnd - lastMatchStart;
+		if (currentState.isAccepting() && length > 0) {
 			final AcceptingState as = (AcceptingState) currentState;
-			matches.add(new Match(
-					as.tokenName(), String.copyValueOf(v, lastMatchStart, lastMatchEnd - lastMatchStart + 1)));
+			matches.add(new Match(as.tokenName(), String.copyValueOf(v, lastMatchStart, length)));
 		}
 		return matches;
 	}
