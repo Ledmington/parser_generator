@@ -26,6 +26,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.NonTerminal;
+import com.ledmington.ebnf.OneOrMore;
 import com.ledmington.ebnf.Or;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Sequence;
@@ -79,21 +80,25 @@ public final class CorrectGrammars {
 					List.of("aa"),
 					List.of("", "a", "aaa")),
 			Arguments.of(
-					g(p(nt("start"), rep(t("a")))),
+					g(p(nt("start"), zero_or_more(t("a")))),
 					List.of("", "a", "aa", "aaa", "aaaa", "aaaaa"),
 					List.of("b", "ab", "aba", "bab")),
 			Arguments.of(
-					g(p(nt("start"), cat(rep(cat(t("a"), t("b"))), t("c")))),
+					g(p(nt("start"), one_or_more(t("a")))),
+					List.of("a", "aa", "aaa", "aaaa"),
+					List.of("", "ba", "ab", "aba", "aab", "bab")),
+			Arguments.of(
+					g(p(nt("start"), cat(zero_or_more(cat(t("a"), t("b"))), t("c")))),
 					List.of("c", "abc", "ababc", "abababc"),
 					List.of("", "a", "b", "ab", "abcab", "aabc", "abbc")),
 			Arguments.of(
-					g(p(nt("start"), rep(cat(t("a"), zero_or_one(t("b")), t("c"))))),
+					g(p(nt("start"), zero_or_more(cat(t("a"), zero_or_one(t("b")), t("c"))))),
 					List.of("", "ac", "abc", "acac", "abcabc", "acabc", "abcac"),
 					List.of("a", "b", "c", "ab", "bc", "aac", "acc", "abbc")),
 			Arguments.of(
 					g(p(nt("start"), alt(t("a"), t("b")))), List.of("a", "b"), List.of("", "ab", "aa", "bb", "ba")),
 			Arguments.of(
-					g(p(nt("start"), rep(alt(t("a"), t("b"))))),
+					g(p(nt("start"), zero_or_more(alt(t("a"), t("b"))))),
 					List.of("", "a", "b", "aa", "ab", "bb", "ba", "aba", "bab", "aaa"),
 					List.of("c", "ac", "cb", "bc", "abc")),
 			Arguments.of(
@@ -102,7 +107,9 @@ public final class CorrectGrammars {
 									nt("start"),
 									cat(
 											zero_or_one(nt("sign")),
-											alt(nt("zero"), cat(nt("digit_excluding_zero"), rep(nt("digit")))))),
+											alt(
+													nt("zero"),
+													cat(nt("digit_excluding_zero"), zero_or_more(nt("digit")))))),
 							p(nt("sign"), alt(t("+"), t("-"))),
 							p(nt("zero"), t("0")),
 							p(
@@ -148,7 +155,11 @@ public final class CorrectGrammars {
 		return new ZeroOrOne(inner);
 	}
 
-	private static ZeroOrMore rep(final Expression exp) {
+	private static OneOrMore one_or_more(final Expression inner) {
+		return new OneOrMore(inner);
+	}
+
+	private static ZeroOrMore zero_or_more(final Expression exp) {
 		return new ZeroOrMore(exp);
 	}
 

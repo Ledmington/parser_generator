@@ -100,8 +100,9 @@ public final class GrammarUtils {
 				}
 			}
 			case NonTerminal nt -> nt;
-			case ZeroOrOne o -> new ZeroOrOne(convertExpression(name, lexerProductions, o.inner()));
-			case ZeroOrMore r -> new ZeroOrMore(convertExpression(name, lexerProductions, r.inner()));
+			case ZeroOrOne zoo -> new ZeroOrOne(convertExpression(name, lexerProductions, zoo.inner()));
+			case OneOrMore oom -> new OneOrMore(convertExpression(name, lexerProductions, oom.inner()));
+			case ZeroOrMore zom -> new ZeroOrMore(convertExpression(name, lexerProductions, zom.inner()));
 			case Sequence s ->
 				new Sequence(s.nodes().stream()
 						.map(n -> convertExpression(name, lexerProductions, n))
