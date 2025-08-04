@@ -44,7 +44,8 @@ import com.ledmington.ebnf.ZeroOrMore;
 import com.ledmington.ebnf.ZeroOrOne;
 import com.ledmington.generator.automata.AcceptingState;
 import com.ledmington.generator.automata.AutomataUtils;
-import com.ledmington.generator.automata.Automaton;
+import com.ledmington.generator.automata.DFA;
+import com.ledmington.generator.automata.NFA;
 import com.ledmington.generator.automata.State;
 import com.ledmington.generator.automata.StateTransition;
 
@@ -266,13 +267,13 @@ public final class Generator {
 
 	private static void generateLexer(
 			final IndentedStringBuilder sb, final String lexerName, final List<Production> lexerProductions) {
-		final Automaton epsilonNFA = AutomataUtils.grammarToEpsilonNFA(lexerProductions);
+		final NFA epsilonNFA = AutomataUtils.grammarToEpsilonNFA(lexerProductions);
 		AutomataUtils.assertEpsilonNFAValid(epsilonNFA);
-		final Automaton nfa = AutomataUtils.epsilonNFAtoNFA(epsilonNFA);
+		final NFA nfa = AutomataUtils.epsilonNFAtoNFA(epsilonNFA);
 		AutomataUtils.assertNFAValid(nfa);
-		final Automaton dfa = AutomataUtils.NFAtoDFA(nfa);
+		final DFA dfa = AutomataUtils.NFAtoDFA(nfa);
 		AutomataUtils.assertDFAValid(dfa);
-		final Automaton minimizedDFA = AutomataUtils.minimizeDFA(dfa);
+		final DFA minimizedDFA = AutomataUtils.minimizeDFA(dfa);
 		AutomataUtils.assertDFAValid(minimizedDFA);
 
 		// re-index DFA states
