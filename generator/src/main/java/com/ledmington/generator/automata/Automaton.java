@@ -24,4 +24,12 @@ public interface Automaton {
 	State startingState();
 
 	Set<State> states();
+
+	/**
+	 * Returns a string graphviz representation of this automaton. Useful for debugging when visualized through tools
+	 * such as <a href="https://graph.flyte.org">this</a>.
+	 *
+	 * @return A string graphviz representation of this automaton.
+	 */
+	String toGraphviz();
 }

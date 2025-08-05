@@ -19,7 +19,6 @@ package com.ledmington.generator;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -47,7 +46,6 @@ import com.ledmington.generator.automata.AutomataUtils;
 import com.ledmington.generator.automata.DFA;
 import com.ledmington.generator.automata.NFA;
 import com.ledmington.generator.automata.State;
-import com.ledmington.generator.automata.StateTransition;
 
 /** Generates Java code to parse a specified EBNF grammar. */
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
@@ -349,28 +347,25 @@ public final class Generator {
 						"private final Map<Integer, Map<Character, Integer>> transitions = Map.<Integer, Map<Character, Integer>>ofEntries(\n")
 				.indent();
 		for (int i = 0; i < allStates.size(); i++) {
-			final int final_i = i;
-			final List<StateTransition> transitions = minimizedDFA.transitions().stream()
-					.filter(t -> t.from().equals(allStates.get(final_i)))
-					.sorted(Comparator.comparing(StateTransition::character))
-					.toList();
+			final State src = allStates.get(i);
 			sb.append("Map.entry(").append(i).append(", Map.<Character, Integer>ofEntries(");
-			if (!transitions.isEmpty()) {
+			final List<Map.Entry<Character, State>> entries = minimizedDFA.neighbors(src).entrySet().stream()
+					.sorted(Map.Entry.comparingByKey())
+					.toList();
+			for (int j = 0; j < entries.size(); j++) {
+				final char symbol = entries.get(j).getKey();
+				final State dst = entries.get(j).getValue();
 				sb.append('\n').indent();
-				for (int j = 0; j < transitions.size(); j++) {
-					final StateTransition t = transitions.get(j);
-					if (t.from().equals(allStates.get(i))) {
-						sb.append("Map.entry('")
-								.append(Utils.getEscapeCharacter(t.character()))
-								.append("', ")
-								.append(stateIndex.get(t.to()))
-								.append(")");
-						if (j < transitions.size() - 1) {
-							sb.append(',');
-						}
-						sb.append('\n');
-					}
+				sb.append("Map.entry('")
+						.append(Utils.getEscapeCharacter(symbol))
+						.append("', ")
+						.append(stateIndex.get(dst))
+						.append(")");
+				if (j < entries.size() - 1) {
+					sb.append(',');
 				}
+				sb.append('\n');
+
 				sb.deindent();
 			}
 			sb.append("))");

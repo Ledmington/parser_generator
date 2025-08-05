@@ -17,41 +17,52 @@
  */
 package com.ledmington.generator.automata;
 
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
-public final class DFA implements Automaton {
+import com.ledmington.ebnf.Utils;
 
-	private final State startingState;
-	private final Map<State, Map<Character, State>> transitions;
+public interface DFA extends Automaton {
 
-	public static DFABuilder builder() {
+	static DFABuilder builder() {
 		return new DFABuilder();
 	}
 
-	public DFA(final State startingState, final Map<State, Map<Character, State>> transitions) {
-		this.startingState = Objects.requireNonNull(startingState);
-		this.transitions = Objects.requireNonNull(transitions);
-	}
+	Map<Character, State> neighbors(final State s);
 
-	@Override
-	public State startingState() {
-		return startingState;
-	}
+	default String toGraphviz() {
+		final Set<State> allStates = states();
+		final StringBuilder sb = new StringBuilder();
 
-	@Override
-	public Set<State> states() {
-		final Set<State> allStates = new HashSet<>();
-		for (final Map.Entry<State, Map<Character, State>> e : transitions.entrySet()) {
-			allStates.add(e.getKey());
-			allStates.addAll(e.getValue().values());
+		sb.append("digraph Automaton {\n");
+		sb.append("    rankdir=LR;\n");
+		sb.append("    node [shape = doublecircle];\n");
+
+		for (final State s : allStates) {
+			if (s.isAccepting()) {
+				sb.append("    ").append(s.name()).append(";\n");
+			}
 		}
-		return allStates;
-	}
 
-	public Map<Character, State> neighbors(final State s) {
-		return transitions.get(s);
+		sb.append("    node [shape = circle];\n");
+		sb.append("    __start__ [shape = point];\n");
+		sb.append("    __start__ -> ").append(startingState().name()).append(";\n");
+
+		for (final State src : allStates) {
+			for (final Map.Entry<Character, State> e : neighbors(src).entrySet()) {
+				final char symbol = e.getKey();
+				final State dst = e.getValue();
+				sb.append("    ")
+						.append(src.name())
+						.append(" -> ")
+						.append(dst.name())
+						.append(" [label=\"")
+						.append(symbol == NFA.EPSILON ? "ε" : (Utils.getEscapeCharacter(symbol)))
+						.append("\"];\n");
+			}
+		}
+
+		sb.append("}\n");
+		return sb.toString();
 	}
 }

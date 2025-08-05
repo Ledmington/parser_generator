@@ -17,36 +17,38 @@
  */
 package com.ledmington.generator.automata;
 
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
-public final class DFABuilder {
+public final class DFAImpl implements DFA {
 
-	private State startingState = null;
-	private final Map<State, Map<Character, State>> transitions = new HashMap<>();
+	private final State startingState;
+	private final Map<State, Map<Character, State>> transitions;
 
-	public DFABuilder() {}
-
-	public DFABuilder addTransition(final State from, final char symbol, final State to) {
-		Objects.requireNonNull(from);
-		Objects.requireNonNull(to);
-		if (!transitions.containsKey(from)) {
-			transitions.put(from, new HashMap<>());
-		}
-		transitions.get(from).put(symbol, to);
-		return this;
-	}
-
-	public DFABuilder start(final State startingState) {
-		if (this.startingState != null) {
-			throw new IllegalArgumentException("Cannot set starting state twice.");
-		}
+	public DFAImpl(final State startingState, final Map<State, Map<Character, State>> transitions) {
 		this.startingState = Objects.requireNonNull(startingState);
-		return this;
+		this.transitions = Objects.requireNonNull(transitions);
 	}
 
-	public DFA build() {
-		return new DFAImpl(startingState, transitions);
+	@Override
+	public State startingState() {
+		return startingState;
+	}
+
+	@Override
+	public Set<State> states() {
+		final Set<State> allStates = new HashSet<>();
+		for (final Map.Entry<State, Map<Character, State>> e : transitions.entrySet()) {
+			allStates.add(e.getKey());
+			allStates.addAll(e.getValue().values());
+		}
+		return allStates;
+	}
+
+	@Override
+	public Map<Character, State> neighbors(final State s) {
+		return transitions.get(s);
 	}
 }

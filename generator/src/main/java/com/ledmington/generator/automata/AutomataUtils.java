@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Node;
@@ -90,7 +89,7 @@ public final class AutomataUtils {
 			final State productionStart = state();
 			final State productionEnd = acceptingState(productionName);
 
-			builder.addTransition(globalStart, StateTransition.EPSILON, productionStart);
+			builder.addTransition(globalStart, NFA.EPSILON, productionStart);
 
 			convertNode(p.result(), builder, productionStart, productionEnd);
 		}
@@ -114,63 +113,63 @@ public final class AutomataUtils {
 		final State a = state();
 		final State b = state();
 
-		builder.addTransition(start, StateTransition.EPSILON, a);
+		builder.addTransition(start, NFA.EPSILON, a);
 		convertNode(oom.inner(), builder, a, b);
-		builder.addTransition(b, StateTransition.EPSILON, a);
-		builder.addTransition(b, StateTransition.EPSILON, end);
+		builder.addTransition(b, NFA.EPSILON, a);
+		builder.addTransition(b, NFA.EPSILON, end);
 	}
 
 	private void convertZeroOrMore(final ZeroOrMore zom, final NFABuilder builder, final State start, final State end) {
 		final State a = state();
 		final State b = state();
 
-		builder.addTransition(start, StateTransition.EPSILON, end);
-		builder.addTransition(start, StateTransition.EPSILON, a);
+		builder.addTransition(start, NFA.EPSILON, end);
+		builder.addTransition(start, NFA.EPSILON, a);
 		convertNode(zom.inner(), builder, a, b);
-		builder.addTransition(b, StateTransition.EPSILON, a);
-		builder.addTransition(b, StateTransition.EPSILON, end);
+		builder.addTransition(b, NFA.EPSILON, a);
+		builder.addTransition(b, NFA.EPSILON, end);
 	}
 
 	private void convertSequence(final Sequence s, final NFABuilder builder, final State start, final State end) {
 		State prev = state();
-		builder.addTransition(start, StateTransition.EPSILON, prev);
+		builder.addTransition(start, NFA.EPSILON, prev);
 		for (int i = 0; i < s.nodes().size(); i++) {
 			final State tmp = state();
 			convertNode(s.nodes().get(i), builder, prev, tmp);
 			prev = tmp;
 		}
-		builder.addTransition(prev, StateTransition.EPSILON, end);
+		builder.addTransition(prev, NFA.EPSILON, end);
 	}
 
 	private void convertZeroOrOne(final ZeroOrOne zoo, final NFABuilder builder, final State start, final State end) {
 		final State a = state();
 		final State b = state();
 
-		builder.addTransition(start, StateTransition.EPSILON, end);
-		builder.addTransition(start, StateTransition.EPSILON, a);
+		builder.addTransition(start, NFA.EPSILON, end);
+		builder.addTransition(start, NFA.EPSILON, a);
 		convertNode(zoo.inner(), builder, a, b);
-		builder.addTransition(b, StateTransition.EPSILON, end);
+		builder.addTransition(b, NFA.EPSILON, end);
 	}
 
 	private void convertAlternation(final Or or, final NFABuilder builder, final State start, final State end) {
 		for (final Node n : or.nodes()) {
 			final State newStart = state();
 			final State newEnd = state();
-			builder.addTransition(start, StateTransition.EPSILON, newStart);
-			builder.addTransition(newEnd, StateTransition.EPSILON, end);
+			builder.addTransition(start, NFA.EPSILON, newStart);
+			builder.addTransition(newEnd, NFA.EPSILON, end);
 			convertNode(n, builder, newStart, newEnd);
 		}
 	}
 
 	private void convertTerminal(final Terminal t, final NFABuilder builder, final State start, final State end) {
 		State prev = state();
-		builder.addTransition(start, StateTransition.EPSILON, prev);
+		builder.addTransition(start, NFA.EPSILON, prev);
 		for (int i = 0; i < t.literal().length(); i++) {
 			final State s = state();
 			builder.addTransition(prev, t.literal().charAt(i), s);
 			prev = s;
 		}
-		builder.addTransition(prev, StateTransition.EPSILON, end);
+		builder.addTransition(prev, NFA.EPSILON, end);
 	}
 
 	private static Set<State> epsilonClosure(final State state, final NFA nfa) {
@@ -188,8 +187,8 @@ public final class AutomataUtils {
 			closure.add(s);
 
 			final Map<Character, Set<State>> neighbors = nfa.neighbors(s);
-			if (neighbors.containsKey(StateTransition.EPSILON)) {
-				q.addAll(neighbors.get(StateTransition.EPSILON));
+			if (neighbors.containsKey(NFA.EPSILON)) {
+				q.addAll(neighbors.get(NFA.EPSILON));
 			}
 		}
 
@@ -239,7 +238,7 @@ public final class AutomataUtils {
 				final Map<Character, Set<State>> neighbors = epsilonNFA.neighbors(cs);
 				for (final Map.Entry<Character, Set<State>> e : neighbors.entrySet()) {
 					final char symbol = e.getKey();
-					if (symbol != StateTransition.EPSILON) {
+					if (symbol != NFA.EPSILON) {
 						for (final State qq : e.getValue()) {
 							for (final State q : epsilonClosures.get(qq)) {
 								builder.addTransition(stateMapping.get(s), symbol, stateMapping.get(q));
@@ -305,9 +304,8 @@ public final class AutomataUtils {
 
 	private DFA convertNFAToDFA(final NFA nfa) {
 		final Map<Set<State>, State> stateMapping = new HashMap<>();
-		final Set<StateTransition> newTransitions = new HashSet<>();
 		final Queue<Set<State>> queue = new LinkedList<>();
-		final DFABuilder builder=DFA.builder();
+		final DFABuilder builder = DFA.builder();
 
 		final Set<Character> alphabet = nfa.states().stream()
 				.flatMap(s -> nfa.neighbors(s).keySet().stream())
@@ -352,7 +350,7 @@ public final class AutomataUtils {
 					queue.add(moveSet);
 				}
 
-				builder.addTransition(fromDFAState, symbol,toDFAState);
+				builder.addTransition(fromDFAState, symbol, toDFAState);
 			}
 		}
 
@@ -372,6 +370,7 @@ public final class AutomataUtils {
 
 	private DFA convertDFAToMinimizedDFA(final DFA dfa) {
 		// Myhill-Nerode theorem
+		final DFABuilder builder = DFA.builder();
 		final List<State> oldStates = dfa.states().stream().toList();
 		final int n = oldStates.size();
 		final boolean[][] isDistinguishable = new boolean[n][n];
@@ -399,15 +398,11 @@ public final class AutomataUtils {
 			atLeastOnePairDistinguished = false;
 			for (int i = 0; i < n; i++) {
 				final State p = oldStates.get(i);
-				final Map<Character, State> px = dfa.transitions().stream()
-						.filter(t -> t.from().equals(p))
-						.collect(Collectors.toMap(StateTransition::character, StateTransition::to));
+				final Map<Character, State> px = dfa.neighbors(p);
 
 				for (int j = i + 1; j < n; j++) {
 					final State q = oldStates.get(j);
-					final Map<Character, State> qx = dfa.transitions().stream()
-							.filter(t -> t.from().equals(q))
-							.collect(Collectors.toMap(StateTransition::character, StateTransition::to));
+					final Map<Character, State> qx = dfa.neighbors(q);
 					if (isDistinguishable[i][j]) {
 						continue;
 					}
@@ -463,16 +458,15 @@ public final class AutomataUtils {
 		}
 
 		// Add transitions
-		final Set<StateTransition> newTransitions = new HashSet<>();
-		for (final StateTransition t : dfa.transitions()) {
-			final State from = oldToNew.get(t.from());
-			final State to = oldToNew.get(t.to());
-			newTransitions.add(new StateTransition(from, to, t.character()));
+		for (final State src : oldStates) {
+			for (final Map.Entry<Character, State> e : dfa.neighbors(src).entrySet()) {
+				builder.addTransition(oldToNew.get(src), e.getKey(), oldToNew.get(e.getValue()));
+			}
 		}
 
 		final State newStart = oldToNew.get(dfa.startingState());
 
-		return new FiniteStateAutomaton(newStart, newTransitions);
+		return builder.start(newStart).build();
 	}
 
 	/**
@@ -526,7 +520,7 @@ public final class AutomataUtils {
 		assertEpsilonNFAValid(finiteStateAutomaton);
 
 		if (finiteStateAutomaton.states().stream()
-				.anyMatch(s -> finiteStateAutomaton.neighbors(s).containsKey(StateTransition.EPSILON))) {
+				.anyMatch(s -> finiteStateAutomaton.neighbors(s).containsKey(NFA.EPSILON))) {
 			throw new IllegalArgumentException("Epsilon transitions found in an NFA.");
 		}
 	}
@@ -537,26 +531,26 @@ public final class AutomataUtils {
 	 * @param finiteStateAutomaton The DFA to check.
 	 */
 	public static void assertDFAValid(final DFA finiteStateAutomaton) {
-		assertNFAValid(finiteStateAutomaton);
-
-		final Set<State> allStates = Stream.concat(
-						Stream.of(finiteStateAutomaton.startingState()),
-						finiteStateAutomaton.transitions().stream().flatMap(t -> Stream.of(t.from(), t.to())))
-				.collect(Collectors.toUnmodifiableSet());
-
-		for (final State s : allStates) {
-			final Set<Character> transitions = new HashSet<>();
-			for (final StateTransition t : finiteStateAutomaton.transitions()) {
-				if (!t.from().equals(s)) {
-					continue;
+		assertNFAValid(new NFA() {
+			@Override
+			public Map<Character, Set<State>> neighbors(final State s) {
+				final Map<Character, Set<State>> m = new HashMap<>();
+				for (final Map.Entry<Character, State> e :
+						finiteStateAutomaton.neighbors(s).entrySet()) {
+					m.put(e.getKey(), Set.of(e.getValue()));
 				}
-				if (transitions.contains(t.character())) {
-					throw new IllegalArgumentException(String.format(
-							"State '%s' has two transitions with the same character '%c' (U+%04X).",
-							s, t.character(), (int) t.character()));
-				}
-				transitions.add(t.character());
+				return m;
 			}
-		}
+
+			@Override
+			public State startingState() {
+				return finiteStateAutomaton.startingState();
+			}
+
+			@Override
+			public Set<State> states() {
+				return finiteStateAutomaton.states();
+			}
+		});
 	}
 }

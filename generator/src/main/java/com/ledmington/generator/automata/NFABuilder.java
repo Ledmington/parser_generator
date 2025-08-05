@@ -26,7 +26,7 @@ import java.util.Set;
 public final class NFABuilder {
 
 	private State startingState = null;
-	private Map<State, Map<Character, Set<State>>> transitions = new HashMap<>();
+	private final Map<State, Map<Character, Set<State>>> transitions = new HashMap<>();
 
 	public NFABuilder() {}
 
@@ -49,12 +49,15 @@ public final class NFABuilder {
 	}
 
 	public NFABuilder start(final State startingState) {
+		if (this.startingState != null) {
+			throw new IllegalArgumentException("Cannot set starting state twice.");
+		}
 		this.startingState = Objects.requireNonNull(startingState);
 		return this;
 	}
 
 	public NFA build() {
-		return new NFA(startingState, transitions);
+		return new NFAImpl(startingState, transitions);
 	}
 
 	public void removeAll(final Set<State> unreachableStates) {

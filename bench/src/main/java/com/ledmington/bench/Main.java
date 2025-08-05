@@ -21,7 +21,8 @@ import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Parser;
 import com.ledmington.generator.GrammarChecker;
 import com.ledmington.generator.automata.AutomataUtils;
-import com.ledmington.generator.automata.FiniteStateAutomaton;
+import com.ledmington.generator.automata.DFA;
+import com.ledmington.generator.automata.NFA;
 
 public class Main {
 
@@ -70,7 +71,7 @@ public class Main {
 			System.gc();
 
 			t = System.nanoTime();
-			final FiniteStateAutomaton epsilonNFA = AutomataUtils.grammarToEpsilonNFA(g);
+			final NFA epsilonNFA = AutomataUtils.grammarToEpsilonNFA(g);
 			final long grammarToEpsilonNFATime = System.nanoTime() - t;
 			final long grammarToEpsilonNFAMemory = memory() - initialUsedMemory;
 			System.gc();
@@ -82,7 +83,7 @@ public class Main {
 			System.gc();
 
 			t = System.nanoTime();
-			final FiniteStateAutomaton nfa = AutomataUtils.epsilonNFAtoNFA(epsilonNFA);
+			final NFA nfa = AutomataUtils.epsilonNFAtoNFA(epsilonNFA);
 			final long epsilonNFAToNFATime = System.nanoTime() - t;
 			final long epsilonNFAToNFAMemory = memory() - initialUsedMemory;
 			System.gc();
@@ -94,7 +95,7 @@ public class Main {
 			System.gc();
 
 			t = System.nanoTime();
-			final FiniteStateAutomaton dfa = AutomataUtils.NFAtoDFA(nfa);
+			final DFA dfa = AutomataUtils.NFAtoDFA(nfa);
 			final long NFAToDFATime = System.nanoTime() - t;
 			final long NFAToDFAMemory = memory() - initialUsedMemory;
 			System.gc();
@@ -106,7 +107,7 @@ public class Main {
 			System.gc();
 
 			t = System.nanoTime();
-			final FiniteStateAutomaton minimizedDFA = AutomataUtils.minimizeDFA(dfa);
+			final DFA minimizedDFA = AutomataUtils.minimizeDFA(dfa);
 			final long minimizingDFATime = System.nanoTime() - t;
 			final long minimizingDFAMemory = memory() - initialUsedMemory;
 			System.gc();

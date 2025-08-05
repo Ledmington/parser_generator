@@ -22,9 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
@@ -41,9 +39,9 @@ import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.Utils;
 import com.ledmington.generator.automata.AcceptingState;
 import com.ledmington.generator.automata.AutomataUtils;
-import com.ledmington.generator.automata.FiniteStateAutomaton;
+import com.ledmington.generator.automata.DFA;
+import com.ledmington.generator.automata.NFA;
 import com.ledmington.generator.automata.State;
-import com.ledmington.generator.automata.StateTransition;
 
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public final class TestAutomata {
@@ -57,7 +55,7 @@ public final class TestAutomata {
 	@ParameterizedTest
 	@MethodSource("onlyGrammars")
 	void checkValidEpsilonNFA(final Grammar g) {
-		final FiniteStateAutomaton epsilonNFA = AutomataUtils.grammarToEpsilonNFA(g);
+		final NFA epsilonNFA = AutomataUtils.grammarToEpsilonNFA(g);
 		assertDoesNotThrow(
 				() -> AutomataUtils.assertEpsilonNFAValid(epsilonNFA),
 				() -> String.format(
@@ -67,7 +65,7 @@ public final class TestAutomata {
 	@ParameterizedTest
 	@MethodSource("onlyGrammars")
 	void checkValidNFA(final Grammar g) {
-		final FiniteStateAutomaton nfa = AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g));
+		final NFA nfa = AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g));
 		assertDoesNotThrow(
 				() -> AutomataUtils.assertNFAValid(nfa),
 				() -> String.format("Expected this automaton to be valid but it wasn't:\n%s\n", nfa.toGraphviz()));
@@ -76,8 +74,7 @@ public final class TestAutomata {
 	@ParameterizedTest
 	@MethodSource("onlyGrammars")
 	void checkValidDFA(final Grammar g) {
-		final FiniteStateAutomaton dfa =
-				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g)));
+		final DFA dfa = AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g)));
 		assertDoesNotThrow(
 				() -> AutomataUtils.assertDFAValid(dfa),
 				() -> String.format("Expected this automaton to be valid but it wasn't:\n%s\n", dfa.toGraphviz()));
@@ -86,7 +83,7 @@ public final class TestAutomata {
 	@ParameterizedTest
 	@MethodSource("onlyGrammars")
 	void checkValidMinimizedDFA(final Grammar g) {
-		final FiniteStateAutomaton minimizedDFA = AutomataUtils.minimizeDFA(
+		final DFA minimizedDFA = AutomataUtils.minimizeDFA(
 				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g))));
 		assertDoesNotThrow(
 				() -> AutomataUtils.assertDFAValid(minimizedDFA),
@@ -97,8 +94,8 @@ public final class TestAutomata {
 	@ParameterizedTest
 	@MethodSource("onlyGrammars")
 	void epsilonNFADeterministicGeneration(final Grammar g) {
-		final FiniteStateAutomaton epsilonNFA1 = AutomataUtils.grammarToEpsilonNFA(g);
-		final FiniteStateAutomaton epsilonNFA2 = AutomataUtils.grammarToEpsilonNFA(g);
+		final NFA epsilonNFA1 = AutomataUtils.grammarToEpsilonNFA(g);
+		final NFA epsilonNFA2 = AutomataUtils.grammarToEpsilonNFA(g);
 		assertEquals(
 				epsilonNFA1,
 				epsilonNFA2,
@@ -110,8 +107,8 @@ public final class TestAutomata {
 	@ParameterizedTest
 	@MethodSource("onlyGrammars")
 	void nfaDeterministicGeneration(final Grammar g) {
-		final FiniteStateAutomaton nfa1 = AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g));
-		final FiniteStateAutomaton nfa2 = AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g));
+		final NFA nfa1 = AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g));
+		final NFA nfa2 = AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g));
 		assertEquals(
 				nfa1,
 				nfa2,
@@ -123,10 +120,8 @@ public final class TestAutomata {
 	@ParameterizedTest
 	@MethodSource("onlyGrammars")
 	void dfaDeterministicGeneration(final Grammar g) {
-		final FiniteStateAutomaton dfa1 =
-				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g)));
-		final FiniteStateAutomaton dfa2 =
-				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g)));
+		final DFA dfa1 = AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g)));
+		final DFA dfa2 = AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g)));
 		assertEquals(
 				dfa1,
 				dfa2,
@@ -138,9 +133,9 @@ public final class TestAutomata {
 	@ParameterizedTest
 	@MethodSource("onlyGrammars")
 	void minimizedDFADeterministicGeneration(final Grammar g) {
-		final FiniteStateAutomaton minimizedDFA1 = AutomataUtils.minimizeDFA(
+		final DFA minimizedDFA1 = AutomataUtils.minimizeDFA(
 				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g))));
-		final FiniteStateAutomaton minimizedDFA2 = AutomataUtils.minimizeDFA(
+		final DFA minimizedDFA2 = AutomataUtils.minimizeDFA(
 				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(g))));
 		assertEquals(
 				minimizedDFA1,
@@ -152,18 +147,7 @@ public final class TestAutomata {
 
 	private record Match(String name, String content) {}
 
-	List<Match> tryMatch(final FiniteStateAutomaton dfa, final String input) {
-		final Map<State, Map<Character, State>> transitions = new HashMap<>();
-		{
-			// Converting transitions into a map
-			for (final StateTransition t : dfa.transitions()) {
-				if (!transitions.containsKey(t.from())) {
-					transitions.put(t.from(), new HashMap<>());
-				}
-				transitions.get(t.from()).put(t.character(), t.to());
-			}
-		}
-
+	List<Match> tryMatch(final DFA dfa, final String input) {
 		final char[] v = input.toCharArray();
 		int pos = 0;
 		State currentState = dfa.startingState();
@@ -175,8 +159,8 @@ public final class TestAutomata {
 				lastMatchEnd = pos;
 			}
 			final char ch = v[pos];
-			if (transitions.get(currentState).containsKey(ch)) {
-				currentState = transitions.get(currentState).get(ch);
+			if (dfa.neighbors(currentState).containsKey(ch)) {
+				currentState = dfa.neighbors(currentState).get(ch);
 				pos++;
 			} else {
 				// no more transitions, emit last match if present
@@ -213,7 +197,7 @@ public final class TestAutomata {
 				new Production(
 						new NonTerminal("ID"),
 						new OneOrMore(new Or(new Terminal("a"), new Terminal("b"), new Terminal("n")))));
-		final FiniteStateAutomaton dfa =
+		final DFA dfa =
 				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(productions)));
 		final List<Match> tokens = tryMatch(dfa, "banana");
 		assertEquals(List.of(new Match("ID", "banana")), tokens);
@@ -226,7 +210,7 @@ public final class TestAutomata {
 				new Production(
 						new NonTerminal("ID"),
 						new OneOrMore(new Or(new Terminal("a"), new Terminal("b"), new Terminal("n")))));
-		final FiniteStateAutomaton dfa = AutomataUtils.minimizeDFA(
+		final DFA dfa = AutomataUtils.minimizeDFA(
 				AutomataUtils.NFAtoDFA(AutomataUtils.epsilonNFAtoNFA(AutomataUtils.grammarToEpsilonNFA(productions))));
 		final List<Match> tokens = tryMatch(dfa, "banana");
 		assertEquals(List.of(new Match("ID", "banana")), tokens);
