@@ -19,10 +19,21 @@ package com.ledmington.generator.automata;
 
 import java.util.Set;
 
+/** Common interface for finite-state automata. */
 public interface Automaton {
 
+	/**
+	 * Returns the starting state of the automaton.
+	 *
+	 * @return The starting state.
+	 */
 	State startingState();
 
+	/**
+	 * Returns the set of all states of this automaton.
+	 *
+	 * @return The set of all states.
+	 */
 	Set<State> states();
 
 	/**

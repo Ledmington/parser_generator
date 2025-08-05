@@ -22,12 +22,24 @@ import java.util.Set;
 
 import com.ledmington.ebnf.Utils;
 
+/** Common interface for deterministc finite-state automata. */
 public interface DFA extends Automaton {
 
+	/**
+	 * Returns a new DFABuilder.
+	 *
+	 * @return A new DFABuilder.
+	 */
 	static DFABuilder builder() {
 		return new DFABuilder();
 	}
 
+	/**
+	 * Returns the "set" of neighbors of the given state.
+	 *
+	 * @param s The state the transitions start from.
+	 * @return The "set" of neighbors.
+	 */
 	Map<Character, State> neighbors(final State s);
 
 	default String toGraphviz() {

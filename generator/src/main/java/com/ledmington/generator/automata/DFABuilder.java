@@ -21,23 +21,37 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+/** A builder for easy creation of a DFA. */
 public final class DFABuilder {
 
 	private State startingState = null;
 	private final Map<State, Map<Character, State>> transitions = new HashMap<>();
 
+	/** Creates a new DFABuilder with no starting state and no transitions. */
 	public DFABuilder() {}
 
-	public DFABuilder addTransition(final State from, final char symbol, final State to) {
+	/**
+	 * Adds a new transition from the state "from" to the state "to" with the symbol "symbol".
+	 *
+	 * @param from The source state of the new transition.
+	 * @param symbol THe character of the new transition.
+	 * @param to The destination state of the new transition.
+	 */
+	public void addTransition(final State from, final char symbol, final State to) {
 		Objects.requireNonNull(from);
 		Objects.requireNonNull(to);
 		if (!transitions.containsKey(from)) {
 			transitions.put(from, new HashMap<>());
 		}
 		transitions.get(from).put(symbol, to);
-		return this;
 	}
 
+	/**
+	 * Sets the given state as the starting state.
+	 *
+	 * @param startingState The new starting state.
+	 * @return This instance of DFABuilder.
+	 */
 	public DFABuilder start(final State startingState) {
 		if (this.startingState != null) {
 			throw new IllegalArgumentException("Cannot set starting state twice.");
@@ -46,6 +60,11 @@ public final class DFABuilder {
 		return this;
 	}
 
+	/**
+	 * Creates a new DFA with the data contained.
+	 *
+	 * @return A new DFA.
+	 */
 	public DFA build() {
 		return new DFAImpl(startingState, transitions);
 	}

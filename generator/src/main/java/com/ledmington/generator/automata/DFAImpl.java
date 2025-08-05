@@ -22,11 +22,18 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+/** Implementation of a deterministic finite-state automaton. */
 public final class DFAImpl implements DFA {
 
 	private final State start;
 	private final Map<State, Map<Character, State>> transitions;
 
+	/**
+	 * Creates a new DFA with the given starting state and the given transitions.
+	 *
+	 * @param startingState The starting state.
+	 * @param transitions The map of transitions of the automaton.
+	 */
 	public DFAImpl(final State startingState, final Map<State, Map<Character, State>> transitions) {
 		this.start = Objects.requireNonNull(startingState);
 		this.transitions = Objects.requireNonNull(transitions);

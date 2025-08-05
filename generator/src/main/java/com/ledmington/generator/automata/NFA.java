@@ -22,15 +22,27 @@ import java.util.Set;
 
 import com.ledmington.ebnf.Utils;
 
+/** Common interface for non-deterministic finite-state automata. */
 public interface NFA extends Automaton {
 
 	/** The symbol of an epsilon transition. */
 	char EPSILON = (char) -1;
 
+	/**
+	 * Returns a new NFABuilder.
+	 *
+	 * @return A new NcFABuilder.
+	 */
 	static NFABuilder builder() {
 		return new NFABuilder();
 	}
 
+	/**
+	 * Returns the "set" of neighbors of the given state.
+	 *
+	 * @param s The state the transitions start from.
+	 * @return The "set" of neighbors.
+	 */
 	Map<Character, Set<State>> neighbors(final State s);
 
 	default String toGraphviz() {

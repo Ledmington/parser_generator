@@ -22,11 +22,18 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+/** Implementation of a non-deterministic finite-state automaton. */
 public final class NFAImpl implements NFA {
 
 	private final State start;
 	private final Map<State, Map<Character, Set<State>>> transitions;
 
+	/**
+	 * Creates a new NFA with the given starting state and the given transitions.
+	 *
+	 * @param startingState The starting state.
+	 * @param transitions The map of transitions of the automaton.
+	 */
 	public NFAImpl(final State startingState, final Map<State, Map<Character, Set<State>>> transitions) {
 		this.start = Objects.requireNonNull(startingState);
 		this.transitions = Objects.requireNonNull(transitions);

@@ -284,7 +284,7 @@ public final class AutomataUtils {
 		}
 
 		if (!unreachableStates.isEmpty()) {
-			builder.removeAll(unreachableStates);
+			builder.removeStates(unreachableStates);
 		}
 
 		return builder.start(newStartingState).build();

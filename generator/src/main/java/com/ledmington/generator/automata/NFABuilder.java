@@ -23,14 +23,23 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+/** A builder for easy creation of an NFA. */
 public final class NFABuilder {
 
 	private State startingState = null;
 	private final Map<State, Map<Character, Set<State>>> transitions = new HashMap<>();
 
+	/** Creates a new NFABuilder with no starting state and no transitions. */
 	public NFABuilder() {}
 
-	public NFABuilder addTransition(final State from, final char symbol, final State to) {
+	/**
+	 * Adds a new transition from the state "from" to the state "to" with the symbol "symbol".
+	 *
+	 * @param from The source state of the new transition.
+	 * @param symbol THe character of the new transition.
+	 * @param to The destination state of the new transition.
+	 */
+	public void addTransition(final State from, final char symbol, final State to) {
 		Objects.requireNonNull(from);
 		Objects.requireNonNull(to);
 		if (!transitions.containsKey(from)) {
@@ -41,13 +50,24 @@ public final class NFABuilder {
 			m.put(symbol, new HashSet<>());
 		}
 		m.get(symbol).add(to);
-		return this;
 	}
 
+	/**
+	 * Returns the "set" of neighbors of the given state.
+	 *
+	 * @param s The state the transitions start from.
+	 * @return The "set" of neighbors.
+	 */
 	public Map<Character, Set<State>> neighbors(final State s) {
 		return transitions.get(s);
 	}
 
+	/**
+	 * Sets the given state as the starting state.
+	 *
+	 * @param startingState The new starting state.
+	 * @return This instance of NFABuilder.
+	 */
 	public NFABuilder start(final State startingState) {
 		if (this.startingState != null) {
 			throw new IllegalArgumentException("Cannot set starting state twice.");
@@ -56,11 +76,21 @@ public final class NFABuilder {
 		return this;
 	}
 
+	/**
+	 * Creates a new NFA with the data contained.
+	 *
+	 * @return A new NFA.
+	 */
 	public NFA build() {
 		return new NFAImpl(startingState, transitions);
 	}
 
-	public void removeAll(final Set<State> unreachableStates) {
+	/**
+	 * Removes all the given states and any transition related to them.
+	 *
+	 * @param unreachableStates The set of states to be removed.
+	 */
+	public void removeStates(final Set<State> unreachableStates) {
 		for (final State s : unreachableStates) {
 			transitions.remove(s);
 		}
