@@ -52,7 +52,11 @@ public interface NFA extends Automaton {
 		sb.append("    __start__ -> ").append(startingState().name()).append(";\n");
 
 		for (final State src : allStates) {
-			for (final Map.Entry<Character, Set<State>> e : neighbors(src).entrySet()) {
+			final Map<Character, Set<State>> neighbors = neighbors(src);
+			if (neighbors == null) {
+				continue;
+			}
+			for (final Map.Entry<Character, Set<State>> e : neighbors.entrySet()) {
 				final char symbol = e.getKey();
 				for (final State dst : e.getValue()) {
 					sb.append("    ")

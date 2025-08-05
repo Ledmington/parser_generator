@@ -24,17 +24,17 @@ import java.util.Set;
 
 public final class DFAImpl implements DFA {
 
-	private final State startingState;
+	private final State start;
 	private final Map<State, Map<Character, State>> transitions;
 
 	public DFAImpl(final State startingState, final Map<State, Map<Character, State>> transitions) {
-		this.startingState = Objects.requireNonNull(startingState);
+		this.start = Objects.requireNonNull(startingState);
 		this.transitions = Objects.requireNonNull(transitions);
 	}
 
 	@Override
 	public State startingState() {
-		return startingState;
+		return start;
 	}
 
 	@Override
@@ -50,5 +50,32 @@ public final class DFAImpl implements DFA {
 	@Override
 	public Map<Character, State> neighbors(final State s) {
 		return transitions.get(s);
+	}
+
+	@Override
+	public String toString() {
+		return "DFA[start=" + start + ";transitions=" + transitions + "]";
+	}
+
+	@Override
+	public int hashCode() {
+		int h = 17;
+		h = 31 * h + start.hashCode();
+		h = 31 * h + transitions.hashCode();
+		return h;
+	}
+
+	@Override
+	public boolean equals(final Object other) {
+		if (other == null) {
+			return false;
+		}
+		if (this == other) {
+			return true;
+		}
+		if (!(other instanceof final DFAImpl dfa)) {
+			return false;
+		}
+		return this.start.equals(dfa.start) && this.transitions.equals(dfa.transitions);
 	}
 }

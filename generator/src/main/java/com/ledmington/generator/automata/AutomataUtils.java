@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Node;
@@ -187,7 +188,7 @@ public final class AutomataUtils {
 			closure.add(s);
 
 			final Map<Character, Set<State>> neighbors = nfa.neighbors(s);
-			if (neighbors.containsKey(NFA.EPSILON)) {
+			if (neighbors != null && neighbors.containsKey(NFA.EPSILON)) {
 				q.addAll(neighbors.get(NFA.EPSILON));
 			}
 		}
@@ -236,13 +237,17 @@ public final class AutomataUtils {
 
 			for (final State cs : closure) {
 				final Map<Character, Set<State>> neighbors = epsilonNFA.neighbors(cs);
+				if (neighbors == null) {
+					continue;
+				}
 				for (final Map.Entry<Character, Set<State>> e : neighbors.entrySet()) {
 					final char symbol = e.getKey();
-					if (symbol != NFA.EPSILON) {
-						for (final State qq : e.getValue()) {
-							for (final State q : epsilonClosures.get(qq)) {
-								builder.addTransition(stateMapping.get(s), symbol, stateMapping.get(q));
-							}
+					if (symbol == NFA.EPSILON) {
+						continue;
+					}
+					for (final State qq : e.getValue()) {
+						for (final State q : epsilonClosures.get(qq)) {
+							builder.addTransition(stateMapping.get(s), symbol, stateMapping.get(q));
 						}
 					}
 				}
@@ -262,7 +267,11 @@ public final class AutomataUtils {
 			}
 			visited.add(s);
 
-			for (final Map.Entry<Character, Set<State>> e : builder.neighbors(s).entrySet()) {
+			final Map<Character, Set<State>> neighbors = builder.neighbors(s);
+			if (neighbors == null) {
+				continue;
+			}
+			for (final Map.Entry<Character, Set<State>> e : neighbors.entrySet()) {
 				q.addAll(e.getValue());
 			}
 		}
@@ -278,14 +287,18 @@ public final class AutomataUtils {
 			builder.removeAll(unreachableStates);
 		}
 
-		return builder.build();
+		return builder.start(newStartingState).build();
 	}
 
 	private static Set<State> move(final Set<State> states, final char symbol, final NFA nfa) {
 		final Set<State> result = new HashSet<>();
 		for (final State s : states) {
-			if (nfa.neighbors(s).containsKey(symbol)) {
-				result.addAll(nfa.neighbors(s).get(symbol));
+			final Map<Character, Set<State>> neighbors = nfa.neighbors(s);
+			if (neighbors == null) {
+				continue;
+			}
+			if (neighbors.containsKey(symbol)) {
+				result.addAll(neighbors.get(symbol));
 			}
 		}
 		return result;
@@ -308,7 +321,13 @@ public final class AutomataUtils {
 		final DFABuilder builder = DFA.builder();
 
 		final Set<Character> alphabet = nfa.states().stream()
-				.flatMap(s -> nfa.neighbors(s).keySet().stream())
+				.flatMap(s -> {
+					final Map<Character, Set<State>> m = nfa.neighbors(s);
+					if (m == null) {
+						return Stream.of();
+					}
+					return m.keySet().stream();
+				})
 				.collect(Collectors.toUnmodifiableSet());
 
 		final Set<State> startSet = new HashSet<>();
@@ -354,7 +373,7 @@ public final class AutomataUtils {
 			}
 		}
 
-		return builder.build();
+		return builder.start(dfaStartState).build();
 	}
 
 	/**
@@ -399,11 +418,18 @@ public final class AutomataUtils {
 			for (int i = 0; i < n; i++) {
 				final State p = oldStates.get(i);
 				final Map<Character, State> px = dfa.neighbors(p);
+				if (px == null) {
+					continue;
+				}
 
 				for (int j = i + 1; j < n; j++) {
+					if (isDistinguishable[i][j]) {
+						continue;
+					}
+
 					final State q = oldStates.get(j);
 					final Map<Character, State> qx = dfa.neighbors(q);
-					if (isDistinguishable[i][j]) {
+					if (qx == null) {
 						continue;
 					}
 
@@ -459,7 +485,11 @@ public final class AutomataUtils {
 
 		// Add transitions
 		for (final State src : oldStates) {
-			for (final Map.Entry<Character, State> e : dfa.neighbors(src).entrySet()) {
+			final Map<Character, State> neighbors = dfa.neighbors(src);
+			if (neighbors == null) {
+				continue;
+			}
+			for (final Map.Entry<Character, State> e : neighbors.entrySet()) {
 				builder.addTransition(oldToNew.get(src), e.getKey(), oldToNew.get(e.getValue()));
 			}
 		}
@@ -494,7 +524,11 @@ public final class AutomataUtils {
 			}
 			visited.add(s);
 
-			for (final Map.Entry<Character, Set<State>> e : nfa.neighbors(s).entrySet()) {
+			final Map<Character, Set<State>> neighbors = nfa.neighbors(s);
+			if (neighbors == null) {
+				continue;
+			}
+			for (final Map.Entry<Character, Set<State>> e : neighbors.entrySet()) {
 				q.addAll(e.getValue());
 			}
 		}
@@ -519,8 +553,13 @@ public final class AutomataUtils {
 	public static void assertNFAValid(final NFA finiteStateAutomaton) {
 		assertEpsilonNFAValid(finiteStateAutomaton);
 
-		if (finiteStateAutomaton.states().stream()
-				.anyMatch(s -> finiteStateAutomaton.neighbors(s).containsKey(NFA.EPSILON))) {
+		if (finiteStateAutomaton.states().stream().anyMatch(s -> {
+			final Map<Character, Set<State>> neighbors = finiteStateAutomaton.neighbors(s);
+			if (neighbors == null) {
+				return false;
+			}
+			return neighbors.containsKey(NFA.EPSILON);
+		})) {
 			throw new IllegalArgumentException("Epsilon transitions found in an NFA.");
 		}
 	}
@@ -535,9 +574,11 @@ public final class AutomataUtils {
 			@Override
 			public Map<Character, Set<State>> neighbors(final State s) {
 				final Map<Character, Set<State>> m = new HashMap<>();
-				for (final Map.Entry<Character, State> e :
-						finiteStateAutomaton.neighbors(s).entrySet()) {
-					m.put(e.getKey(), Set.of(e.getValue()));
+				final Map<Character, State> neighbors = finiteStateAutomaton.neighbors(s);
+				if (neighbors != null) {
+					for (final Map.Entry<Character, State> e : neighbors.entrySet()) {
+						m.put(e.getKey(), Set.of(e.getValue()));
+					}
 				}
 				return m;
 			}

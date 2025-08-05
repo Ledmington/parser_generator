@@ -349,24 +349,27 @@ public final class Generator {
 		for (int i = 0; i < allStates.size(); i++) {
 			final State src = allStates.get(i);
 			sb.append("Map.entry(").append(i).append(", Map.<Character, Integer>ofEntries(");
-			final List<Map.Entry<Character, State>> entries = minimizedDFA.neighbors(src).entrySet().stream()
-					.sorted(Map.Entry.comparingByKey())
-					.toList();
-			for (int j = 0; j < entries.size(); j++) {
-				final char symbol = entries.get(j).getKey();
-				final State dst = entries.get(j).getValue();
-				sb.append('\n').indent();
-				sb.append("Map.entry('")
-						.append(Utils.getEscapeCharacter(symbol))
-						.append("', ")
-						.append(stateIndex.get(dst))
-						.append(")");
-				if (j < entries.size() - 1) {
-					sb.append(',');
-				}
-				sb.append('\n');
+			final Map<Character, State> neighbors = minimizedDFA.neighbors(src);
+			if (neighbors != null) {
+				final List<Map.Entry<Character, State>> entries = neighbors.entrySet().stream()
+						.sorted(Map.Entry.comparingByKey())
+						.toList();
+				for (int j = 0; j < entries.size(); j++) {
+					final char symbol = entries.get(j).getKey();
+					final State dst = entries.get(j).getValue();
+					sb.append('\n').indent();
+					sb.append("Map.entry('")
+							.append(Utils.getEscapeCharacter(symbol))
+							.append("', ")
+							.append(stateIndex.get(dst))
+							.append(")");
+					if (j < entries.size() - 1) {
+						sb.append(',');
+					}
+					sb.append('\n');
 
-				sb.deindent();
+					sb.deindent();
+				}
 			}
 			sb.append("))");
 			if (i < allStates.size() - 1) {

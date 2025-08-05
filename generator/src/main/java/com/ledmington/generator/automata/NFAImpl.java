@@ -24,17 +24,17 @@ import java.util.Set;
 
 public final class NFAImpl implements NFA {
 
-	private final State startingState;
+	private final State start;
 	private final Map<State, Map<Character, Set<State>>> transitions;
 
 	public NFAImpl(final State startingState, final Map<State, Map<Character, Set<State>>> transitions) {
-		this.startingState = Objects.requireNonNull(startingState);
+		this.start = Objects.requireNonNull(startingState);
 		this.transitions = Objects.requireNonNull(transitions);
 	}
 
 	@Override
 	public State startingState() {
-		return startingState;
+		return start;
 	}
 
 	@Override
@@ -52,5 +52,32 @@ public final class NFAImpl implements NFA {
 	@Override
 	public Map<Character, Set<State>> neighbors(final State s) {
 		return transitions.get(s);
+	}
+
+	@Override
+	public String toString() {
+		return "NFA[start=" + start + ";transitions=" + transitions + "]";
+	}
+
+	@Override
+	public int hashCode() {
+		int h = 17;
+		h = 31 * h + start.hashCode();
+		h = 31 * h + transitions.hashCode();
+		return h;
+	}
+
+	@Override
+	public boolean equals(final Object other) {
+		if (other == null) {
+			return false;
+		}
+		if (this == other) {
+			return true;
+		}
+		if (!(other instanceof final NFAImpl nfa)) {
+			return false;
+		}
+		return this.start.equals(nfa.start) && this.transitions.equals(nfa.transitions);
 	}
 }

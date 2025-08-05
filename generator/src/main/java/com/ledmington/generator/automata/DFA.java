@@ -49,7 +49,11 @@ public interface DFA extends Automaton {
 		sb.append("    __start__ -> ").append(startingState().name()).append(";\n");
 
 		for (final State src : allStates) {
-			for (final Map.Entry<Character, State> e : neighbors(src).entrySet()) {
+			final Map<Character, State> neighbors = neighbors(src);
+			if (neighbors == null) {
+				continue;
+			}
+			for (final Map.Entry<Character, State> e : neighbors.entrySet()) {
 				final char symbol = e.getKey();
 				final State dst = e.getValue();
 				sb.append("    ")
