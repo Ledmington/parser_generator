@@ -73,7 +73,7 @@ public interface DFA extends Automaton {
 						.append(" -> ")
 						.append(dst.name())
 						.append(" [label=\"")
-						.append(symbol == NFA.EPSILON ? "ε" : (Utils.getEscapeCharacter(symbol)))
+						.append(symbol == NFA.EPSILON ? "ε" : (Utils.getEscapedCharacter(symbol)))
 						.append("\"];\n");
 			}
 		}

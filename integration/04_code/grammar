@@ -1,0 +1,18 @@
+start = declaration+ ;
+declaration = INT id EQUALS number SEMICOLON
+            | CHAR id EQUALS character_literal SEMICOLON ;
+id = LETTER+ ;
+number = DIGIT+ ;
+character_literal = QUOTE LETTER QUOTE ;
+
+INT = "int" ;
+EQUALS = "=" ;
+CHAR = "char" ;
+SEMICOLON = ";" ;
+QUOTE = "'" ;
+LETTER = "a" | "b" | "c" | "d" | "e" | "f" | "g"
+       | "h" | "i" | "j" | "k" | "l" | "m" | "n"
+       | "o" | "p" | "q" | "r" | "s" | "t" | "u"
+       | "v" | "w" | "x" | "y" | "z" | "_" ;
+DIGIT = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+_WHITESPACE = ( " " | "\t" | "\n" )+ ;

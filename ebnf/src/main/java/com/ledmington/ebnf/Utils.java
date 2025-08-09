@@ -75,12 +75,20 @@ public final class Utils {
 			case Terminal t ->
 				sb.append(indentString)
 						.append("Terminal { ")
-						.append(t.literal())
+						.append(Utils.getEscapedString(t.literal()))
 						.append(" }");
 			default ->
 				throw new IllegalArgumentException(String.format(
 						"Unknown Node of type %s.", root.getClass().getSimpleName()));
 		}
+	}
+
+	private static String getEscapedString(final String literal) {
+		final StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < literal.length(); i++) {
+			sb.append(getEscapedCharacter(literal.charAt(i)));
+		}
+		return sb.toString();
 	}
 
 	private static void prettyPrintContainer(
@@ -110,17 +118,20 @@ public final class Utils {
 		sb.append(indentString).append("}");
 	}
 
-	private static boolean needsEscaping(final char ch) {
-		return ch == '\'' || ch == '\"' || ch == '\\';
-	}
-
 	/**
 	 * Escapes a single character, if needed.
 	 *
 	 * @param ch The character to be escaped.
 	 * @return The same input character escaped, if needed.
 	 */
-	public static String getEscapeCharacter(final char ch) {
-		return (needsEscaping(ch) ? "\\" : "") + ch;
+	public static String getEscapedCharacter(final char ch) {
+		return switch (ch) {
+			case '\'' -> "\\'";
+			case '\"' -> "\\\"";
+			case '\\' -> "\\\\";
+			case '\t' -> "\\t";
+			case '\n' -> "\\n";
+			default -> "" + ch;
+		};
 	}
 }

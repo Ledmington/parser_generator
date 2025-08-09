@@ -55,6 +55,8 @@ public final class TestParser {
 			Arguments.of("a=\"a\"* \"b\";", g(p("a", seq(zero_or_more(t("a")), t("b"))))),
 			Arguments.of("a=\"a\"+ \"b\";", g(p("a", seq(one_or_more(t("a")), t("b"))))),
 			Arguments.of("a=\"\\\"\";", g(p("a", t("\"")))),
+			Arguments.of("a=\"\\n\";", g(p("a", t("\n")))),
+			Arguments.of("a=\"\\t\";", g(p("a", t("\t")))),
 			Arguments.of("a=\"a\"|\"b\"|\"c\";", g(p("a", alt(t("a"), t("b"), t("c"))))),
 			Arguments.of("S=\"a\"|(\"b\" \"c\");", g(p("S", alt(t("a"), seq(t("b"), t("c")))))),
 			Arguments.of("S=\"a\" \"b\" | \"c\" \"d\";", g(p("S", alt(seq(t("a"), t("b")), seq(t("c"), t("d")))))),
@@ -142,7 +144,7 @@ public final class TestParser {
 											t("a"), t("b"), t("c"), t("d"), t("e"), t("f"), t("g"), t("h"), t("i"),
 											t("j"), t("k"), t("l"), t("m"), t("n"), t("o"), t("p"), t("q"), t("r"),
 											t("s"), t("t"), t("u"), t("v"), t("w"), t("x"), t("y"), t("z"), t("_")))),
-							p("_WHITESPACE", zero_or_more(alt(t(" "), t("\\t"), t("\\n")))))),
+							p("_WHITESPACE", zero_or_more(alt(t(" "), t("\t"), t("\n")))))),
 			Arguments.of(
 					readFile("number.g"),
 					g(
