@@ -35,6 +35,7 @@ public final class NFAImpl implements NFA {
 	 *
 	 * @param startingState The starting state.
 	 * @param transitions The map of transitions of the automaton.
+	 * @param priorities The Map of priorities of each accepting state.
 	 */
 	public NFAImpl(
 			final State startingState,

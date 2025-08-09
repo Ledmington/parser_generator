@@ -78,6 +78,12 @@ public final class NFABuilder {
 		return this;
 	}
 
+	/**
+	 * Allows to set the map of token priorities of this automaton.
+	 *
+	 * @param priorities The map of priorities.
+	 * @return This instance of NFABuilder.
+	 */
 	public NFABuilder priorities(final Map<String, Integer> priorities) {
 		if (this.priorities != null) {
 			throw new IllegalArgumentException("Cannot set priorities twice.");

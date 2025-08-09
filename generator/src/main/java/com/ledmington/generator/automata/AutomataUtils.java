@@ -74,6 +74,12 @@ public final class AutomataUtils {
 						.collect(Collectors.toMap(e -> e.getKey().start().name(), Entry::getValue)));
 	}
 
+	/**
+	 * Converts the given list of token productions into an epsilon-NFA by deducing the priorities from the order.
+	 *
+	 * @param lexerProductions The list of token productions ordered by priority.
+	 * @return A new epsilon-NFA representing all the lexer productions of the grammar combined.
+	 */
 	public static NFA grammarToEpsilonNFA(final List<Production> lexerProductions) {
 		final Map<String, Integer> priorities = new HashMap<>();
 		for (int i = 0; i < lexerProductions.size(); i++) {
@@ -86,6 +92,7 @@ public final class AutomataUtils {
 	 * Converts the given list of productions into an epsilon-NFA.
 	 *
 	 * @param lexerProductions The productions to be converted.
+	 * @param priorities The map of priorities for each token production.
 	 * @return A new epsilon-NFA.
 	 */
 	public static NFA grammarToEpsilonNFA(
