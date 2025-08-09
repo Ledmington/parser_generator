@@ -96,10 +96,10 @@ public final class Generator {
 		generateNames(parserProductions);
 
 		final boolean atLeastOneSequence = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Sequence);
-		final boolean atLeastOneOptional = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof ZeroOrOne);
+		final boolean atLeastOneZeroOrOne = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof ZeroOrOne);
 		final boolean atLeastOneZeroOrMore = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof ZeroOrMore);
 		final boolean atLeastOneOneOrMore = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof OneOrMore);
-		final boolean atLeastOneAlternation = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Or);
+		final boolean atLeastOneOr = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Or);
 
 		final IndentedStringBuilder sb = new IndentedStringBuilder(indent);
 		sb.append("/*\n")
@@ -109,7 +109,7 @@ public final class Generator {
 			sb.append("package ").append(packageName).append(";\n\n");
 		}
 		sb.append("import java.util.List;\n").append("import java.util.ArrayList;\n");
-		if (atLeastOneSequence) {
+		if (atLeastOneSequence || generateMainMethod) {
 			sb.append("import java.util.Stack;\n");
 		}
 		sb.append("import java.util.Map;\n")
@@ -117,7 +117,8 @@ public final class Generator {
 				.append("import java.util.Arrays;\n")
 				.append("import java.util.function.Function;\n");
 		if (generateMainMethod) {
-			sb.append("import java.io.IOException;\n")
+			sb.append("import java.util.Collections;\n")
+					.append("import java.io.IOException;\n")
 					.append("import java.nio.file.Files;\n")
 					.append("import java.nio.file.Path;\n");
 		}
@@ -134,7 +135,7 @@ public final class Generator {
 			sb.append("private final Stack<Integer> stack = new Stack<>();\n");
 		}
 		sb.append("public interface Node {}\n").append("public record Terminal(String literal) implements Node {}\n");
-		if (atLeastOneOptional) {
+		if (atLeastOneZeroOrOne) {
 			sb.append("public record ZeroOrOne(Node inner) implements Node {}\n");
 		}
 		if (atLeastOneSequence) {
@@ -146,8 +147,8 @@ public final class Generator {
 		if (atLeastOneOneOrMore) {
 			sb.append("public record OneOrMore(List<Node> nodes) implements Node {}\n");
 		}
-		if (atLeastOneAlternation) {
-			sb.append("public record Alternation(Node inner) implements Node {}\n");
+		if (atLeastOneOr) {
+			sb.append("public record Or(Node inner) implements Node {}\n");
 		}
 
 		final String lexerName = parserName + "_Lexer";
@@ -235,6 +236,76 @@ public final class Generator {
 				.append("}\n");
 
 		if (generateMainMethod) {
+			sb.append(
+							"private static void printNode(final Node n, final String indent, final String continuationIndent) {\n")
+					.indent()
+					.append("final char verticalLine = '│';\n")
+					.append("final char horizontalLine = '─';\n")
+					.append("final char joint = '├';\n")
+					.append("final char angle = '└';\n")
+					.append("switch (n) {\n")
+					.indent()
+					.append("case Terminal t -> System.out.println(indent + t);\n");
+			if (atLeastOneOr) {
+				sb.append("case Or or -> {\n")
+						.indent()
+						.append("System.out.println(indent + \"Or\");\n")
+						.append(
+								"printNode(or.inner(), continuationIndent + \" \" + angle + horizontalLine, continuationIndent + \"   \");\n")
+						.deindent()
+						.append("}\n");
+			}
+			if (atLeastOneSequence) {
+				sb.append("case Sequence s -> {\n")
+						.indent()
+						.append("System.out.println(indent + \"Sequence\");\n")
+						.append("final List<Node> children = s.nodes();\n")
+						.append("final int len = children.size();\n")
+						.append("for (int i = 0; i < len - 1; i++) {\n")
+						.indent()
+						.append(
+								"printNode(children.get(i), continuationIndent + \" \" + joint + horizontalLine, continuationIndent + ' ' + verticalLine + ' ');\n")
+						.deindent()
+						.append("}\n")
+						.append(
+								"printNode(children.getLast(), continuationIndent + \" \" + angle + horizontalLine, continuationIndent + \"   \");\n")
+						.deindent()
+						.append("}\n");
+			}
+			if (atLeastOneZeroOrMore) {
+				sb.append("case ZeroOrMore zom -> {\n")
+						.indent()
+						.append("System.out.println(indent + \"ZeroOrMore\");\n")
+						.append("final List<Node> children = zom.nodes();\n")
+						.append("final int len = children.size();\n")
+						.append("for (int i = 0; i < len - 1; i++) {\n")
+						.indent()
+						.append(
+								"printNode(children.get(i), continuationIndent + \" \" + joint + horizontalLine, continuationIndent + ' ' + verticalLine + ' ');\n")
+						.deindent()
+						.append("}\n")
+						.append(
+								"printNode(len == 0 ? null : children.getLast(), continuationIndent + \" \" + angle + horizontalLine, continuationIndent + \"   \");\n")
+						.deindent()
+						.append("}\n");
+			}
+			if (atLeastOneZeroOrOne) {
+				sb.append("case ZeroOrOne zoo -> {\n")
+						.indent()
+						.append("System.out.println(indent + \"ZeroOrOne\");\n")
+						.append(
+								"printNode(zoo.inner(), continuationIndent + \" \" + angle + horizontalLine, continuationIndent + \"   \");\n")
+						.deindent()
+						.append("}\n");
+			}
+			sb.append("case null -> System.out.println(indent + \"null\");\n")
+					.append(
+							"default -> throw new IllegalArgumentException(String.format(\"Unknown node: '%s'.\", n));\n")
+					.deindent()
+					.append("}\n")
+					.deindent()
+					.append("}\n");
+
 			sb.append("public static void main(final String[] args) {\n")
 					.indent()
 					.append("if (args.length != 1) {\n")
@@ -247,15 +318,17 @@ public final class Generator {
 					.append(" parser = new ")
 					.append(parserName)
 					.append("();\n")
+					.append("final Node result;\n")
 					.append("try {\n")
 					.indent()
-					.append("System.out.println(parser.parse(Files.readString(Path.of(args[0]))));\n")
+					.append("result = parser.parse(Files.readString(Path.of(args[0])));\n")
 					.deindent()
 					.append("} catch (final IOException e) {\n")
 					.indent()
 					.append("throw new RuntimeException(e);\n")
 					.deindent()
 					.append("}\n")
+					.append("printNode(result, \"\", \"\");\n")
 					.deindent()
 					.append("}\n");
 		}
@@ -366,8 +439,6 @@ public final class Generator {
 					if (j < entries.size() - 1) {
 						sb.append(',');
 					}
-					sb.append('\n');
-
 					sb.deindent();
 				}
 			}
@@ -454,7 +525,7 @@ public final class Generator {
 			final String productionName,
 			final Or a,
 			final Set<String> tokenNames) {
-		sb.append("private Alternation parse_" + productionName + "() {\n").indent();
+		sb.append("private Or parse_" + productionName + "() {\n").indent();
 		final List<Expression> nodes = a.nodes();
 		for (int i = 0; i < nodes.size(); i++) {
 			final Node n = nodes.get(i);
@@ -468,7 +539,7 @@ public final class Generator {
 			}
 			sb.append("if (" + nodeName + " != null) {\n")
 					.indent()
-					.append("return new Alternation(" + nodeName + ");\n")
+					.append("return new Or(" + nodeName + ");\n")
 					.deindent()
 					.append("}\n");
 		}
