@@ -24,10 +24,10 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.params.ParameterizedTest;
@@ -123,8 +123,8 @@ public final class TestParser {
 																	t("z"), t("{"), t("|"), t("}"), t("~"))),
 													nt("DOUBLE_QUOTES")))),
 							p("SEMICOLON", t(";")),
-							p("UNDERSCORE", t("_")),
 							p("EQUALS", t("=")),
+							p("UNDERSCORE", t("_")),
 							p("QUESTION_MARK", t("?")),
 							p("PLUS", t("+")),
 							p("ASTERISK", t("*")),
@@ -187,7 +187,11 @@ public final class TestParser {
 	}
 
 	private static Grammar g(final Production... productions) {
-		return new Grammar(Arrays.stream(productions).collect(Collectors.toMap(Production::start, Production::result)));
+		final Map<Production, Integer> p = new HashMap<>();
+		for (int i = 0; i < productions.length; i++) {
+			p.put(productions[i], i + 1);
+		}
+		return new Grammar(p);
 	}
 
 	private static Production p(final String name, final Expression exp) {

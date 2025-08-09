@@ -19,11 +19,13 @@ package com.ledmington.generator.automata;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -66,7 +68,18 @@ public final class AutomataUtils {
 		final List<Production> lexerProductions = new ArrayList<>();
 		final List<Production> parserProductions = new ArrayList<>();
 		GrammarUtils.splitProductions(g.productions(), lexerProductions, parserProductions);
-		return grammarToEpsilonNFA(lexerProductions);
+		return grammarToEpsilonNFA(
+				lexerProductions,
+				g.productions().entrySet().stream()
+						.collect(Collectors.toMap(e -> e.getKey().start().name(), Entry::getValue)));
+	}
+
+	public static NFA grammarToEpsilonNFA(final List<Production> lexerProductions) {
+		final Map<String, Integer> priorities = new HashMap<>();
+		for (int i = 0; i < lexerProductions.size(); i++) {
+			priorities.put(lexerProductions.get(i).start().name(), i + 1);
+		}
+		return grammarToEpsilonNFA(lexerProductions, priorities);
 	}
 
 	/**
@@ -75,12 +88,14 @@ public final class AutomataUtils {
 	 * @param lexerProductions The productions to be converted.
 	 * @return A new epsilon-NFA.
 	 */
-	public static NFA grammarToEpsilonNFA(final List<Production> lexerProductions) {
+	public static NFA grammarToEpsilonNFA(
+			final List<Production> lexerProductions, final Map<String, Integer> priorities) {
 		final AutomataUtils converter = new AutomataUtils();
-		return converter.convertGrammarToEpsilonNFA(lexerProductions);
+		return converter.convertGrammarToEpsilonNFA(lexerProductions, priorities);
 	}
 
-	private NFA convertGrammarToEpsilonNFA(final List<Production> lexerProductions) {
+	private NFA convertGrammarToEpsilonNFA(
+			final List<Production> lexerProductions, final Map<String, Integer> priorities) {
 		final NFABuilder builder = NFA.builder();
 
 		final State globalStart = state();
@@ -95,7 +110,7 @@ public final class AutomataUtils {
 			convertNode(p.result(), builder, productionStart, productionEnd);
 		}
 
-		return builder.start(globalStart).build();
+		return builder.start(globalStart).priorities(priorities).build();
 	}
 
 	private void convertNode(final Node n, final NFABuilder builder, final State start, final State end) {
@@ -287,7 +302,9 @@ public final class AutomataUtils {
 			builder.removeStates(unreachableStates);
 		}
 
-		return builder.start(newStartingState).build();
+		return builder.start(newStartingState)
+				.priorities(epsilonNFA.priorities())
+				.build();
 	}
 
 	private static Set<State> move(final Set<State> states, final char symbol, final NFA nfa) {
@@ -319,6 +336,7 @@ public final class AutomataUtils {
 		final Map<Set<State>, State> stateMapping = new HashMap<>();
 		final Queue<Set<State>> queue = new LinkedList<>();
 		final DFABuilder builder = DFA.builder();
+		final Map<String, Integer> priorities = nfa.priorities();
 
 		final Set<Character> alphabet = nfa.states().stream()
 				.flatMap(s -> {
@@ -336,7 +354,8 @@ public final class AutomataUtils {
 		final State dfaStartState = isAccepting
 				? acceptingState(((AcceptingState) startSet.stream()
 								.filter(State::isAccepting)
-								.findFirst()
+								.min(Comparator.comparing(s ->
+										priorities.getOrDefault(((AcceptingState) s).tokenName(), Integer.MAX_VALUE)))
 								.orElseThrow())
 						.tokenName())
 				: state();
@@ -344,7 +363,7 @@ public final class AutomataUtils {
 		queue.add(startSet);
 
 		while (!queue.isEmpty()) {
-			final Set<State> currentSet = queue.poll();
+			final Set<State> currentSet = queue.remove();
 			final State fromDFAState = stateMapping.get(currentSet);
 
 			for (final char symbol : alphabet) {
@@ -361,7 +380,8 @@ public final class AutomataUtils {
 					toDFAState = accept
 							? acceptingState(((AcceptingState) moveSet.stream()
 											.filter(State::isAccepting)
-											.findFirst()
+											.min(Comparator.comparing(s -> priorities.getOrDefault(
+													((AcceptingState) s).tokenName(), Integer.MAX_VALUE)))
 											.orElseThrow())
 									.tokenName())
 							: state();
@@ -591,6 +611,11 @@ public final class AutomataUtils {
 			@Override
 			public Set<State> states() {
 				return finiteStateAutomaton.states();
+			}
+
+			@Override
+			public Map<String, Integer> priorities() {
+				return Map.of();
 			}
 		});
 	}

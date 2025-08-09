@@ -24,10 +24,12 @@ import java.util.Objects;
 import java.util.Set;
 
 /** A builder for easy creation of an NFA. */
+@SuppressWarnings("PMD.AvoidFieldNameMatchingMethodName")
 public final class NFABuilder {
 
 	private State startingState = null;
 	private final Map<State, Map<Character, Set<State>>> transitions = new HashMap<>();
+	private Map<String, Integer> priorities = null;
 
 	/** Creates a new NFABuilder with no starting state and no transitions. */
 	public NFABuilder() {}
@@ -76,13 +78,21 @@ public final class NFABuilder {
 		return this;
 	}
 
+	public NFABuilder priorities(final Map<String, Integer> priorities) {
+		if (this.priorities != null) {
+			throw new IllegalArgumentException("Cannot set priorities twice.");
+		}
+		this.priorities = priorities;
+		return this;
+	}
+
 	/**
 	 * Creates a new NFA with the data contained.
 	 *
 	 * @return A new NFA.
 	 */
 	public NFA build() {
-		return new NFAImpl(startingState, transitions);
+		return new NFAImpl(startingState, transitions, priorities == null ? Map.of() : priorities);
 	}
 
 	/**

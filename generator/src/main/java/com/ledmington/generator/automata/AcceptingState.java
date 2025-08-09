@@ -22,7 +22,6 @@ import java.util.Objects;
 /** A finite-automaton which is accepting. */
 @SuppressWarnings("PMD.AvoidFieldNameMatchingMethodName")
 public final class AcceptingState extends State {
-	// TODO: instead of a different type, maybe it's better to have a common method which may throw
 
 	private final String tokenName;
 

@@ -23,9 +23,9 @@ import java.util.Objects;
 /**
  * An object representing all the productions and symbols of an EBNF grammar.
  *
- * @param productions The productions which map each non-terminal symbol to its corresponding expression.
+ * @param productions The productions which map to their corresponding priority.
  */
-public record Grammar(Map<NonTerminal, Expression> productions) implements Node {
+public record Grammar(Map<Production, Integer> productions) implements Node {
 
 	/**
 	 * Creates a new Grammar with the given Map of productions.

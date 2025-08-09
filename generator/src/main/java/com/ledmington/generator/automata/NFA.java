@@ -85,4 +85,6 @@ public interface NFA extends Automaton {
 		sb.append("}\n");
 		return sb.toString();
 	}
+
+	Map<String, Integer> priorities();
 }
