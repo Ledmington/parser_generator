@@ -1,1 +1,11 @@
-Alternation[inner=Sequence[nodes=[ZeroOrOne[inner=null], Sequence[nodes=[Terminal[literal=1], ZeroOrMore[nodes=[Alternation[inner=Terminal[literal=2]], Alternation[inner=Terminal[literal=3]]]]]]]]]
+Or
+ └─Sequence
+    ├─ZeroOrOne
+    │  └─null
+    └─Sequence
+       ├─Terminal[literal=1]
+       └─ZeroOrMore
+          ├─Or
+          │  └─Terminal[literal=2]
+          └─Or
+             └─Terminal[literal=3]

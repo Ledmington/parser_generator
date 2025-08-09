@@ -1,1 +1,48 @@
-Sequence[nodes=[Sequence[nodes=[Alternation[inner=Terminal[literal=1]], ZeroOrMore[nodes=[]]]], ZeroOrMore[nodes=[Sequence[nodes=[Alternation[inner=Terminal[literal=+]], Sequence[nodes=[Alternation[inner=Terminal[literal=2]], ZeroOrMore[nodes=[Sequence[nodes=[Alternation[inner=Terminal[literal=*]], Alternation[inner=Terminal[literal=3]]]]]]]]]], Sequence[nodes=[Alternation[inner=Terminal[literal=-]], Sequence[nodes=[Alternation[inner=Sequence[nodes=[Terminal[literal=(], Sequence[nodes=[Sequence[nodes=[Alternation[inner=Terminal[literal=4]], ZeroOrMore[nodes=[Sequence[nodes=[Alternation[inner=Terminal[literal=/]], Alternation[inner=Terminal[literal=5]]]]]]]], ZeroOrMore[nodes=[Sequence[nodes=[Alternation[inner=Terminal[literal=+]], Sequence[nodes=[Alternation[inner=Terminal[literal=6]], ZeroOrMore[nodes=[]]]]]]]]]], Terminal[literal=)]]]], ZeroOrMore[nodes=[]]]]]]]]]]
+Sequence
+ ├─Sequence
+ │  ├─Or
+ │  │  └─Terminal[literal=1]
+ │  └─ZeroOrMore
+ │     └─null
+ └─ZeroOrMore
+    ├─Sequence
+    │  ├─Or
+    │  │  └─Terminal[literal=+]
+    │  └─Sequence
+    │     ├─Or
+    │     │  └─Terminal[literal=2]
+    │     └─ZeroOrMore
+    │        └─Sequence
+    │           ├─Or
+    │           │  └─Terminal[literal=*]
+    │           └─Or
+    │              └─Terminal[literal=3]
+    └─Sequence
+       ├─Or
+       │  └─Terminal[literal=-]
+       └─Sequence
+          ├─Or
+          │  └─Sequence
+          │     ├─Terminal[literal=(]
+          │     ├─Sequence
+          │     │  ├─Sequence
+          │     │  │  ├─Or
+          │     │  │  │  └─Terminal[literal=4]
+          │     │  │  └─ZeroOrMore
+          │     │  │     └─Sequence
+          │     │  │        ├─Or
+          │     │  │        │  └─Terminal[literal=/]
+          │     │  │        └─Or
+          │     │  │           └─Terminal[literal=5]
+          │     │  └─ZeroOrMore
+          │     │     └─Sequence
+          │     │        ├─Or
+          │     │        │  └─Terminal[literal=+]
+          │     │        └─Sequence
+          │     │           ├─Or
+          │     │           │  └─Terminal[literal=6]
+          │     │           └─ZeroOrMore
+          │     │              └─null
+          │     └─Terminal[literal=)]
+          └─ZeroOrMore
+             └─null
