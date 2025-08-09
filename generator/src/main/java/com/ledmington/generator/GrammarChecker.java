@@ -56,21 +56,22 @@ public final class GrammarChecker {
 
 		// Gather all non-terminals
 		final Set<String> allNonTerminals = new HashSet<>();
-		for (final Map.Entry<NonTerminal, Expression> e : g.productions().entrySet()) {
-			allNonTerminals.add(e.getKey().name());
-			allNonTerminals.addAll(findAllNonTerminals(e.getValue()));
+		for (final Map.Entry<Production, Integer> e : g.productions().entrySet()) {
+			allNonTerminals.add(e.getKey().start().name());
+			allNonTerminals.addAll(findAllNonTerminals(e.getKey().result()));
 		}
 
 		for (final String name : allNonTerminals) {
-			if (g.productions().keySet().stream().noneMatch(nt -> nt.name().equals(name))) {
+			if (g.productions().keySet().stream()
+					.noneMatch(nt -> nt.start().name().equals(name))) {
 				throw new UnknownNonTerminalException(name);
 			}
 		}
 
 		// remove all skippable lexer symbols
 		g.productions().entrySet().stream()
-				.filter(e -> Production.isSkippable(e.getKey().name()))
-				.forEach(e -> allNonTerminals.remove(e.getKey().name()));
+				.filter(e -> Production.isSkippable(e.getKey().start().name()))
+				.forEach(e -> allNonTerminals.remove(e.getKey().start().name()));
 
 		return findStartSymbol(g, allNonTerminals);
 	}
@@ -79,10 +80,10 @@ public final class GrammarChecker {
 		// Building the graph of reachable symbols
 		final Map<String, Set<String>> graph = new HashMap<>();
 		g.productions().entrySet().stream()
-				.filter(e -> !Production.isSkippable(e.getKey().name()))
+				.filter(e -> !Production.isSkippable(e.getKey().start().name()))
 				.forEach(e -> {
-					final String s = e.getKey().name();
-					final Set<String> outEdges = findAllNonTerminals(e.getValue());
+					final String s = e.getKey().start().name();
+					final Set<String> outEdges = findAllNonTerminals(e.getKey().result());
 					graph.put(s, outEdges);
 				});
 

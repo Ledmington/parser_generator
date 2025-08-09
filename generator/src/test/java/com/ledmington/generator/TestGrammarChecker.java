@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.NonTerminal;
+import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Terminal;
 
 public final class TestGrammarChecker {
@@ -32,15 +33,16 @@ public final class TestGrammarChecker {
 	void multipleStartSymbols() {
 		assertThrows(
 				NoUniqueStartSymbolException.class,
-				() -> GrammarChecker.check(new Grammar(Map.of(
-						new NonTerminal("s"), new Terminal("a"),
-						new NonTerminal("t"), new Terminal("b")))));
+				() -> GrammarChecker.check(new Grammar(Map.ofEntries(
+						Map.entry(new Production(new NonTerminal("s"), new Terminal("a")), 1),
+						Map.entry(new Production(new NonTerminal("t"), new Terminal("b")), 1)))));
 	}
 
 	@Test
 	void unusableNonTerminals() {
 		assertThrows(
 				UnknownNonTerminalException.class,
-				() -> GrammarChecker.check(new Grammar(Map.of(new NonTerminal("s"), new NonTerminal("t")))));
+				() -> GrammarChecker.check(
+						new Grammar(Map.of(new Production(new NonTerminal("s"), new NonTerminal("t")), 1))));
 	}
 }

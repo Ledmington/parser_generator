@@ -23,20 +23,27 @@ import java.util.Objects;
 import java.util.Set;
 
 /** Implementation of a non-deterministic finite-state automaton. */
+@SuppressWarnings("PMD.AvoidFieldNameMatchingMethodName")
 public final class NFAImpl implements NFA {
 
 	private final State start;
 	private final Map<State, Map<Character, Set<State>>> transitions;
+	private final Map<String, Integer> priorities;
 
 	/**
 	 * Creates a new NFA with the given starting state and the given transitions.
 	 *
 	 * @param startingState The starting state.
 	 * @param transitions The map of transitions of the automaton.
+	 * @param priorities The Map of priorities of each accepting state.
 	 */
-	public NFAImpl(final State startingState, final Map<State, Map<Character, Set<State>>> transitions) {
+	public NFAImpl(
+			final State startingState,
+			final Map<State, Map<Character, Set<State>>> transitions,
+			final Map<String, Integer> priorities) {
 		this.start = Objects.requireNonNull(startingState);
 		this.transitions = Objects.requireNonNull(transitions);
+		this.priorities = Objects.requireNonNull(priorities);
 	}
 
 	@Override
@@ -62,8 +69,13 @@ public final class NFAImpl implements NFA {
 	}
 
 	@Override
+	public Map<String, Integer> priorities() {
+		return priorities;
+	}
+
+	@Override
 	public String toString() {
-		return "NFA[start=" + start + ";transitions=" + transitions + "]";
+		return "NFA[start=" + start + ";transitions=" + transitions + ";priorities=" + priorities + "]";
 	}
 
 	@Override
@@ -71,6 +83,7 @@ public final class NFAImpl implements NFA {
 		int h = 17;
 		h = 31 * h + start.hashCode();
 		h = 31 * h + transitions.hashCode();
+		h = 31 * h + priorities.hashCode();
 		return h;
 	}
 
@@ -85,6 +98,8 @@ public final class NFAImpl implements NFA {
 		if (!(other instanceof final NFAImpl nfa)) {
 			return false;
 		}
-		return this.start.equals(nfa.start) && this.transitions.equals(nfa.transitions);
+		return this.start.equals(nfa.start)
+				&& this.transitions.equals(nfa.transitions)
+				&& this.priorities.equals(nfa.priorities);
 	}
 }

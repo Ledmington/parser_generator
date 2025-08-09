@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -248,8 +249,8 @@ public final class Parser {
 		if (v.size() != 1) {
 			throw new AssertionError();
 		}
-		if (v.getFirst() instanceof Production(final NonTerminal start, final Expression result)) {
-			return new Grammar(new HashMap<>(Map.of(start, result)));
+		if (v.getFirst() instanceof final Production p) {
+			return new Grammar(new HashMap<>(Map.of(p, 1)));
 		}
 		if (!(v.getFirst() instanceof final Grammar g)) {
 			throw new ParsingException(
@@ -260,15 +261,21 @@ public final class Parser {
 	}
 
 	private static boolean mergeProductions(final List<Object> v, final int i) {
-		final Map<NonTerminal, Expression> productions = new HashMap<>();
+		final Map<Production, Integer> productions = new HashMap<>();
+		int priority = 1;
 		int count = 0;
 		int j = i;
 		for (; j < v.size(); j++) {
-			if (v.get(j) instanceof Grammar(final Map<NonTerminal, Expression> productions1)) {
-				productions.putAll(productions1);
+			if (v.get(j) instanceof Grammar(final Map<Production, Integer> productions1)) {
+				for (final Production p : productions1.entrySet().stream()
+						.sorted(Entry.comparingByValue())
+						.map(Entry::getKey)
+						.toList()) {
+					productions.put(p, priority++);
+				}
 				count++;
-			} else if (v.get(j) instanceof Production(final NonTerminal start, final Expression result)) {
-				productions.put(start, result);
+			} else if (v.get(j) instanceof final Production p) {
+				productions.put(p, priority++);
 				count++;
 			} else {
 				break;

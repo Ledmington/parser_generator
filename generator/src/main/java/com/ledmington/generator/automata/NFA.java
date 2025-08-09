@@ -85,4 +85,11 @@ public interface NFA extends Automaton {
 		sb.append("}\n");
 		return sb.toString();
 	}
+
+	/**
+	 * Returns the map of token priorities of this automaton.
+	 *
+	 * @return The map of token priorities of this automaton.
+	 */
+	Map<String, Integer> priorities();
 }

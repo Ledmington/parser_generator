@@ -20,6 +20,7 @@ package com.ledmington.generator;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -47,16 +48,17 @@ public final class GrammarUtils {
 	 * @param parserProductions The productions belonging to a parser.
 	 */
 	public static void splitProductions(
-			final Map<NonTerminal, Expression> productions,
+			final Map<Production, Integer> productions,
 			final List<Production> lexerProductions,
 			final List<Production> parserProductions) {
 		// Divide all trivial lexer productions from the rest
 		productions.entrySet().stream()
-				.filter(e -> Production.isLexerProduction(e.getKey().name()))
-				.forEach(e -> lexerProductions.add(new Production(e.getKey(), e.getValue())));
+				.filter(e -> Production.isLexerProduction(e.getKey().start().name()))
+				.sorted(Entry.comparingByValue())
+				.forEach(e -> lexerProductions.add(e.getKey()));
 		productions.entrySet().stream()
-				.filter(e -> !Production.isLexerProduction(e.getKey().name()))
-				.forEach(e -> parserProductions.add(new Production(e.getKey(), e.getValue())));
+				.filter(e -> !Production.isLexerProduction(e.getKey().start().name()))
+				.forEach(e -> parserProductions.add(e.getKey()));
 
 		// Convert all terminal symbols still in the parser into "anonymous" non-terminal ones
 		final Supplier<String> nameSupplier = new Supplier<>() {
@@ -76,7 +78,6 @@ public final class GrammarUtils {
 		}
 
 		// Final sort by name the productions
-		lexerProductions.sort(Comparator.comparing(a -> a.start().name()));
 		parserProductions.sort(Comparator.comparing(a -> a.start().name()));
 	}
 

@@ -75,18 +75,18 @@ public final class Generator {
 
 		final String startSymbol = GrammarChecker.check(g);
 
-		final Map<NonTerminal, Expression> productions = g.productions();
-		final NonTerminal start = productions.keySet().stream()
-				.filter(x -> x.name().equals(startSymbol))
+		final Map<Production, Integer> productions = g.productions();
+		final Production start = productions.keySet().stream()
+				.filter(x -> x.start().name().equals(startSymbol))
 				.findFirst()
 				.orElseThrow();
-		if (Production.isLexerProduction(start.name())) {
-			final Expression expr = productions.get(start);
+		if (Production.isLexerProduction(start.start().name())) {
+			final Expression expr = start.result();
 			productions.remove(start);
 			final NonTerminal tmp = new NonTerminal("NEW_" + startSymbol);
 			final NonTerminal newStart = new NonTerminal(startSymbol.toLowerCase(Locale.US));
-			productions.put(newStart, tmp);
-			productions.put(tmp, expr);
+			productions.put(new Production(newStart, tmp), 1);
+			productions.put(new Production(tmp, expr), 1);
 		}
 
 		final List<Production> lexerProductions = new ArrayList<>();

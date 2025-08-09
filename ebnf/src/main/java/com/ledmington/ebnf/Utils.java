@@ -20,6 +20,7 @@ package com.ledmington.ebnf;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 /** A collection of various utilities. */
 public final class Utils {
@@ -45,11 +46,13 @@ public final class Utils {
 			case Grammar g -> {
 				sb.append(indentString).append("Grammar {\n");
 				if (!g.productions().isEmpty()) {
-					final Iterator<Map.Entry<NonTerminal, Expression>> it =
-							g.productions().entrySet().iterator();
+					final Iterator<Production> it = g.productions().entrySet().stream()
+							.sorted(Map.Entry.comparingByValue())
+							.map(Entry::getKey)
+							.iterator();
 					do {
-						final Map.Entry<NonTerminal, Expression> cur = it.next();
-						prettyPrint(sb, new Production(cur.getKey(), cur.getValue()), indentString + indent, indent);
+						final Production cur = it.next();
+						prettyPrint(sb, cur, indentString + indent, indent);
 						sb.append('\n');
 					} while (it.hasNext());
 				}
