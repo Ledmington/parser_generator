@@ -289,6 +289,23 @@ public final class Generator {
 						.deindent()
 						.append("}\n");
 			}
+			if (atLeastOneOneOrMore) {
+				sb.append("case OneOrMore oom -> {\n")
+						.indent()
+						.append("System.out.println(indent + \"OneOrMore\");\n")
+						.append("final List<Node> children = oom.nodes();\n")
+						.append("final int len = children.size();\n")
+						.append("for (int i = 0; i < len - 1; i++) {\n")
+						.indent()
+						.append(
+								"printNode(children.get(i), continuationIndent + \" \" + joint + horizontalLine, continuationIndent + ' ' + verticalLine + ' ');\n")
+						.deindent()
+						.append("}\n")
+						.append(
+								"printNode(children.getLast(), continuationIndent + \" \" + angle + horizontalLine, continuationIndent + \"   \");\n")
+						.deindent()
+						.append("}\n");
+			}
 			if (atLeastOneZeroOrOne) {
 				sb.append("case ZeroOrOne zoo -> {\n")
 						.indent()
@@ -401,6 +418,20 @@ public final class Generator {
 			}
 		}
 		sb.deindent().append("\n};\n");
+		sb.append("private final boolean[] isSkippable = new boolean[] {\n").indent();
+		for (int i = 0; i < allStates.size(); i++) {
+			final State s = allStates.get(i);
+			sb.append((s.isAccepting() && Production.isSkippable(((AcceptingState) s).tokenName())) ? "true" : "false");
+			if (i < allStates.size() - 1) {
+				sb.append(',');
+				if (i % maxPerRow == maxPerRow - 1) {
+					sb.append('\n');
+				} else {
+					sb.append(' ');
+				}
+			}
+		}
+		sb.deindent().append("\n};\n");
 
 		sb.append("private final List<Function<String, Token>> tokensToMatch = Arrays.asList(\n")
 				.indent();
@@ -432,7 +463,7 @@ public final class Generator {
 					final State dst = entries.get(j).getValue();
 					sb.append('\n').indent();
 					sb.append("Map.entry('")
-							.append(Utils.getEscapeCharacter(symbol))
+							.append(Utils.getEscapedCharacter(symbol))
 							.append("', ")
 							.append(stateIndex.get(dst))
 							.append(")");
@@ -485,8 +516,12 @@ public final class Generator {
 						"throw new IllegalArgumentException(String.format(\"No token emitted for empty match at index %,d.\", pos));\n")
 				.deindent()
 				.append("}\n")
+				.append("if (!isSkippable[currentState]) {\n")
+				.indent()
 				.append("final String match = String.copyValueOf(v, lastTokenMatchStart, length);\n")
 				.append("tokens.add(tokensToMatch.get(currentState).apply(match));\n")
+				.deindent()
+				.append("}\n")
 				.append("lastTokenMatchStart = pos;\n")
 				.append("lastTokenMatchEnd = -1;\n")
 				.append("currentState = 0;\n")
@@ -506,7 +541,7 @@ public final class Generator {
 				.deindent()
 				.append("}\n")
 				.append("final int length = lastTokenMatchEnd - lastTokenMatchStart;\n")
-				.append("if (isAccepting[currentState] && length > 0) {\n")
+				.append("if (isAccepting[currentState] && length > 0 && !isSkippable[currentState]) {\n")
 				.indent()
 				.append("final String match = String.copyValueOf(v, lastTokenMatchStart, length);\n")
 				.append("tokens.add(tokensToMatch.get(currentState).apply(match));\n")
@@ -595,6 +630,7 @@ public final class Generator {
 			sb.append("final Node n_0 = parse_" + actualName + "();\n");
 			q.add(oom.inner());
 		}
+		sb.append("nodes.add(n_0);\n");
 		if (!(oom.inner() instanceof ZeroOrMore)) {
 			sb.append("if (n_0 == null) {\n")
 					.indent()

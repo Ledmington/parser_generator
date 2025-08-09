@@ -140,9 +140,9 @@ public final class Parser {
 				if (it.current() == DOUBLE_QUOTES) {
 					sb.append(DOUBLE_QUOTES);
 				} else if (it.current() == 'n') {
-					sb.append("\\n");
+					sb.append('\n');
 				} else if (it.current() == 't') {
-					sb.append("\\t");
+					sb.append('\t');
 				} else {
 					it.setIndex(idx);
 				}
