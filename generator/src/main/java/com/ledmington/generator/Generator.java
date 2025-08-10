@@ -108,14 +108,13 @@ public final class Generator {
 		if (packageName != null && !packageName.isBlank()) {
 			sb.append("package ").append(packageName).append(";\n\n");
 		}
-		sb.append("import java.util.List;\n").append("import java.util.ArrayList;\n");
+		sb.append("import java.util.List;\n")
+				.append("import java.util.ArrayList;\n")
+				.append("import java.util.Arrays;\n");
 		if (atLeastOneSequence || generateMainMethod) {
 			sb.append("import java.util.Stack;\n");
 		}
-		sb.append("import java.util.Map;\n")
-				.append("import java.util.Objects;\n")
-				.append("import java.util.Arrays;\n")
-				.append("import java.util.function.Function;\n");
+		sb.append("import java.util.Map;\n").append("import java.util.Objects;\n");
 		if (generateMainMethod) {
 			sb.append("import java.util.Collections;\n")
 					.append("import java.io.IOException;\n")
@@ -433,12 +432,11 @@ public final class Generator {
 		}
 		sb.deindent().append("\n};\n");
 
-		sb.append("private final List<Function<String, Token>> tokensToMatch = Arrays.asList(\n")
+		sb.append("private final List<TokenType> tokensToMatch = Arrays.asList(\n")
 				.indent();
 		for (int i = 0; i < allStates.size(); i++) {
 			final State s = allStates.get(i);
-			sb.append(
-					s.isAccepting() ? "s -> new Token(TokenType." + ((AcceptingState) s).tokenName() + ", s)" : "null");
+			sb.append(s.isAccepting() ? "TokenType." + ((AcceptingState) s).tokenName() : "null");
 			if (i < allStates.size() - 1) {
 				sb.append(',');
 			}
@@ -519,7 +517,7 @@ public final class Generator {
 				.append("if (!isSkippable[currentState]) {\n")
 				.indent()
 				.append("final String match = String.copyValueOf(v, lastTokenMatchStart, length);\n")
-				.append("tokens.add(tokensToMatch.get(currentState).apply(match));\n")
+				.append("tokens.add(new Token(tokensToMatch.get(currentState), match));\n")
 				.deindent()
 				.append("}\n")
 				.append("lastTokenMatchStart = pos;\n")
@@ -544,7 +542,7 @@ public final class Generator {
 				.append("if (isAccepting[currentState] && length > 0 && !isSkippable[currentState]) {\n")
 				.indent()
 				.append("final String match = String.copyValueOf(v, lastTokenMatchStart, length);\n")
-				.append("tokens.add(tokensToMatch.get(currentState).apply(match));\n")
+				.append("tokens.add(new Token(tokensToMatch.get(currentState), match));\n")
 				.deindent()
 				.append("}\n")
 				.append("return tokens;\n")
