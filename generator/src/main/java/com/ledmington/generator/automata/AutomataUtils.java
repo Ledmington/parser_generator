@@ -29,6 +29,7 @@ import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import com.ledmington.ebnf.Grammar;
@@ -418,6 +419,8 @@ public final class AutomataUtils {
 		// Myhill-Nerode theorem
 		final DFABuilder builder = DFA.builder();
 		final List<State> oldStates = dfa.states().stream().toList();
+		final Map<State, Integer> oldStatesIndex =
+				IntStream.range(0, oldStates.size()).boxed().collect(Collectors.toMap(oldStates::get, i -> i));
 		final int n = oldStates.size();
 		final boolean[][] isDistinguishable = new boolean[n][n];
 		for (int i = 0; i < n; i++) {
@@ -467,8 +470,8 @@ public final class AutomataUtils {
 						continue;
 					}
 					for (final char x : px.keySet()) {
-						final int pxx = oldStates.indexOf(px.get(x));
-						final int qxx = oldStates.indexOf(qx.get(x));
+						final int pxx = oldStatesIndex.get(px.get(x));
+						final int qxx = oldStatesIndex.get(qx.get(x));
 						if (isDistinguishable[pxx][qxx]) {
 							isDistinguishable[i][j] = true;
 							isDistinguishable[j][i] = true;
