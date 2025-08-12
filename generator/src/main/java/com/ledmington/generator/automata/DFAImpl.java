@@ -56,7 +56,7 @@ public final class DFAImpl implements DFA {
 
 	@Override
 	public Map<Character, State> neighbors(final State s) {
-		return transitions.get(s);
+		return transitions.containsKey(s) ? transitions.get(s) : Map.of();
 	}
 
 	@Override
