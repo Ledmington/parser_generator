@@ -17,8 +17,11 @@
  */
 package com.ledmington.generator;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -110,7 +113,10 @@ public final class Generator {
 		}
 		sb.append("import java.util.List;\n")
 				.append("import java.util.ArrayList;\n")
-				.append("import java.util.Arrays;\n");
+				.append("import java.util.Arrays;\n")
+				.append("import java.nio.ByteBuffer;\n")
+				.append("import java.nio.ByteOrder;\n")
+				.append("import java.util.Base64;\n");
 		if (atLeastOneSequence || generateMainMethod) {
 			sb.append("import java.util.Stack;\n");
 		}
@@ -465,52 +471,62 @@ public final class Generator {
 				idx++;
 			}
 		}
-		sb.append("private final int[] offsets = {\n").indent();
-		final int maxOffsetsPerRow = 10;
-		sb.append(offsets[0]);
-		for (int i = 1; i < offsets.length; i++) {
-			if (i % maxOffsetsPerRow == maxOffsetsPerRow - 1) {
-				sb.append(",\n");
-			} else {
-				sb.append(", ");
-			}
-			sb.append(offsets[i]);
+		sb.append("private final int[] offsets;\n")
+				.append("private final char[] symbols;\n")
+				.append("private final int[] destinations;\n");
+
+		final int totalBytes = 4
+				+ 4
+				+ Integer.BYTES * offsets.length
+				+ Character.BYTES * symbols.length
+				+ Integer.BYTES * destinations.length;
+		final ByteBuffer bb = ByteBuffer.allocate(totalBytes).order(ByteOrder.BIG_ENDIAN);
+
+		bb.putInt(offsets.length);
+		bb.putInt(symbols.length);
+		for (final int off : offsets) {
+			bb.putInt(off);
 		}
-		sb.append('\n')
-				.deindent()
-				.append("};\n")
-				.append("private final char[] symbols = {\n")
-				.indent();
-		final int maxSymbolsPerRow = 10;
-		sb.append('\'').append(Utils.getEscapedCharacter(symbols[0])).append('\'');
-		for (int i = 1; i < symbols.length; i++) {
-			if (i % maxSymbolsPerRow == maxSymbolsPerRow - 1) {
-				sb.append(",\n");
-			} else {
-				sb.append(", ");
-			}
-			sb.append('\'').append(Utils.getEscapedCharacter(symbols[i])).append('\'');
+		for (final char sym : symbols) {
+			bb.putChar(sym);
 		}
-		sb.append('\n')
-				.deindent()
-				.append("};\n")
-				.append("private final int[] destinations = {\n")
-				.indent();
-		final int maxDestinationsPerRow = 10;
-		sb.append(destinations[0]);
-		for (int i = 1; i < symbols.length; i++) {
-			if (i % maxDestinationsPerRow == maxDestinationsPerRow - 1) {
-				sb.append(",\n");
-			} else {
-				sb.append(", ");
-			}
-			sb.append(destinations[i]);
+		for (final int dest : destinations) {
+			bb.putInt(dest);
 		}
-		sb.append('\n').deindent().append("};\n");
+
+		final String encoded = Base64.getEncoder().encodeToString(bb.array());
 
 		sb.append("public ")
 				.append(lexerName)
-				.append("() {}\n")
+				.append("() {\n")
+				.indent()
+				.append("final String encoded = \"")
+				.append(Utils.getEscapedString(encoded))
+				.append("\";\n")
+				.append(
+						"final ByteBuffer bb = ByteBuffer.wrap(Base64.getDecoder().decode(encoded)).order(ByteOrder.BIG_ENDIAN);\n")
+				.append("final int num_offsets = bb.getInt();\n")
+				.append("final int num_destinations = bb.getInt();\n")
+				.append("this.offsets = new int[num_offsets];\n")
+				.append("this.symbols = new char[num_destinations];\n")
+				.append("this.destinations = new int[num_destinations];\n")
+				.append("for (int i = 0; i < num_offsets; i++) {\n")
+				.indent()
+				.append("this.offsets[i] = bb.getInt();\n")
+				.deindent()
+				.append("}\n")
+				.append("for (int i = 0; i < num_destinations; i++) {\n")
+				.indent()
+				.append("this.symbols[i] = bb.getChar();\n")
+				.deindent()
+				.append("}\n")
+				.append("for (int i = 0; i < num_destinations; i++) {\n")
+				.indent()
+				.append("this.destinations[i] = bb.getInt();\n")
+				.deindent()
+				.append("}\n")
+				.deindent()
+				.append("}\n")
 				// TODO: this can optimized to a binary search
 				.append("private int transition(final int currentState, final char symbol) {\n")
 				.indent()
