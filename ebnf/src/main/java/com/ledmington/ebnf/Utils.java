@@ -86,14 +86,6 @@ public final class Utils {
 		}
 	}
 
-	private static String getEscapedString(final String literal) {
-		final StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < literal.length(); i++) {
-			sb.append(getEscapedCharacter(literal.charAt(i)));
-		}
-		return sb.toString();
-	}
-
 	private static void prettyPrintContainer(
 			final StringBuilder sb,
 			final String nodeName,
@@ -122,6 +114,20 @@ public final class Utils {
 	}
 
 	/**
+	 * Escapes all the characters in the given string, if needed.
+	 *
+	 * @param s The string to be escaped
+	 * @return The same input with all characters escaped, if needed.
+	 */
+	public static String getEscapedString(final String s) {
+		final StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < s.length(); i++) {
+			sb.append(getEscapedCharacter(s.charAt(i)));
+		}
+		return sb.toString();
+	}
+
+	/**
 	 * Escapes a single character, if needed.
 	 *
 	 * @param ch The character to be escaped.
@@ -134,7 +140,11 @@ public final class Utils {
 			case '\\' -> "\\\\";
 			case '\t' -> "\\t";
 			case '\n' -> "\\n";
-			default -> "" + ch;
+			case '\r' -> "\\r";
+			case '\0' -> "\\u0000";
+			case '\b' -> "\\b";
+			case '\f' -> "\\f";
+			default -> String.valueOf(ch);
 		};
 	}
 }

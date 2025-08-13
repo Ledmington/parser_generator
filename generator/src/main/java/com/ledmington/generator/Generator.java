@@ -17,8 +17,11 @@
  */
 package com.ledmington.generator;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -108,14 +111,16 @@ public final class Generator {
 		if (packageName != null && !packageName.isBlank()) {
 			sb.append("package ").append(packageName).append(";\n\n");
 		}
-		sb.append("import java.util.List;\n").append("import java.util.ArrayList;\n");
+		sb.append("import java.util.List;\n")
+				.append("import java.util.ArrayList;\n")
+				.append("import java.util.Arrays;\n")
+				.append("import java.nio.ByteBuffer;\n")
+				.append("import java.nio.ByteOrder;\n")
+				.append("import java.util.Base64;\n");
 		if (atLeastOneSequence || generateMainMethod) {
 			sb.append("import java.util.Stack;\n");
 		}
-		sb.append("import java.util.Map;\n")
-				.append("import java.util.Objects;\n")
-				.append("import java.util.Arrays;\n")
-				.append("import java.util.function.Function;\n");
+		sb.append("import java.util.Map;\n").append("import java.util.Objects;\n");
 		if (generateMainMethod) {
 			sb.append("import java.util.Collections;\n")
 					.append("import java.io.IOException;\n")
@@ -366,14 +371,16 @@ public final class Generator {
 
 		// re-index DFA states
 		final Map<State, Integer> stateIndex = new HashMap<>();
-		stateIndex.put(minimizedDFA.startingState(), 0);
-		int idx = 1;
-		for (final State s : minimizedDFA.states()) {
-			if (s.equals(minimizedDFA.startingState())) {
-				continue;
+		{
+			stateIndex.put(minimizedDFA.startingState(), 0);
+			int idx = 1;
+			for (final State s : minimizedDFA.states()) {
+				if (s.equals(minimizedDFA.startingState())) {
+					continue;
+				}
+				stateIndex.put(s, idx);
+				idx++;
 			}
-			stateIndex.put(s, idx);
-			idx++;
 		}
 
 		final List<State> allStates = stateIndex.entrySet().stream()
@@ -433,12 +440,11 @@ public final class Generator {
 		}
 		sb.deindent().append("\n};\n");
 
-		sb.append("private final List<Function<String, Token>> tokensToMatch = Arrays.asList(\n")
+		sb.append("private final List<TokenType> tokensToMatch = Arrays.asList(\n")
 				.indent();
 		for (int i = 0; i < allStates.size(); i++) {
 			final State s = allStates.get(i);
-			sb.append(
-					s.isAccepting() ? "s -> new Token(TokenType." + ((AcceptingState) s).tokenName() + ", s)" : "null");
+			sb.append(s.isAccepting() ? "TokenType." + ((AcceptingState) s).tokenName() : "null");
 			if (i < allStates.size() - 1) {
 				sb.append(',');
 			}
@@ -446,44 +452,98 @@ public final class Generator {
 		}
 		sb.deindent().append(");\n");
 
-		// TODO: change this into three arrays for better performance
-		sb.append(
-						"private final Map<Integer, Map<Character, Integer>> transitions = Map.<Integer, Map<Character, Integer>>ofEntries(\n")
-				.indent();
-		for (int i = 0; i < allStates.size(); i++) {
-			final State src = allStates.get(i);
-			sb.append("Map.entry(").append(i).append(", Map.<Character, Integer>ofEntries(");
-			final Map<Character, State> neighbors = minimizedDFA.neighbors(src);
-			if (neighbors != null) {
-				final List<Map.Entry<Character, State>> entries = neighbors.entrySet().stream()
-						.sorted(Map.Entry.comparingByKey())
-						.toList();
-				for (int j = 0; j < entries.size(); j++) {
-					final char symbol = entries.get(j).getKey();
-					final State dst = entries.get(j).getValue();
-					sb.append('\n').indent();
-					sb.append("Map.entry('")
-							.append(Utils.getEscapedCharacter(symbol))
-							.append("', ")
-							.append(stateIndex.get(dst))
-							.append(")");
-					if (j < entries.size() - 1) {
-						sb.append(',');
-					}
-					sb.deindent();
-				}
+		final int allTransitions = minimizedDFA.states().stream()
+				.mapToInt(s -> minimizedDFA.neighbors(s).size())
+				.sum();
+		final int[] offsets = new int[allStates.size() + 1];
+		offsets[0] = 0;
+		final char[] symbols = new char[allTransitions];
+		final int[] destinations = new int[allTransitions];
+		int idx = 0;
+		for (int i = 1; i < allStates.size() + 1; i++) {
+			final State s = allStates.get(i - 1);
+			offsets[i] = offsets[i - 1] + minimizedDFA.neighbors(s).size();
+			for (final Map.Entry<Character, State> e : minimizedDFA.neighbors(s).entrySet().stream()
+					.sorted(Map.Entry.comparingByKey())
+					.toList()) {
+				symbols[idx] = e.getKey();
+				destinations[idx] = stateIndex.get(e.getValue());
+				idx++;
 			}
-			sb.append("))");
-			if (i < allStates.size() - 1) {
-				sb.append(',');
-			}
-			sb.append('\n');
 		}
-		sb.deindent().append(");\n");
+		sb.append("private final int[] offsets;\n")
+				.append("private final char[] symbols;\n")
+				.append("private final int[] destinations;\n");
+
+		final int totalBytes = 4
+				+ 4
+				+ Integer.BYTES * offsets.length
+				+ Character.BYTES * symbols.length
+				+ Integer.BYTES * destinations.length;
+		final ByteBuffer bb = ByteBuffer.allocate(totalBytes).order(ByteOrder.BIG_ENDIAN);
+
+		bb.putInt(offsets.length);
+		bb.putInt(symbols.length);
+		for (final int off : offsets) {
+			bb.putInt(off);
+		}
+		for (final char sym : symbols) {
+			bb.putChar(sym);
+		}
+		for (final int dest : destinations) {
+			bb.putInt(dest);
+		}
+
+		final String encoded = Base64.getEncoder().encodeToString(bb.array());
 
 		sb.append("public ")
 				.append(lexerName)
-				.append("() {}\n")
+				.append("() {\n")
+				.indent()
+				.append("final String encoded = \"")
+				.append(Utils.getEscapedString(encoded))
+				.append("\";\n")
+				.append(
+						"final ByteBuffer bb = ByteBuffer.wrap(Base64.getDecoder().decode(encoded)).order(ByteOrder.BIG_ENDIAN);\n")
+				.append("final int num_offsets = bb.getInt();\n")
+				.append("final int num_destinations = bb.getInt();\n")
+				.append("this.offsets = new int[num_offsets];\n")
+				.append("this.symbols = new char[num_destinations];\n")
+				.append("this.destinations = new int[num_destinations];\n")
+				.append("for (int i = 0; i < num_offsets; i++) {\n")
+				.indent()
+				.append("this.offsets[i] = bb.getInt();\n")
+				.deindent()
+				.append("}\n")
+				.append("for (int i = 0; i < num_destinations; i++) {\n")
+				.indent()
+				.append("this.symbols[i] = bb.getChar();\n")
+				.deindent()
+				.append("}\n")
+				.append("for (int i = 0; i < num_destinations; i++) {\n")
+				.indent()
+				.append("this.destinations[i] = bb.getInt();\n")
+				.deindent()
+				.append("}\n")
+				.deindent()
+				.append("}\n")
+				// TODO: this can optimized to a binary search
+				.append("private int transition(final int currentState, final char symbol) {\n")
+				.indent()
+				.append("final int start = this.offsets[currentState];\n")
+				.append("final int end = this.offsets[currentState + 1];\n")
+				.append("for (int i = start; i < end; i++) {\n")
+				.indent()
+				.append("if (this.symbols[i] == symbol) {\n")
+				.indent()
+				.append("return this.destinations[i];\n")
+				.deindent()
+				.append("}\n")
+				.deindent()
+				.append("}\n")
+				.append("return -1;\n")
+				.deindent()
+				.append("}\n")
 				.append("public List<Token> tokenize(final String input) {\n")
 				.indent()
 				.append("final char[] v = input.toCharArray();\n")
@@ -500,9 +560,10 @@ public final class Generator {
 				.deindent()
 				.append("}\n")
 				.append("final char ch = v[pos];\n")
-				.append("if (transitions.get(currentState).containsKey(ch)) {\n")
+				.append("final int nextState = transition(currentState, ch);\n")
+				.append("if (nextState != -1) {\n")
 				.indent()
-				.append("currentState = transitions.get(currentState).get(ch);\n")
+				.append("currentState = nextState;\n")
 				.append("pos++;\n")
 				.deindent()
 				.append("} else {\n")
@@ -519,7 +580,7 @@ public final class Generator {
 				.append("if (!isSkippable[currentState]) {\n")
 				.indent()
 				.append("final String match = String.copyValueOf(v, lastTokenMatchStart, length);\n")
-				.append("tokens.add(tokensToMatch.get(currentState).apply(match));\n")
+				.append("tokens.add(new Token(tokensToMatch.get(currentState), match));\n")
 				.deindent()
 				.append("}\n")
 				.append("lastTokenMatchStart = pos;\n")
@@ -544,7 +605,7 @@ public final class Generator {
 				.append("if (isAccepting[currentState] && length > 0 && !isSkippable[currentState]) {\n")
 				.indent()
 				.append("final String match = String.copyValueOf(v, lastTokenMatchStart, length);\n")
-				.append("tokens.add(tokensToMatch.get(currentState).apply(match));\n")
+				.append("tokens.add(new Token(tokensToMatch.get(currentState), match));\n")
 				.deindent()
 				.append("}\n")
 				.append("return tokens;\n")
