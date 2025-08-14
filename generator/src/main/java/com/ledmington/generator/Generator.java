@@ -111,21 +111,20 @@ public final class Generator {
 		if (packageName != null && !packageName.isBlank()) {
 			sb.append("package ").append(packageName).append(";\n\n");
 		}
-		sb.append("import java.util.List;\n")
-				.append("import java.util.ArrayList;\n")
-				.append("import java.util.Arrays;\n")
-				.append("import java.nio.ByteBuffer;\n")
-				.append("import java.nio.ByteOrder;\n")
-				.append("import java.util.Base64;\n");
-		if (atLeastOneSequence || generateMainMethod) {
-			sb.append("import java.util.Stack;\n");
-		}
-		sb.append("import java.util.Map;\n").append("import java.util.Objects;\n");
 		if (generateMainMethod) {
-			sb.append("import java.util.Collections;\n")
-					.append("import java.io.IOException;\n")
+			sb.append("import java.io.IOException;\n")
 					.append("import java.nio.file.Files;\n")
 					.append("import java.nio.file.Path;\n");
+		}
+		sb.append("import java.nio.ByteBuffer;\n")
+				.append("import java.nio.ByteOrder;\n")
+				.append("import java.util.ArrayList;\n")
+				.append("import java.util.Arrays;\n")
+				.append("import java.util.Base64;\n")
+				.append("import java.util.List;\n");
+		sb.append("import java.util.Objects;\n");
+		if (atLeastOneSequence) {
+			sb.append("import java.util.Stack;\n");
 		}
 		if (atLeastOneSequence || atLeastOneZeroOrMore || generateMainMethod) {
 			sb.append('\n');
@@ -250,7 +249,7 @@ public final class Generator {
 					.append("final char angle = '└';\n")
 					.append("switch (n) {\n")
 					.indent()
-					.append("case Terminal t -> System.out.println(indent + t);\n");
+					.append("case Terminal t -> System.out.println(indent + \"Terminal '\" + t.literal() + \"'\");\n");
 			if (atLeastOneOr) {
 				sb.append("case Or or -> {\n")
 						.indent()

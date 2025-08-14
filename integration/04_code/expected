@@ -1,21 +1,21 @@
 OneOrMore
  ├─Or
  │  └─Sequence
- │     ├─Terminal[literal=int]
+ │     ├─Terminal 'int'
  │     ├─OneOrMore
- │     │  └─Terminal[literal=a]
- │     ├─Terminal[literal==]
+ │     │  └─Terminal 'a'
+ │     ├─Terminal '='
  │     ├─OneOrMore
- │     │  └─Terminal[literal=5]
- │     └─Terminal[literal=;]
+ │     │  └─Terminal '5'
+ │     └─Terminal ';'
  └─Or
     └─Sequence
-       ├─Terminal[literal=char]
+       ├─Terminal 'char'
        ├─OneOrMore
-       │  └─Terminal[literal=x]
-       ├─Terminal[literal==]
+       │  └─Terminal 'x'
+       ├─Terminal '='
        ├─Sequence
-       │  ├─Terminal[literal=']
-       │  ├─Terminal[literal=z]
-       │  └─Terminal[literal=']
-       └─Terminal[literal=;]
+       │  ├─Terminal '''
+       │  ├─Terminal 'z'
+       │  └─Terminal '''
+       └─Terminal ';'
