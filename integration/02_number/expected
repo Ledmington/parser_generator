@@ -3,9 +3,9 @@ Or
     ├─ZeroOrOne
     │  └─null
     └─Sequence
-       ├─Terminal[literal=1]
+       ├─Terminal '1'
        └─ZeroOrMore
           ├─Or
-          │  └─Terminal[literal=2]
+          │  └─Terminal '2'
           └─Or
-             └─Terminal[literal=3]
+             └─Terminal '3'

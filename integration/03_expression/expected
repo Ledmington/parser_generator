@@ -1,48 +1,48 @@
 Sequence
  ├─Sequence
  │  ├─Or
- │  │  └─Terminal[literal=1]
+ │  │  └─Terminal '1'
  │  └─ZeroOrMore
  │     └─null
  └─ZeroOrMore
     ├─Sequence
     │  ├─Or
-    │  │  └─Terminal[literal=+]
+    │  │  └─Terminal '+'
     │  └─Sequence
     │     ├─Or
-    │     │  └─Terminal[literal=2]
+    │     │  └─Terminal '2'
     │     └─ZeroOrMore
     │        └─Sequence
     │           ├─Or
-    │           │  └─Terminal[literal=*]
+    │           │  └─Terminal '*'
     │           └─Or
-    │              └─Terminal[literal=3]
+    │              └─Terminal '3'
     └─Sequence
        ├─Or
-       │  └─Terminal[literal=-]
+       │  └─Terminal '-'
        └─Sequence
           ├─Or
           │  └─Sequence
-          │     ├─Terminal[literal=(]
+          │     ├─Terminal '('
           │     ├─Sequence
           │     │  ├─Sequence
           │     │  │  ├─Or
-          │     │  │  │  └─Terminal[literal=4]
+          │     │  │  │  └─Terminal '4'
           │     │  │  └─ZeroOrMore
           │     │  │     └─Sequence
           │     │  │        ├─Or
-          │     │  │        │  └─Terminal[literal=/]
+          │     │  │        │  └─Terminal '/'
           │     │  │        └─Or
-          │     │  │           └─Terminal[literal=5]
+          │     │  │           └─Terminal '5'
           │     │  └─ZeroOrMore
           │     │     └─Sequence
           │     │        ├─Or
-          │     │        │  └─Terminal[literal=+]
+          │     │        │  └─Terminal '+'
           │     │        └─Sequence
           │     │           ├─Or
-          │     │           │  └─Terminal[literal=6]
+          │     │           │  └─Terminal '6'
           │     │           └─ZeroOrMore
           │     │              └─null
-          │     └─Terminal[literal=)]
+          │     └─Terminal ')'
           └─ZeroOrMore
              └─null
