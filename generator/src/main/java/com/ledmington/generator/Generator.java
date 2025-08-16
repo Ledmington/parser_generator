@@ -94,16 +94,26 @@ public final class Generator {
 		}
 
 		final List<Production> lexerProductions = new ArrayList<>();
-		final List<Production> parserProductions = new ArrayList<>();
-		GrammarUtils.splitProductions(productions, lexerProductions, parserProductions);
+		final List<Production> parserProductions;
+		{
+			// temporary list to hold parser productions
+			final List<Production> tmp = new ArrayList<>();
+			GrammarUtils.splitProductions(productions, lexerProductions, tmp);
 
+			parserProductions = GrammarUtils.simplifyProductions(tmp);
+			for (final Production p : parserProductions) {
+				System.out.println(p);
+			}
+		}
+
+		// TODO: do we still need to generate names for nodes if all productions are simplified?
 		generateNames(parserProductions);
 
-		final boolean atLeastOneSequence = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Sequence);
-		final boolean atLeastOneZeroOrOne = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof ZeroOrOne);
-		final boolean atLeastOneZeroOrMore = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof ZeroOrMore);
-		final boolean atLeastOneOneOrMore = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof OneOrMore);
-		final boolean atLeastOneOr = NODE_NAMES.keySet().stream().anyMatch(n -> n instanceof Or);
+		final boolean atLeastOneSequence = parserProductions.stream().anyMatch(p -> p.result() instanceof Sequence);
+		final boolean atLeastOneZeroOrOne = parserProductions.stream().anyMatch(p -> p.result() instanceof ZeroOrOne);
+		final boolean atLeastOneZeroOrMore = parserProductions.stream().anyMatch(p -> p.result() instanceof ZeroOrMore);
+		final boolean atLeastOneOneOrMore = parserProductions.stream().anyMatch(p -> p.result() instanceof OneOrMore);
+		final boolean atLeastOneOr = parserProductions.stream().anyMatch(p -> p.result() instanceof Or);
 
 		final IndentedStringBuilder sb = new IndentedStringBuilder(indent);
 		sb.append("/*\n")
@@ -193,7 +203,7 @@ public final class Generator {
 		for (final Production p : parserProductions) {
 			final String newNodeName = p.start().name();
 			switch (p.result()) {
-				case Sequence(final List<Expression> nodes) -> {
+				case Sequence(final List<Expression> nodes) ->
 					sb.append("public record ")
 							.append(newNodeName)
 							.append('(')
@@ -222,13 +232,12 @@ public final class Generator {
 							.append("}\n")
 							.deindent()
 							.append("}\n");
-				}
-				case ZeroOrMore(final Expression inner) -> {
+				case ZeroOrMore(final Expression inner) ->
 					sb.append("public record ")
 							.append(newNodeName)
-							.append('(')
+							.append("(List<")
 							.append(getGenerateNodeTypeName(inner))
-							.append(' ')
+							.append("> ")
 							.append(NODE_NAMES.get(inner))
 							.append(") implements ZeroOrMore {\n")
 							.indent()
@@ -240,10 +249,17 @@ public final class Generator {
 							.append("\";\n")
 							.deindent()
 							.append("}\n")
+							.append("@Override\n")
+							.append("public List<Node> nodes() {\n")
+							.indent()
+							.append("return ")
+							.append(NODE_NAMES.get(inner))
+							.append(";\n")
+							.deindent()
+							.append("}\n")
 							.deindent()
 							.append("}\n");
-				}
-				case Or(final List<Expression> nodes) -> {
+				case Or ignored ->
 					sb.append("public record ")
 							.append(newNodeName)
 							.append("(Node match) implements Or {\n")
@@ -258,7 +274,21 @@ public final class Generator {
 							.append("}\n")
 							.deindent()
 							.append("}\n");
-				}
+				case ZeroOrOne ignored ->
+					sb.append("public record ")
+							.append(newNodeName)
+							.append("(Node match) implements ZeroOrOne {\n")
+							.indent()
+							.append("@Override\n")
+							.append("public String name() {\n")
+							.indent()
+							.append("return \"")
+							.append(newNodeName)
+							.append("\";\n")
+							.deindent()
+							.append("}\n")
+							.deindent()
+							.append("}\n");
 				default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'.", p.result()));
 			}
 		}
@@ -913,7 +943,7 @@ public final class Generator {
 		int sequenceCounter = 0;
 		int zeroOrMoreCounter = 0;
 		int oneOrMoreCounter = 0;
-		int alternationCounter = 0;
+		int orCounter = 0;
 		while (!q.isEmpty()) {
 			final Node n = q.remove();
 			if (visited.contains(n)) {
@@ -946,8 +976,8 @@ public final class Generator {
 					q.addAll(s.nodes());
 				}
 				case Or or -> {
-					NODE_NAMES.put(or, "alternation_" + alternationCounter);
-					alternationCounter++;
+					NODE_NAMES.put(or, "or_" + orCounter);
+					orCounter++;
 					q.addAll(or.nodes());
 				}
 				default -> throw new IllegalArgumentException(String.format("Unknown Node '%s'.", n));

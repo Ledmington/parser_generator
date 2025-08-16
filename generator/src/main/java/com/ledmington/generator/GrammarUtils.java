@@ -17,11 +17,16 @@
  */
 package com.ledmington.generator;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Queue;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.ledmington.ebnf.Expression;
@@ -126,6 +131,123 @@ public final class GrammarUtils {
 			case Sequence s -> s.nodes().stream().anyMatch(GrammarUtils::containsAtLeastOneTerminal);
 			case Or or -> or.nodes().stream().anyMatch(GrammarUtils::containsAtLeastOneTerminal);
 			default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
+		};
+	}
+
+	public static List<Production> simplifyProductions(final List<Production> complexParserProductions) {
+		final Map<NonTerminal, Expression> productions = new LinkedHashMap<>();
+
+		final Function<Node, NonTerminal> freshNT = new Function<>() {
+
+			int sequenceCounter = 0;
+			int orCounter = 0;
+			int zeroOrOneCounter = 0;
+			int zeroOrMoreCounter = 0;
+			int oneOrMoreCounter = 0;
+
+			@Override
+			public NonTerminal apply(final Node n) {
+				return new NonTerminal(
+						switch (n) {
+							case Sequence ignored -> "sequence_" + (sequenceCounter++);
+							case Or ignored -> "or_" + (orCounter++);
+							case ZeroOrOne ignored -> "zero_or_one_" + (zeroOrOneCounter++);
+							case ZeroOrMore ignored -> "zero_or_more_" + (zeroOrMoreCounter++);
+							case OneOrMore ignored -> "zero_or_one_" + (oneOrMoreCounter++);
+							default -> throw new IllegalStateException(String.format("Unknown node: '%s'.", n));
+						});
+			}
+		};
+
+		for (final Production prod : complexParserProductions) {
+			if (isSimpleProduction(prod.result())) {
+				productions.put(prod.start(), prod.result());
+				continue;
+			}
+
+			final Queue<Pair<NonTerminal, Expression>> q = new ArrayDeque<>();
+			q.add(new Pair<>(prod.start(), prod.result()));
+
+			while (!q.isEmpty()) {
+				final Pair<NonTerminal, Expression> p = q.remove();
+				final NonTerminal start = p.first();
+				final Expression result = p.second();
+
+				switch (result) {
+					case NonTerminal nt -> productions.put(start, nt);
+					case Sequence seq -> {
+						final List<Expression> newElems = new ArrayList<>();
+						for (final Expression e : seq.nodes()) {
+							if (e instanceof NonTerminal) {
+								newElems.add(e);
+							} else {
+								final NonTerminal tmp = freshNT.apply(e);
+								newElems.add(tmp);
+								q.add(new Pair<>(tmp, e));
+							}
+						}
+						productions.put(start, new Sequence(newElems));
+					}
+					case Or or -> {
+						final List<Expression> newOpts = new ArrayList<>();
+						for (final Expression e : or.nodes()) {
+							if (e instanceof NonTerminal) {
+								newOpts.add(e);
+							} else {
+								final NonTerminal tmp = freshNT.apply(e);
+								newOpts.add(tmp);
+								q.add(new Pair<>(tmp, e));
+							}
+						}
+						productions.put(start, new Or(newOpts));
+					}
+					case ZeroOrOne zoo -> {
+						if (zoo.inner() instanceof NonTerminal) {
+							productions.put(start, zoo);
+						} else {
+							final NonTerminal tmp = freshNT.apply(zoo.inner());
+							productions.put(start, new ZeroOrOne(tmp));
+							q.add(new Pair<>(tmp, zoo.inner()));
+						}
+					}
+					case ZeroOrMore zom -> {
+						if (zom.inner() instanceof NonTerminal) {
+							productions.put(start, zom);
+						} else {
+							final NonTerminal tmp = freshNT.apply(zom.inner());
+							productions.put(start, new ZeroOrMore(tmp));
+							q.add(new Pair<>(tmp, zom.inner()));
+						}
+					}
+					case OneOrMore oom -> {
+						if (oom.inner() instanceof NonTerminal) {
+							productions.put(start, oom);
+						} else {
+							final NonTerminal tmp = freshNT.apply(oom.inner());
+							productions.put(start, new OneOrMore(tmp));
+							q.add(new Pair<>(tmp, oom.inner()));
+						}
+					}
+					default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'.", result));
+				}
+			}
+		}
+
+		return productions.entrySet().stream()
+				.map(e -> new Production(e.getKey(), e.getValue()))
+				.toList();
+	}
+
+	static boolean isSimpleProduction(final Expression result) {
+		return switch (result) {
+			case Terminal ignored -> true;
+			case NonTerminal ignored -> true;
+			case ZeroOrOne zoo -> zoo.inner() instanceof NonTerminal;
+			case ZeroOrMore zom -> zom.inner() instanceof NonTerminal;
+			case OneOrMore oom -> oom.inner() instanceof NonTerminal;
+			case Sequence s -> s.nodes().stream().allMatch(n -> n instanceof NonTerminal);
+			case Or or -> or.nodes().stream().allMatch(n -> n instanceof NonTerminal);
+			default -> false;
 		};
 	}
 }
