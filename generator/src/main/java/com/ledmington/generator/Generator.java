@@ -155,7 +155,11 @@ public final class Generator {
 				.deindent()
 				.append("}\n");
 		if (atLeastOneZeroOrOne) {
-			sb.append("public record ZeroOrOne(Node inner) implements Node {}\n");
+			sb.append("public interface ZeroOrOne extends Node {\n")
+					.indent()
+					.append("Node match();\n")
+					.deindent()
+					.append("}\n");
 		}
 		if (atLeastOneSequence) {
 			sb.append("public interface Sequence extends Node {\n")
@@ -165,20 +169,33 @@ public final class Generator {
 					.append("}\n");
 		}
 		if (atLeastOneZeroOrMore) {
-			sb.append("public record ZeroOrMore(List<Node> nodes) implements Node {}\n");
+			sb.append("public interface ZeroOrMore extends Node {\n")
+					.indent()
+					.append("List<Node> nodes();\n")
+					.deindent()
+					.append("}\n");
 		}
 		if (atLeastOneOneOrMore) {
-			sb.append("public record OneOrMore(List<Node> nodes) implements Node {}\n");
+			sb.append("public interface OneOrMore extends Node {\n")
+					.indent()
+					.append("List<Node> nodes();\n")
+					.deindent()
+					.append("}\n");
 		}
 		if (atLeastOneOr) {
-			sb.append("public record Or(Node inner) implements Node {}\n");
+			sb.append("public interface Or extends Node {\n")
+					.indent()
+					.append("Node match();\n")
+					.deindent()
+					.append("}\n");
 		}
 
-		if (true) {
-			for (final Production p : parserProductions) {
-				if (p.result() instanceof Sequence(final List<Expression> nodes)) {
+		for (final Production p : parserProductions) {
+			final String newNodeName = p.start().name();
+			switch (p.result()) {
+				case Sequence(final List<Expression> nodes) -> {
 					sb.append("public record ")
-							.append(p.start().name())
+							.append(newNodeName)
 							.append('(')
 							.append(nodes.stream()
 									.map(n -> getGenerateNodeTypeName(n) + " " + NODE_NAMES.get(n))
@@ -189,7 +206,7 @@ public final class Generator {
 							.append("public String name() {\n")
 							.indent()
 							.append("return \"")
-							.append(p.start().name())
+							.append(newNodeName)
 							.append("\";\n")
 							.deindent()
 							.append("}\n")
@@ -206,6 +223,43 @@ public final class Generator {
 							.deindent()
 							.append("}\n");
 				}
+				case ZeroOrMore(final Expression inner) -> {
+					sb.append("public record ")
+							.append(newNodeName)
+							.append('(')
+							.append(getGenerateNodeTypeName(inner))
+							.append(' ')
+							.append(NODE_NAMES.get(inner))
+							.append(") implements ZeroOrMore {\n")
+							.indent()
+							.append("@Override\n")
+							.append("public String name() {\n")
+							.indent()
+							.append("return \"")
+							.append(newNodeName)
+							.append("\";\n")
+							.deindent()
+							.append("}\n")
+							.deindent()
+							.append("}\n");
+				}
+				case Or(final List<Expression> nodes) -> {
+					sb.append("public record ")
+							.append(newNodeName)
+							.append("(Node match) implements Or {\n")
+							.indent()
+							.append("@Override\n")
+							.append("public String name() {\n")
+							.indent()
+							.append("return \"")
+							.append(newNodeName)
+							.append("\";\n")
+							.deindent()
+							.append("}\n")
+							.deindent()
+							.append("}\n");
+				}
+				default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'.", p.result()));
 			}
 		}
 
@@ -309,7 +363,7 @@ public final class Generator {
 						.indent()
 						.append("System.out.println(indent + \"Or\");\n")
 						.append(
-								"printNode(or.inner(), continuationIndent + \" \" + angle + horizontalLine, continuationIndent + \"   \");\n")
+								"printNode(or.match(), continuationIndent + \" \" + angle + horizontalLine, continuationIndent + \"   \");\n")
 						.deindent()
 						.append("}\n");
 			}
@@ -369,7 +423,7 @@ public final class Generator {
 						.indent()
 						.append("System.out.println(indent + \"ZeroOrOne\");\n")
 						.append(
-								"printNode(zoo.inner(), continuationIndent + \" \" + angle + horizontalLine, continuationIndent + \"   \");\n")
+								"printNode(zoo.match(), continuationIndent + \" \" + angle + horizontalLine, continuationIndent + \"   \");\n")
 						.deindent()
 						.append("}\n");
 			}
@@ -414,6 +468,8 @@ public final class Generator {
 	private static String getGenerateNodeTypeName(final Expression n) {
 		return switch (n) {
 			case NonTerminal ignored -> "Terminal";
+			case Sequence ignored -> "Sequence";
+			case ZeroOrMore ignored -> "ZeroOrMore";
 			default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'.", n));
 		};
 	}
@@ -695,7 +751,9 @@ public final class Generator {
 			}
 			sb.append("if (" + nodeName + " != null) {\n")
 					.indent()
-					.append("return new Or(" + nodeName + ");\n")
+					.append("return new ")
+					.append(productionName)
+					.append("(" + nodeName + ");\n")
 					.deindent()
 					.append("}\n");
 		}
@@ -730,7 +788,9 @@ public final class Generator {
 		sb.append("nodes.add(n);\n")
 				.deindent()
 				.append("}\n")
-				.append("return new ZeroOrMore(nodes);\n")
+				.append("return new ")
+				.append(productionName)
+				.append("(nodes);\n")
 				.deindent()
 				.append("}\n");
 	}
@@ -909,6 +969,10 @@ public final class Generator {
 			sb.append("final Node inner = parse_" + actualName + "();\n");
 			q.add(o.inner());
 		}
-		sb.append("return new ZeroOrOne(inner);\n").deindent().append("}\n");
+		sb.append("return new ")
+				.append(productionName)
+				.append("(inner);\n")
+				.deindent()
+				.append("}\n");
 	}
 }
