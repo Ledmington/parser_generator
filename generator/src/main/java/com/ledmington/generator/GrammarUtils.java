@@ -153,7 +153,7 @@ public final class GrammarUtils {
 							case Or ignored -> "or_" + (orCounter++);
 							case ZeroOrOne ignored -> "zero_or_one_" + (zeroOrOneCounter++);
 							case ZeroOrMore ignored -> "zero_or_more_" + (zeroOrMoreCounter++);
-							case OneOrMore ignored -> "zero_or_one_" + (oneOrMoreCounter++);
+							case OneOrMore ignored -> "one_or_more_" + (oneOrMoreCounter++);
 							default -> throw new IllegalStateException(String.format("Unknown node: '%s'.", n));
 						});
 			}
