@@ -163,6 +163,11 @@ public final class Generator {
 				.deindent()
 				.append("}\n")
 				.deindent()
+				.append("}\n")
+				.append("public interface NonTerminal extends Node {\n")
+				.indent()
+				.append("Node match();\n")
+				.deindent()
 				.append("}\n");
 		if (atLeastOneZeroOrOne) {
 			sb.append("public interface ZeroOrOne extends Node {\n")
@@ -203,6 +208,29 @@ public final class Generator {
 		for (final Production p : parserProductions) {
 			final String newNodeName = p.start().name();
 			switch (p.result()) {
+				case NonTerminal nt ->
+					sb.append("public record ")
+							.append(newNodeName)
+							.append('(')
+							.append(getGenerateNodeTypeName(nt))
+							.append(' ')
+							.append(nt.name())
+							.append(") implements NonTerminal {\n")
+							.indent()
+							.append("@Override\n")
+							.append("public String name() {\n")
+							.indent()
+							.append("return \"" + newNodeName + "\";\n")
+							.deindent()
+							.append("}\n")
+							.append("@Override\n")
+							.append("public Node match() {\n")
+							.indent()
+							.append("return " + nt.name() + ";\n")
+							.deindent()
+							.append("}\n")
+							.deindent()
+							.append("}\n");
 				case Sequence(final List<Expression> nodes) ->
 					sb.append("public record ")
 							.append(newNodeName)
@@ -387,7 +415,14 @@ public final class Generator {
 					.append("final char angle = '└';\n")
 					.append("switch (n) {\n")
 					.indent()
-					.append("case Terminal t -> System.out.println(indent + \"Terminal '\" + t.literal() + \"'\");\n");
+					.append("case Terminal t -> System.out.println(indent + \"Terminal '\" + t.literal() + \"'\");\n")
+					.append("case NonTerminal nt -> {\n")
+					.indent()
+					.append("System.out.println(indent + nt.name());\n")
+					.append(
+							"printNode(nt.match(), continuationIndent + \" \" + angle + horizontalLine, continuationIndent + \"   \");\n")
+					.deindent()
+					.append("}\n");
 			if (atLeastOneOr) {
 				sb.append("case Or or -> {\n")
 						.indent()
@@ -916,17 +951,22 @@ public final class Generator {
 			final NonTerminal start,
 			final Expression result,
 			final Set<String> tokenNames) {
-		/*sb.append("private Node parse_")
-				.append(NODE_NAMES.get(start))
+		final String typeName = NODE_NAMES.get(start);
+		final String innerTypeName = getGenerateNodeTypeName(result);
+		sb.append("private " + typeName + " parse_" + typeName)
 				.append("() {\n")
-				.indent();
+				.indent()
+				.append("final " + innerTypeName + " inner = ");
 		if (result instanceof NonTerminal(final String tokenName) && tokenNames.contains(tokenName)) {
-			sb.append("return parseTerminal(TokenType." + tokenName + ");\n");
+			sb.append("parseTerminal(TokenType." + tokenName + ")");
 		} else {
-			sb.append("return parse_" + NODE_NAMES.get(result) + "();\n");*/
-		q.add(result);
-		/*	}
-		sb.deindent().append("}\n");*/
+			sb.append("parse_" + NODE_NAMES.get(result) + "()");
+			q.add(result);
+		}
+		sb.append(";\n")
+				.append("return inner == null ? null : new " + typeName + "(inner);\n")
+				.deindent()
+				.append("}\n");
 	}
 
 	private static void generateNames(final List<Production> parserProductions) {
