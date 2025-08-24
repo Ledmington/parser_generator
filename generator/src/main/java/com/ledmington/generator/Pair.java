@@ -17,4 +17,12 @@
  */
 package com.ledmington.generator;
 
+/**
+ * Utility class to group together two objects of different types.
+ *
+ * @param <X> The type of the first element
+ * @param <Y> The type of the second element
+ * @param first The first element of the pair
+ * @param second The second element of the pair
+ */
 public record Pair<X, Y>(X first, Y second) {}

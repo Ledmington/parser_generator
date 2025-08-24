@@ -134,6 +134,15 @@ public final class GrammarUtils {
 		};
 	}
 
+	/**
+	 * Simplifies the given list of parser productions by returning a new list of productions. A production is defined
+	 * to be simple when its corresponding expression is either a terminal symbol, a non-terminal symbol or any
+	 * composite node containing only terminal or non-terminal symbols. In other words, we can say that a simple
+	 * production has its corresponding expression tree with maximum depth 2.
+	 *
+	 * @param complexParserProductions The productions to be simplified.
+	 * @return A new list of simplified productions.
+	 */
 	public static List<Production> simplifyProductions(final List<Production> complexParserProductions) {
 		final Map<NonTerminal, Expression> productions = new LinkedHashMap<>();
 

@@ -38,6 +38,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import com.ledmington.ebnf.Production;
 
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public final class TestGrammarUtils {
 
 	private static Stream<Arguments> correctCases() {
