@@ -384,10 +384,12 @@ public final class Generator {
 			// generateNonTerminal(q, sb, p.start(), p.result(), tokenNames);
 			final NonTerminal start = p.start();
 			final Expression result = p.result();
+			final String productionName = start.name();
 
 			switch (result) {
-				case NonTerminal nt -> generateNonTerminal(q, sb, start, result, tokenNames);
-				case ZeroOrOne zoo -> generateZeroOrOne(q, sb, start.name(), zoo, tokenNames);
+				case NonTerminal nt -> generateNonTerminal(q, sb, start, nt, tokenNames);
+				case ZeroOrOne zoo -> generateZeroOrOne(q, sb, productionName, zoo, tokenNames);
+				case Sequence s -> generateSequence(q, sb, productionName, s, tokenNames);
 				default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'", result));
 			}
 		}
@@ -939,16 +941,19 @@ public final class Generator {
 
 		final List<Expression> seq = s.nodes();
 		for (int i = 0; i < seq.size(); i++) {
-			final Node n = seq.get(i);
+			final Expression exp = seq.get(i);
 			final String nodeName = "n_" + i;
-			final String actualName = NODE_NAMES.get(n);
-			if (n instanceof NonTerminal && tokenNames.contains(actualName)) {
-				sb.append("final Terminal " + nodeName + " = parseTerminal(TokenType." + actualName + ");\n");
+			final String actualName = NODE_NAMES.get(exp);
+			final String innerTypeName = getGenerateNodeTypeName(exp, tokenNames);
+			sb.append("final " + innerTypeName + " " + nodeName + " = ");
+			if (exp instanceof NonTerminal && tokenNames.contains(actualName)) {
+				sb.append("parseTerminal(TokenType." + actualName + ")");
 			} else {
-				sb.append("final Node " + nodeName + " = parse_" + actualName + "();\n");
-				q.add(n);
+				sb.append("parse_" + actualName + "()");
+				q.add(exp);
 			}
-			if (!(n instanceof ZeroOrMore)) {
+			sb.append(";\n");
+			if (!(exp instanceof ZeroOrMore) && !(exp instanceof ZeroOrOne)) {
 				sb.append("if (" + nodeName + " == null) {\n")
 						.indent()
 						.append("this.pos = stack.pop();\n")
