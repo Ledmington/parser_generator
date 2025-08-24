@@ -1,20 +1,20 @@
-OneOrMore
- ├─Or
- │  └─Sequence
+start
+ ├─declaration
+ │  └─sequence_0
  │     ├─Terminal 'int'
- │     ├─OneOrMore
+ │     ├─id
  │     │  └─Terminal 'a'
  │     ├─Terminal '='
- │     ├─OneOrMore
+ │     ├─number
  │     │  └─Terminal '5'
  │     └─Terminal ';'
- └─Or
-    └─Sequence
+ └─declaration
+    └─sequence_1
        ├─Terminal 'char'
-       ├─OneOrMore
+       ├─id
        │  └─Terminal 'x'
        ├─Terminal '='
-       ├─Sequence
+       ├─character_literal
        │  ├─Terminal '''
        │  ├─Terminal 'z'
        │  └─Terminal '''

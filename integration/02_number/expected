@@ -1,11 +1,11 @@
-Or
- └─Sequence
-    ├─ZeroOrOne
+start
+ └─sequence_0
+    ├─zero_or_one_0
     │  └─null
-    └─Sequence
+    └─non_zero_number
        ├─Terminal '1'
-       └─ZeroOrMore
-          ├─Or
+       └─zero_or_more_0
+          ├─digit
           │  └─Terminal '2'
-          └─Or
+          └─digit
              └─Terminal '3'
