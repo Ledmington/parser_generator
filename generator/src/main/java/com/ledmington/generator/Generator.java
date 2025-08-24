@@ -488,7 +488,7 @@ public final class Generator {
 			if (atLeastOneZeroOrMore) {
 				sb.append("case ZeroOrMore zom -> {\n")
 						.indent()
-						.append("System.out.println(indent + \"ZeroOrMore\");\n")
+						.append("System.out.println(indent + zom.name());\n")
 						.append("final List<Node> children = zom.nodes();\n")
 						.append("final int len = children.size();\n")
 						.append("for (int i = 0; i < len - 1; i++) {\n")
@@ -505,7 +505,7 @@ public final class Generator {
 			if (atLeastOneOneOrMore) {
 				sb.append("case OneOrMore oom -> {\n")
 						.indent()
-						.append("System.out.println(indent + \"OneOrMore\");\n")
+						.append("System.out.println(indent + oom.name());\n")
 						.append("final List<Node> children = oom.nodes();\n")
 						.append("final int len = children.size();\n")
 						.append("for (int i = 0; i < len - 1; i++) {\n")
@@ -522,7 +522,7 @@ public final class Generator {
 			if (atLeastOneZeroOrOne) {
 				sb.append("case ZeroOrOne zoo -> {\n")
 						.indent()
-						.append("System.out.println(indent + \"ZeroOrOne\");\n")
+						.append("System.out.println(indent + zoo.name());\n")
 						.append(
 								"printNode(zoo.match(), continuationIndent + \" \" + angle + horizontalLine, continuationIndent + \"   \");\n")
 						.deindent()
