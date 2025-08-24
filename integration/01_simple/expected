@@ -1,1 +1,2 @@
-Terminal[literal=a]
+start
+ └─Terminal 'a'

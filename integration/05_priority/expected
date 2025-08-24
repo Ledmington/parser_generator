@@ -1,5 +1,5 @@
-Sequence
- ├─Terminal[literal=jack]
- ├─Terminal[literal=is]
- ├─Terminal[literal=a]
- └─Terminal[literal=banana]
+start
+ ├─Terminal 'jack'
+ ├─Terminal 'is'
+ ├─Terminal 'a'
+ └─Terminal 'banana'

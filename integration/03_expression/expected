@@ -1,48 +1,49 @@
-Sequence
- ├─Sequence
- │  ├─Or
- │  │  └─Terminal[literal=1]
- │  └─ZeroOrMore
- │     └─null
- └─ZeroOrMore
-    ├─Sequence
-    │  ├─Or
-    │  │  └─Terminal[literal=+]
-    │  └─Sequence
-    │     ├─Or
-    │     │  └─Terminal[literal=2]
-    │     └─ZeroOrMore
-    │        └─Sequence
-    │           ├─Or
-    │           │  └─Terminal[literal=*]
-    │           └─Or
-    │              └─Terminal[literal=3]
-    └─Sequence
-       ├─Or
-       │  └─Terminal[literal=-]
-       └─Sequence
-          ├─Or
-          │  └─Sequence
-          │     ├─Terminal[literal=(]
-          │     ├─Sequence
-          │     │  ├─Sequence
-          │     │  │  ├─Or
-          │     │  │  │  └─Terminal[literal=4]
-          │     │  │  └─ZeroOrMore
-          │     │  │     └─Sequence
-          │     │  │        ├─Or
-          │     │  │        │  └─Terminal[literal=/]
-          │     │  │        └─Or
-          │     │  │           └─Terminal[literal=5]
-          │     │  └─ZeroOrMore
-          │     │     └─Sequence
-          │     │        ├─Or
-          │     │        │  └─Terminal[literal=+]
-          │     │        └─Sequence
-          │     │           ├─Or
-          │     │           │  └─Terminal[literal=6]
-          │     │           └─ZeroOrMore
-          │     │              └─null
-          │     └─Terminal[literal=)]
-          └─ZeroOrMore
-             └─null
+start
+ └─expression
+    ├─term
+    │  ├─factor
+    │  │  └─Terminal '1'
+    │  └─zero_or_more_1
+    │     └─null
+    └─zero_or_more_0
+       ├─sequence_0
+       │  ├─or_0
+       │  │  └─Terminal '+'
+       │  └─term
+       │     ├─factor
+       │     │  └─Terminal '2'
+       │     └─zero_or_more_1
+       │        └─sequence_2
+       │           ├─or_1
+       │           │  └─Terminal '*'
+       │           └─factor
+       │              └─Terminal '3'
+       └─sequence_0
+          ├─or_0
+          │  └─Terminal '-'
+          └─term
+             ├─factor
+             │  └─sequence_1
+             │     ├─Terminal '('
+             │     ├─expression
+             │     │  ├─term
+             │     │  │  ├─factor
+             │     │  │  │  └─Terminal '4'
+             │     │  │  └─zero_or_more_1
+             │     │  │     └─sequence_2
+             │     │  │        ├─or_1
+             │     │  │        │  └─Terminal '/'
+             │     │  │        └─factor
+             │     │  │           └─Terminal '5'
+             │     │  └─zero_or_more_0
+             │     │     └─sequence_0
+             │     │        ├─or_0
+             │     │        │  └─Terminal '+'
+             │     │        └─term
+             │     │           ├─factor
+             │     │           │  └─Terminal '6'
+             │     │           └─zero_or_more_1
+             │     │              └─null
+             │     └─Terminal ')'
+             └─zero_or_more_1
+                └─null
