@@ -288,7 +288,7 @@ public final class Generator {
 							.indent()
 							.append("return ")
 							.append(NODE_NAMES.get(inner))
-							.append(";\n")
+							.append(".stream().map(n -> (Node) n).toList();\n")
 							.deindent()
 							.append("}\n")
 							.deindent()
@@ -388,8 +388,9 @@ public final class Generator {
 
 			switch (result) {
 				case NonTerminal nt -> generateNonTerminal(q, sb, start, nt, tokenNames);
-				case ZeroOrOne zoo -> generateZeroOrOne(q, sb, productionName, zoo, tokenNames);
 				case Sequence s -> generateSequence(q, sb, productionName, s, tokenNames);
+				case ZeroOrOne zoo -> generateZeroOrOne(q, sb, productionName, zoo, tokenNames);
+				case ZeroOrMore zom -> generateZeroOrMore(q, sb, productionName, zom, tokenNames);
 				default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'", result));
 			}
 		}
@@ -852,21 +853,24 @@ public final class Generator {
 			final Queue<Node> q,
 			final IndentedStringBuilder sb,
 			final String productionName,
-			final ZeroOrMore r,
+			final ZeroOrMore zom,
 			final Set<String> tokenNames) {
-		sb.append("private ZeroOrMore parse_" + productionName + "() {\n")
+		final String actualName = NODE_NAMES.get(zom.inner());
+		final String innerTypeName = getGenerateNodeTypeName(zom.inner(), tokenNames);
+		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
 				.indent()
-				.append("final List<Node> nodes = new ArrayList<>();\n")
+				.append("final List<" + innerTypeName + "> nodes = new ArrayList<>();\n")
 				.append("while (true) {\n")
-				.indent();
-		final String actualName = NODE_NAMES.get(r.inner());
-		if (r.inner() instanceof NonTerminal && tokenNames.contains(actualName)) {
-			sb.append("final Terminal n = parseTerminal(TokenType." + actualName + ");\n");
+				.indent()
+				.append("final " + innerTypeName + " n = ");
+		if (zom.inner() instanceof NonTerminal && tokenNames.contains(actualName)) {
+			sb.append("parseTerminal(TokenType." + actualName + ")");
 		} else {
-			sb.append("final Node n = parse_" + actualName + "();\n");
-			q.add(r.inner());
+			sb.append("parse_" + actualName + "()");
+			q.add(zom.inner());
 		}
-		if (!(r.inner() instanceof ZeroOrMore)) {
+		sb.append(";\n");
+		if (!(zom.inner() instanceof ZeroOrMore) && !(zom.inner() instanceof ZeroOrOne)) {
 			sb.append("if (n == null) {\n")
 					.indent()
 					.append("break;\n")
