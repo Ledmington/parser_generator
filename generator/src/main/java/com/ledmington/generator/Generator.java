@@ -416,6 +416,7 @@ public final class Generator {
 			switch (result) {
 				case NonTerminal nt -> generateNonTerminal(q, sb, start, nt, tokenNames);
 				case Sequence s -> generateSequence(q, sb, productionName, s, tokenNames);
+				case Or or -> generateOr(q, sb, productionName, or, tokenNames);
 				case ZeroOrOne zoo -> generateZeroOrOne(q, sb, productionName, zoo, tokenNames);
 				case ZeroOrMore zom -> generateZeroOrMore(q, sb, productionName, zom, tokenNames);
 				case OneOrMore oom -> generateOneOrMore(q, sb, productionName, oom, tokenNames);
@@ -477,7 +478,7 @@ public final class Generator {
 			if (atLeastOneOr) {
 				sb.append("case Or or -> {\n")
 						.indent()
-						.append("System.out.println(indent + \"Or\");\n")
+						.append("System.out.println(indent + or.name());\n")
 						.append(
 								"printNode(or.match(), continuationIndent + \" \" + angle + horizontalLine, continuationIndent + \"   \");\n")
 						.deindent()
@@ -854,17 +855,20 @@ public final class Generator {
 			final String productionName,
 			final Or a,
 			final Set<String> tokenNames) {
-		sb.append("private Or parse_" + productionName + "() {\n").indent();
+		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
+				.indent();
 		final List<Expression> nodes = a.nodes();
 		for (int i = 0; i < nodes.size(); i++) {
-			final Node n = nodes.get(i);
+			final Expression exp = nodes.get(i);
 			final String nodeName = "n_" + i;
-			final String actualName = NODE_NAMES.get(n);
-			if (n instanceof NonTerminal && tokenNames.contains(actualName)) {
-				sb.append("final Terminal " + nodeName + " = parseTerminal(TokenType." + actualName + ");\n");
+			final String actualName = NODE_NAMES.get(exp);
+			final String innerTypeName = getGenerateNodeTypeName(exp, tokenNames);
+			sb.append("final " + innerTypeName + " " + nodeName + " = ");
+			if (exp instanceof NonTerminal && tokenNames.contains(actualName)) {
+				sb.append("parseTerminal(TokenType." + actualName + ");\n");
 			} else {
-				sb.append("final Node " + nodeName + " = parse_" + actualName + "();\n");
-				q.add(n);
+				sb.append("parse_" + actualName + "();\n");
+				q.add(exp);
 			}
 			sb.append("if (" + nodeName + " != null) {\n")
 					.indent()
