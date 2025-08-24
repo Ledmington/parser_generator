@@ -141,7 +141,7 @@ public final class CorrectGrammars {
 		return new NonTerminal(name);
 	}
 
-	private static Terminal t(final String literal) {
+	static Terminal t(final String literal) {
 		return new Terminal(literal);
 	}
 

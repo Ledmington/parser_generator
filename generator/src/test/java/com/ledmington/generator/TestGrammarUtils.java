@@ -22,6 +22,7 @@ import static com.ledmington.generator.CorrectGrammars.one_or_more;
 import static com.ledmington.generator.CorrectGrammars.or;
 import static com.ledmington.generator.CorrectGrammars.p;
 import static com.ledmington.generator.CorrectGrammars.seq;
+import static com.ledmington.generator.CorrectGrammars.t;
 import static com.ledmington.generator.CorrectGrammars.zero_or_more;
 import static com.ledmington.generator.CorrectGrammars.zero_or_one;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,12 +42,20 @@ public final class TestGrammarUtils {
 
 	private static Stream<Arguments> correctCases() {
 		return Stream.of(
+				// just non-terminals
 				Arguments.of(List.of(p("before", nt("after"))), List.of(p("before", nt("after")))),
 				Arguments.of(List.of(p("start", seq(nt("a"), nt("b")))), List.of(p("start", seq(nt("a"), nt("b"))))),
 				Arguments.of(List.of(p("start", or(nt("a"), nt("b")))), List.of(p("start", or(nt("a"), nt("b"))))),
 				Arguments.of(List.of(p("start", zero_or_more(nt("a")))), List.of(p("start", zero_or_more(nt("a"))))),
 				Arguments.of(List.of(p("start", one_or_more(nt("a")))), List.of(p("start", one_or_more(nt("a"))))),
 				Arguments.of(List.of(p("start", zero_or_one(nt("a")))), List.of(p("start", zero_or_one(nt("a"))))),
+				// also terminals
+				Arguments.of(List.of(p("before", t("after"))), List.of(p("before", t("after")))),
+				Arguments.of(List.of(p("start", seq(t("a"), t("b")))), List.of(p("start", seq(t("a"), t("b"))))),
+				Arguments.of(List.of(p("start", or(t("a"), t("b")))), List.of(p("start", or(t("a"), t("b"))))),
+				Arguments.of(List.of(p("start", zero_or_more(t("a")))), List.of(p("start", zero_or_more(t("a"))))),
+				Arguments.of(List.of(p("start", one_or_more(t("a")))), List.of(p("start", one_or_more(t("a"))))),
+				Arguments.of(List.of(p("start", zero_or_one(t("a")))), List.of(p("start", zero_or_one(t("a"))))),
 				// seq + zero_or_one
 				Arguments.of(
 						List.of(p("start", zero_or_one(seq(nt("a"), nt("b"))))),

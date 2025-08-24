@@ -242,11 +242,13 @@ public final class GrammarUtils {
 		return switch (result) {
 			case Terminal ignored -> true;
 			case NonTerminal ignored -> true;
-			case ZeroOrOne zoo -> zoo.inner() instanceof NonTerminal;
-			case ZeroOrMore zom -> zom.inner() instanceof NonTerminal;
-			case OneOrMore oom -> oom.inner() instanceof NonTerminal;
-			case Sequence s -> s.nodes().stream().allMatch(n -> n instanceof NonTerminal);
-			case Or or -> or.nodes().stream().allMatch(n -> n instanceof NonTerminal);
+			case ZeroOrOne(final Expression inner) -> inner instanceof NonTerminal || inner instanceof Terminal;
+			case ZeroOrMore(final Expression inner) -> inner instanceof NonTerminal || inner instanceof Terminal;
+			case OneOrMore(final Expression inner) -> inner instanceof NonTerminal || inner instanceof Terminal;
+			case Sequence(final List<Expression> nodes) ->
+				nodes.stream().allMatch(n -> n instanceof NonTerminal || n instanceof Terminal);
+			case Or(final List<Expression> nodes) ->
+				nodes.stream().allMatch(n -> n instanceof NonTerminal || n instanceof Terminal);
 			default -> false;
 		};
 	}
