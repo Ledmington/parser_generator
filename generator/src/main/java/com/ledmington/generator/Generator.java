@@ -101,11 +101,6 @@ public final class Generator {
 			GrammarUtils.splitProductions(productions, lexerProductions, tmp);
 
 			parserProductions = GrammarUtils.simplifyProductions(tmp);
-			System.out.println("Simplified parser productions:");
-			for (final Production p : parserProductions) {
-				System.out.println(p);
-			}
-			System.out.println(" --- ");
 		}
 
 		// TODO: do we still need to generate names for nodes if all productions are simplified?
@@ -212,7 +207,6 @@ public final class Generator {
 
 		for (final Production p : parserProductions) {
 			final String newNodeName = p.start().name();
-			System.out.printf("Generating new node for: %s -> %s%n", newNodeName, p.result());
 			switch (p.result()) {
 				case NonTerminal nt ->
 					sb.append("public record ")
@@ -420,47 +414,21 @@ public final class Generator {
 		}
 		sb.deindent().append("}\n");
 
-		final Queue<Node> q = new ArrayDeque<>();
-		final Set<Node> visited = new HashSet<>();
-
 		for (final Production p : parserProductions) {
-			// generateNonTerminal(q, sb, p.start(), p.result(), tokenNames);
 			final NonTerminal start = p.start();
 			final Expression result = p.result();
 			final String productionName = start.name();
 
 			switch (result) {
-				case NonTerminal nt -> generateNonTerminal(q, sb, start, nt, tokenNames);
-				case Sequence s -> generateSequence(q, sb, productionName, s, tokenNames);
-				case Or or -> generateOr(q, sb, productionName, or, tokenNames);
-				case ZeroOrOne zoo -> generateZeroOrOne(q, sb, productionName, zoo, tokenNames);
-				case ZeroOrMore zom -> generateZeroOrMore(q, sb, productionName, zom, tokenNames);
-				case OneOrMore oom -> generateOneOrMore(q, sb, productionName, oom, tokenNames);
+				case NonTerminal nt -> generateNonTerminal(sb, start, nt, tokenNames);
+				case Sequence s -> generateSequence(sb, productionName, s, tokenNames);
+				case Or or -> generateOr(sb, productionName, or, tokenNames);
+				case ZeroOrOne zoo -> generateZeroOrOne(sb, productionName, zoo, tokenNames);
+				case ZeroOrMore zom -> generateZeroOrMore(sb, productionName, zom, tokenNames);
+				case OneOrMore oom -> generateOneOrMore(sb, productionName, oom, tokenNames);
 				default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'", result));
 			}
 		}
-
-		/*
-		TODO: remove this since no longer needed
-		while (!q.isEmpty()) {
-			final Node n = q.remove();
-			if (visited.contains(n)) {
-				continue;
-			}
-			visited.add(n);
-			switch (n) {
-				case NonTerminal ignored -> {
-					// No need to generate anything here because we already handle non-terminals when visiting
-					// the grammar's productions
-				}
-				case Sequence s -> generateSequence(q, sb, NODE_NAMES.get(s), s, tokenNames);
-				case ZeroOrOne zoo -> generateZeroOrOne(q, sb, NODE_NAMES.get(zoo), zoo, tokenNames);
-				case ZeroOrMore zom -> generateZeroOrMore(q, sb, NODE_NAMES.get(zom), zom, tokenNames);
-				case OneOrMore oom -> generateOneOrMore(q, sb, NODE_NAMES.get(oom), oom, tokenNames);
-				case Or or -> generateOr(q, sb, NODE_NAMES.get(or), or, tokenNames);
-				default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
-			}
-		}*/
 
 		sb.append("private Terminal parseTerminal(final TokenType expected) {\n")
 				.indent()
@@ -866,14 +834,10 @@ public final class Generator {
 	}
 
 	private static void generateOr(
-			final Queue<Node> q,
-			final IndentedStringBuilder sb,
-			final String productionName,
-			final Or a,
-			final Set<String> tokenNames) {
+			final IndentedStringBuilder sb, final String productionName, final Or or, final Set<String> tokenNames) {
 		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
 				.indent();
-		final List<Expression> nodes = a.nodes();
+		final List<Expression> nodes = or.nodes();
 		for (int i = 0; i < nodes.size(); i++) {
 			final Expression exp = nodes.get(i);
 			final String nodeName = "n_" + i;
@@ -884,7 +848,6 @@ public final class Generator {
 				sb.append("parseTerminal(TokenType." + actualName + ");\n");
 			} else {
 				sb.append("parse_" + actualName + "();\n");
-				q.add(exp);
 			}
 			sb.append("if (" + nodeName + " != null) {\n")
 					.indent()
@@ -898,7 +861,6 @@ public final class Generator {
 	}
 
 	private static void generateZeroOrMore(
-			final Queue<Node> q,
 			final IndentedStringBuilder sb,
 			final String productionName,
 			final ZeroOrMore zom,
@@ -915,7 +877,6 @@ public final class Generator {
 			sb.append("parseTerminal(TokenType." + actualName + ")");
 		} else {
 			sb.append("parse_" + actualName + "()");
-			q.add(zom.inner());
 		}
 		sb.append(";\n");
 		if (!(zom.inner() instanceof ZeroOrMore) && !(zom.inner() instanceof ZeroOrOne)) {
@@ -936,7 +897,6 @@ public final class Generator {
 	}
 
 	private static void generateOneOrMore(
-			final Queue<Node> q,
 			final IndentedStringBuilder sb,
 			final String productionName,
 			final OneOrMore oom,
@@ -951,7 +911,6 @@ public final class Generator {
 			sb.append("parseTerminal(TokenType." + actualName + ")");
 		} else {
 			sb.append("parse_" + actualName + "()");
-			q.add(oom.inner());
 		}
 		sb.append(";\n").append("nodes.add(n_0);\n");
 		if (!(oom.inner() instanceof ZeroOrMore) && !(oom.inner() instanceof ZeroOrOne)) {
@@ -967,7 +926,6 @@ public final class Generator {
 			sb.append("parseTerminal(TokenType." + actualName + ")");
 		} else {
 			sb.append("parse_" + actualName + "()");
-			q.add(oom.inner());
 		}
 		sb.append(";\n");
 		if (!(oom.inner() instanceof ZeroOrMore) && !(oom.inner() instanceof ZeroOrOne)) {
@@ -986,7 +944,6 @@ public final class Generator {
 	}
 
 	private static void generateSequence(
-			final Queue<Node> q,
 			final IndentedStringBuilder sb,
 			final String productionName,
 			final Sequence s,
@@ -1006,7 +963,6 @@ public final class Generator {
 				sb.append("parseTerminal(TokenType." + actualName + ")");
 			} else {
 				sb.append("parse_" + actualName + "()");
-				q.add(exp);
 			}
 			sb.append(";\n");
 			if (!(exp instanceof ZeroOrMore) && !(exp instanceof ZeroOrOne)) {
@@ -1028,15 +984,11 @@ public final class Generator {
 	}
 
 	private static void generateNonTerminal(
-			final Queue<Node> q,
 			final IndentedStringBuilder sb,
 			final NonTerminal start,
 			final Expression result,
 			final Set<String> tokenNames) {
 		final String typeName = NODE_NAMES.get(start);
-		if (result instanceof NonTerminal(final String tokenName)) {
-			System.out.printf("tokenName: '%s'%n", tokenName);
-		}
 		final String innerTypeName = getGenerateNodeTypeName(result, tokenNames);
 		sb.append("private " + typeName + " parse_" + typeName)
 				.append("() {\n")
@@ -1046,7 +998,6 @@ public final class Generator {
 			sb.append("parseTerminal(TokenType." + tokenName + ")");
 		} else {
 			sb.append("parse_" + NODE_NAMES.get(result) + "()");
-			q.add(result);
 		}
 		sb.append(";\n");
 
@@ -1115,7 +1066,6 @@ public final class Generator {
 	}
 
 	private static void generateZeroOrOne(
-			final Queue<Node> q,
 			final IndentedStringBuilder sb,
 			final String productionName,
 			final ZeroOrOne o,
@@ -1129,7 +1079,6 @@ public final class Generator {
 			sb.append("parseTerminal(TokenType." + innerName + ")");
 		} else {
 			sb.append("parse_" + innerName + "()");
-			q.add(o.inner());
 		}
 		sb.append(";\n")
 				.append("return new ")
