@@ -237,12 +237,27 @@ public final class Generator {
 							.append("}\n")
 							.deindent()
 							.append("}\n");
-				case Sequence(final List<Expression> nodes) ->
+				case Sequence(final List<Expression> nodes) -> {
+					final Map<String, Integer> nameCounter = new HashMap<>();
+					final List<String> nodeNames = new ArrayList<>();
+					for (final Expression exp : nodes) {
+						final String typeName = getGenerateNodeTypeName(exp, tokenNames);
+						final String nodeName = NODE_NAMES.get(exp);
+						if (!nameCounter.containsKey(typeName)) {
+							nameCounter.put(typeName, 0);
+							nodeNames.add(nodeName + "_0");
+						} else {
+							nameCounter.put(typeName, nameCounter.get(typeName) + 1);
+							final String name = nodeName + "_" + nameCounter.get(typeName);
+							nodeNames.add(name);
+						}
+					}
 					sb.append("public record ")
 							.append(newNodeName)
 							.append('(')
-							.append(nodes.stream()
-									.map(n -> getGenerateNodeTypeName(n, tokenNames) + " " + NODE_NAMES.get(n))
+							.append(IntStream.range(0, nodes.size())
+									.mapToObj(i ->
+											getGenerateNodeTypeName(nodes.get(i), tokenNames) + " " + nodeNames.get(i))
 									.collect(Collectors.joining(", ")))
 							.append(") implements Sequence {\n")
 							.indent()
@@ -258,14 +273,15 @@ public final class Generator {
 							.append("public List<Node> nodes() {\n")
 							.indent()
 							.append("return List.of(")
-							.append(nodes.stream()
-									.map(n -> NODE_NAMES.get(n) + "()")
+							.append(IntStream.range(0, nodes.size())
+									.mapToObj(nodeNames::get)
 									.collect(Collectors.joining(", ")))
 							.append(");\n")
 							.deindent()
 							.append("}\n")
 							.deindent()
 							.append("}\n");
+				}
 				case Or ignored ->
 					sb.append("public record ")
 							.append(newNodeName)
