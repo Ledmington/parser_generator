@@ -905,14 +905,13 @@ public final class Generator {
 		final String innerTypeName = getGenerateNodeTypeName(oom.inner(), tokenNames);
 		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
 				.indent()
-				.append("final List<" + innerTypeName + "> nodes = new ArrayList<>();\n");
-		sb.append("final " + innerTypeName + " n_0 = ");
+				.append("final " + innerTypeName + " n_0 = ");
 		if (oom.inner() instanceof NonTerminal && tokenNames.contains(actualName)) {
 			sb.append("parseTerminal(TokenType." + actualName + ")");
 		} else {
 			sb.append("parse_" + actualName + "()");
 		}
-		sb.append(";\n").append("nodes.add(n_0);\n");
+		sb.append(";\n");
 		if (!(oom.inner() instanceof ZeroOrMore) && !(oom.inner() instanceof ZeroOrOne)) {
 			sb.append("if (n_0 == null) {\n")
 					.indent()
@@ -920,8 +919,11 @@ public final class Generator {
 					.deindent()
 					.append("}\n");
 		}
-		sb.append("while (true) {\n").indent();
-		sb.append("final " + innerTypeName + " n = ");
+		sb.append("final List<" + innerTypeName + "> nodes = new ArrayList<>();\n")
+				.append("nodes.add(n_0);\n")
+				.append("while (true) {\n")
+				.indent()
+				.append("final " + innerTypeName + " n = ");
 		if (oom.inner() instanceof NonTerminal && tokenNames.contains(actualName)) {
 			sb.append("parseTerminal(TokenType." + actualName + ")");
 		} else {
@@ -1001,7 +1003,7 @@ public final class Generator {
 		}
 		sb.append(";\n");
 
-		if (result instanceof ZeroOrOne) {
+		if (result instanceof ZeroOrOne || result instanceof ZeroOrMore) {
 			sb.append("return new " + typeName + "(inner);\n");
 		} else {
 			sb.append("return inner == null ? null : new " + typeName + "(inner);\n");
