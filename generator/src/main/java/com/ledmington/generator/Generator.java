@@ -647,20 +647,12 @@ public final class Generator {
 			}
 		}
 		sb.deindent().append("\n};\n");
-		sb.append("private final boolean[] isSkippable = new boolean[] {\n").indent();
+
+		final boolean[] isSkippable = new boolean[allStates.size()];
 		for (int i = 0; i < allStates.size(); i++) {
 			final State s = allStates.get(i);
-			sb.append((s.isAccepting() && Production.isSkippable(((AcceptingState) s).tokenName())) ? "true" : "false");
-			if (i < allStates.size() - 1) {
-				sb.append(',');
-				if (i % maxPerRow == maxPerRow - 1) {
-					sb.append('\n');
-				} else {
-					sb.append(' ');
-				}
-			}
+			isSkippable[i] = (s.isAccepting() && Production.isSkippable(((AcceptingState) s).tokenName()));
 		}
-		sb.deindent().append("\n};\n");
 
 		final int[] tokensToMatch = new int[allStates.size()];
 		for (int i = 0; i < allStates.size(); i++) {
@@ -688,21 +680,27 @@ public final class Generator {
 			}
 		}
 
-		sb.append("private final TokenType[] tokensToMatch;\n")
+		sb.append("private final boolean[] isSkippable;\n")
+				.append("private final TokenType[] tokensToMatch;\n")
 				.append("private final int[] offsets;\n")
 				.append("private final char[] symbols;\n")
 				.append("private final int[] destinations;\n");
 
 		final int totalBytes = 4
 				+ 4
+				+ isSkippable.length
 				+ Integer.BYTES * tokensToMatch.length
 				+ Integer.BYTES * offsets.length
 				+ Character.BYTES * symbols.length
 				+ Integer.BYTES * destinations.length;
 		final ByteBuffer bb = ByteBuffer.allocate(totalBytes).order(ByteOrder.BIG_ENDIAN);
 
-		bb.putInt(tokensToMatch.length);
+		final int numStates = tokensToMatch.length;
+		bb.putInt(numStates);
 		bb.putInt(symbols.length);
+		for (final boolean skip : isSkippable) {
+			bb.put(skip ? (byte) 0xff : (byte) 0x00);
+		}
 		for (final int tokenIndex : tokensToMatch) {
 			bb.putInt(tokenIndex);
 		}
@@ -729,10 +727,16 @@ public final class Generator {
 						"final ByteBuffer bb = ByteBuffer.wrap(Base64.getDecoder().decode(encoded)).order(ByteOrder.BIG_ENDIAN);\n")
 				.append("final int num_states = bb.getInt();\n")
 				.append("final int num_destinations = bb.getInt();\n")
+				.append("this.isSkippable = new boolean[num_states];\n")
 				.append("this.tokensToMatch = new TokenType[num_states];\n")
 				.append("this.offsets = new int[num_states + 1];\n")
 				.append("this.symbols = new char[num_destinations];\n")
 				.append("this.destinations = new int[num_destinations];\n")
+				.append("for (int i = 0; i < num_states; i++) {\n")
+				.indent()
+				.append("this.isSkippable[i] = bb.get() == (byte) 0xff;\n")
+				.deindent()
+				.append("}\n")
 				.append("final TokenType[] tokenTypes = TokenType.values();\n")
 				.append("for (int i = 0; i < num_states; i++) {\n")
 				.indent()
