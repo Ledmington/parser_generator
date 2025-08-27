@@ -69,6 +69,7 @@ public final class Generator {
 	 * @param generateMainMethod True to generate a self-contained executable parser which prints the resulting match.
 	 * @return The indented Java source code of the parser of the given EBNF grammar.
 	 */
+	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
 	public static String generate(
 			final Grammar g,
 			final String parserName,
@@ -232,18 +233,22 @@ public final class Generator {
 							.deindent()
 							.append("}\n");
 				case Sequence(final List<Expression> nodes) -> {
+					final Map<String, Integer> typeCounts = new HashMap<>();
+					for (final Expression exp : nodes) {
+						final String typeName = getGenerateNodeTypeName(exp, tokenNames);
+						typeCounts.put(typeName, typeCounts.getOrDefault(typeName, 0) + 1);
+					}
 					final Map<String, Integer> nameCounter = new HashMap<>();
 					final List<String> nodeNames = new ArrayList<>();
 					for (final Expression exp : nodes) {
 						final String typeName = getGenerateNodeTypeName(exp, tokenNames);
 						final String nodeName = NODE_NAMES.get(exp);
-						if (!nameCounter.containsKey(typeName)) {
-							nameCounter.put(typeName, 0);
-							nodeNames.add(nodeName + "_0");
+						if (typeCounts.get(typeName) == 1) {
+							nodeNames.add(nodeName);
 						} else {
-							nameCounter.put(typeName, nameCounter.get(typeName) + 1);
-							final String name = nodeName + "_" + nameCounter.get(typeName);
-							nodeNames.add(name);
+							final int count = nameCounter.getOrDefault(typeName, 0);
+							nodeNames.add(nodeName + "_" + count);
+							nameCounter.put(typeName, count + 1);
 						}
 					}
 					sb.append("public record ")
