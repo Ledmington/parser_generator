@@ -236,19 +236,22 @@ public final class Generator {
 					final Map<String, Integer> typeCounts = new HashMap<>();
 					for (final Expression exp : nodes) {
 						final String typeName = getGenerateNodeTypeName(exp, tokenNames);
-						typeCounts.put(typeName, typeCounts.getOrDefault(typeName, 0) + 1);
+						final String nodeName = NODE_NAMES.get(exp);
+						final String fullName = typeName + " " + nodeName;
+						typeCounts.put(fullName, typeCounts.getOrDefault(fullName, 0) + 1);
 					}
 					final Map<String, Integer> nameCounter = new HashMap<>();
 					final List<String> nodeNames = new ArrayList<>();
 					for (final Expression exp : nodes) {
 						final String typeName = getGenerateNodeTypeName(exp, tokenNames);
 						final String nodeName = NODE_NAMES.get(exp);
-						if (typeCounts.get(typeName) == 1) {
+						final String fullName = typeName + " " + nodeName;
+						if (typeCounts.get(fullName) == 1) {
 							nodeNames.add(nodeName);
 						} else {
-							final int count = nameCounter.getOrDefault(typeName, 0);
+							final int count = nameCounter.getOrDefault(fullName, 0);
 							nodeNames.add(nodeName + "_" + count);
-							nameCounter.put(typeName, count + 1);
+							nameCounter.put(fullName, count + 1);
 						}
 					}
 					sb.append("public record ")
