@@ -25,7 +25,6 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
@@ -81,18 +80,6 @@ public final class Generator {
 		final String startSymbol = GrammarChecker.check(g);
 
 		final Map<Production, Integer> productions = g.productions();
-		final Production startingProduction = productions.keySet().stream()
-				.filter(x -> x.start().name().equals(startSymbol))
-				.findFirst()
-				.orElseThrow();
-		if (Production.isLexerProduction(startingProduction.start().name())) {
-			final Expression expr = startingProduction.result();
-			productions.remove(startingProduction);
-			final NonTerminal tmp = new NonTerminal("NEW_" + startSymbol);
-			final NonTerminal newStart = new NonTerminal(startSymbol.toLowerCase(Locale.US));
-			productions.put(new Production(newStart, tmp), 1);
-			productions.put(new Production(tmp, expr), 1);
-		}
 
 		final List<Production> lexerProductions = new ArrayList<>();
 		final List<Production> parserProductions;
@@ -403,11 +390,7 @@ public final class Generator {
 				.append("try {\n")
 				.indent();
 
-		if (lexerProductions.stream().anyMatch(p -> p.start().name().equals(startSymbol))) {
-			sb.append("result = parseTerminal(TokenType." + startSymbol + ");\n");
-		} else {
-			sb.append("result = parse_" + startSymbol + "();\n");
-		}
+		sb.append("result = parse_" + startSymbol + "();\n");
 
 		sb.deindent()
 				.append("} catch (final ArrayIndexOutOfBoundsException e) {\n")
