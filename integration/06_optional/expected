@@ -1,0 +1,5 @@
+start
+ ├─Terminal 'a'
+ ├─zero_or_one_0
+ │  └─null
+ └─Terminal 'c'
