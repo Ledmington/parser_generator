@@ -17,22 +17,16 @@
  */
 package com.ledmington.generator;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
-import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Node;
 import com.ledmington.ebnf.NonTerminal;
@@ -41,14 +35,8 @@ import com.ledmington.ebnf.Or;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
-import com.ledmington.ebnf.Utils;
 import com.ledmington.ebnf.ZeroOrMore;
 import com.ledmington.ebnf.ZeroOrOne;
-import com.ledmington.generator.automata.AcceptingState;
-import com.ledmington.generator.automata.AutomataUtils;
-import com.ledmington.generator.automata.DFA;
-import com.ledmington.generator.automata.NFA;
-import com.ledmington.generator.automata.State;
 
 /** Generates Java code to parse a specified EBNF grammar. */
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
@@ -91,7 +79,6 @@ public final class Generator {
 			parserProductions = GrammarUtils.simplifyProductions(tmp);
 		}
 
-		// TODO: do we still need to generate names for nodes if all productions are simplified?
 		generateNames(parserProductions);
 
 		final Set<String> tokenNames =
@@ -193,190 +180,16 @@ public final class Generator {
 					.append("}\n");
 		}
 
-		for (final Production p : parserProductions) {
-			final String newNodeName = p.start().name();
-			switch (p.result()) {
-				case NonTerminal nt ->
-					sb.append("public record ")
-							.append(newNodeName)
-							.append('(')
-							.append(getGenerateNodeTypeName(nt, tokenNames))
-							.append(' ')
-							.append(nt.name())
-							.append(") implements NonTerminal {\n")
-							.indent()
-							.append("@Override\n")
-							.append("public String name() {\n")
-							.indent()
-							.append("return \"" + newNodeName + "\";\n")
-							.deindent()
-							.append("}\n")
-							.append("@Override\n")
-							.append("public Node match() {\n")
-							.indent()
-							.append("return " + nt.name() + ";\n")
-							.deindent()
-							.append("}\n")
-							.deindent()
-							.append("}\n");
-				case Sequence(final List<Expression> nodes) -> {
-					final Map<String, Integer> typeCounts = new HashMap<>();
-					for (final Expression exp : nodes) {
-						final String typeName = getGenerateNodeTypeName(exp, tokenNames);
-						final String nodeName = NODE_NAMES.get(exp);
-						final String fullName = typeName + " " + nodeName;
-						typeCounts.put(fullName, typeCounts.getOrDefault(fullName, 0) + 1);
-					}
-					final Map<String, Integer> nameCounter = new HashMap<>();
-					final List<String> nodeNames = new ArrayList<>();
-					for (final Expression exp : nodes) {
-						final String typeName = getGenerateNodeTypeName(exp, tokenNames);
-						final String nodeName = NODE_NAMES.get(exp);
-						final String fullName = typeName + " " + nodeName;
-						if (typeCounts.get(fullName) == 1) {
-							nodeNames.add(nodeName);
-						} else {
-							final int count = nameCounter.getOrDefault(fullName, 0);
-							nodeNames.add(nodeName + "_" + count);
-							nameCounter.put(fullName, count + 1);
-						}
-					}
-					sb.append("public record ")
-							.append(newNodeName)
-							.append('(')
-							.append(IntStream.range(0, nodes.size())
-									.mapToObj(i ->
-											getGenerateNodeTypeName(nodes.get(i), tokenNames) + " " + nodeNames.get(i))
-									.collect(Collectors.joining(", ")))
-							.append(") implements Sequence {\n")
-							.indent()
-							.append("@Override\n")
-							.append("public String name() {\n")
-							.indent()
-							.append("return \"")
-							.append(newNodeName)
-							.append("\";\n")
-							.deindent()
-							.append("}\n")
-							.append("@Override\n")
-							.append("public List<Node> nodes() {\n")
-							.indent()
-							.append("return List.of(")
-							.append(IntStream.range(0, nodes.size())
-									.mapToObj(nodeNames::get)
-									.collect(Collectors.joining(", ")))
-							.append(");\n")
-							.deindent()
-							.append("}\n")
-							.deindent()
-							.append("}\n");
-				}
-				case Or ignored ->
-					sb.append("public record ")
-							.append(newNodeName)
-							.append("(Node match) implements Or {\n")
-							.indent()
-							.append("@Override\n")
-							.append("public String name() {\n")
-							.indent()
-							.append("return \"")
-							.append(newNodeName)
-							.append("\";\n")
-							.deindent()
-							.append("}\n")
-							.deindent()
-							.append("}\n");
-				case ZeroOrOne(final Expression inner) ->
-					sb.append("public record ")
-							.append(newNodeName)
-							.append("(" + getGenerateNodeTypeName(inner, tokenNames) + " " + NODE_NAMES.get(inner)
-									+ ") implements ZeroOrOne {\n")
-							.indent()
-							.append("@Override\n")
-							.append("public String name() {\n")
-							.indent()
-							.append("return \"")
-							.append(newNodeName)
-							.append("\";\n")
-							.deindent()
-							.append("}\n")
-							.append("@Override\n")
-							.append("public Node match() {\n")
-							.indent()
-							.append("return " + NODE_NAMES.get(inner) + ";\n")
-							.deindent()
-							.append("}\n")
-							.deindent()
-							.append("}\n");
-				case ZeroOrMore(final Expression inner) ->
-					sb.append("public record ")
-							.append(newNodeName)
-							.append("(List<")
-							.append(getGenerateNodeTypeName(inner, tokenNames))
-							.append("> ")
-							.append(NODE_NAMES.get(inner))
-							.append(") implements ZeroOrMore {\n")
-							.indent()
-							.append("@Override\n")
-							.append("public String name() {\n")
-							.indent()
-							.append("return \"")
-							.append(newNodeName)
-							.append("\";\n")
-							.deindent()
-							.append("}\n")
-							.append("@Override\n")
-							.append("public List<Node> nodes() {\n")
-							.indent()
-							.append("return ")
-							.append(NODE_NAMES.get(inner))
-							.append(".stream().map(n -> (Node) n).toList();\n")
-							.deindent()
-							.append("}\n")
-							.deindent()
-							.append("}\n");
-				case OneOrMore(final Expression inner) ->
-					sb.append("public record ")
-							.append(newNodeName)
-							.append("(List<")
-							.append(getGenerateNodeTypeName(inner, tokenNames))
-							.append("> ")
-							.append(NODE_NAMES.get(inner))
-							.append(") implements OneOrMore {\n")
-							.indent()
-							.append("@Override\n")
-							.append("public String name() {\n")
-							.indent()
-							.append("return \"")
-							.append(newNodeName)
-							.append("\";\n")
-							.deindent()
-							.append("}\n")
-							.append("@Override\n")
-							.append("public List<Node> nodes() {\n")
-							.indent()
-							.append("return ")
-							.append(NODE_NAMES.get(inner))
-							.append(".stream().map(n -> (Node) n).toList();\n")
-							.deindent()
-							.append("}\n")
-							.deindent()
-							.append("}\n");
-				default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'.", p.result()));
-			}
-		}
+		final ParserSerializer ps = new ParserSerializer(sb, tokenNames, NODE_NAMES);
+		ps.generateParser(parserProductions);
 
 		final String lexerName = parserName + "_Lexer";
+		DFASerializer.generateLexer(sb, lexerName, lexerProductions);
 
-		generateLexer(sb, lexerName, lexerProductions);
-
-		sb.append("public Node parse(final String input) {\n").indent().append("final Node result;\n");
-
-		sb.append("final ")
-				.append(lexerName)
-				.append(" lexer = new ")
-				.append(lexerName)
-				.append("();\n")
+		sb.append("public Node parse(final String input) {\n")
+				.indent()
+				.append("final Node result;\n")
+				.append("final " + lexerName + " lexer = new " + lexerName + "();\n")
 				.append("try {\n")
 				.indent()
 				.append("this.v = lexer.tokenize(input).toArray(new Token[0]);\n")
@@ -388,11 +201,9 @@ public final class Generator {
 				.append("}\n")
 				.append("this.pos = 0;\n")
 				.append("try {\n")
-				.indent();
-
-		sb.append("result = parse_" + startSymbol + "();\n");
-
-		sb.deindent()
+				.indent()
+				.append("result = parse_" + startSymbol + "();\n")
+				.deindent()
 				.append("} catch (final ArrayIndexOutOfBoundsException e) {\n")
 				.indent()
 				.append("return null;\n")
@@ -404,33 +215,6 @@ public final class Generator {
 			sb.append("return pos == v.length ? result : null;\n");
 		}
 		sb.deindent().append("}\n");
-
-		for (final Production p : parserProductions) {
-			final NonTerminal start = p.start();
-			final Expression result = p.result();
-			final String productionName = start.name();
-
-			switch (result) {
-				case NonTerminal nt -> generateNonTerminal(sb, start, nt, tokenNames);
-				case Sequence s -> generateSequence(sb, productionName, s, tokenNames);
-				case Or or -> generateOr(sb, productionName, or, tokenNames);
-				case ZeroOrOne zoo -> generateZeroOrOne(sb, productionName, zoo, tokenNames);
-				case ZeroOrMore zom -> generateZeroOrMore(sb, productionName, zom, tokenNames);
-				case OneOrMore oom -> generateOneOrMore(sb, productionName, oom, tokenNames);
-				default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'", result));
-			}
-		}
-
-		sb.append("private Terminal parseTerminal(final TokenType expected) {\n")
-				.indent()
-				.append("if (pos < v.length && v[pos].type() == expected) {\n")
-				.indent()
-				.append("return new Terminal(v[pos++].content());\n")
-				.deindent()
-				.append("}\n")
-				.append("return null;\n")
-				.deindent()
-				.append("}\n");
 
 		if (generateMainMethod) {
 			sb.append(
@@ -556,469 +340,6 @@ public final class Generator {
 		return sb.deindent().append("}").toString();
 	}
 
-	// TODO: change name of this method
-	private static String getGenerateNodeTypeName(final Expression n, final Set<String> tokenNames) {
-		return switch (n) {
-			case NonTerminal nt -> tokenNames.contains(nt.name()) ? "Terminal" : nt.name();
-			case Sequence ignored -> "Sequence";
-			case ZeroOrMore ignored -> "ZeroOrMore";
-			case ZeroOrOne ignored -> "ZeroOrOne";
-			default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'.", n));
-		};
-	}
-
-	private static void generateLexer(
-			final IndentedStringBuilder sb, final String lexerName, final List<Production> lexerProductions) {
-		final NFA epsilonNFA = AutomataUtils.grammarToEpsilonNFA(lexerProductions);
-		AutomataUtils.assertEpsilonNFAValid(epsilonNFA);
-		final NFA nfa = AutomataUtils.epsilonNFAtoNFA(epsilonNFA);
-		AutomataUtils.assertNFAValid(nfa);
-		final DFA dfa = AutomataUtils.NFAtoDFA(nfa);
-		AutomataUtils.assertDFAValid(dfa);
-		final DFA minimizedDFA = AutomataUtils.minimizeDFA(dfa);
-		AutomataUtils.assertDFAValid(minimizedDFA);
-
-		// re-index DFA states
-		final Map<State, Integer> stateIndex = new HashMap<>();
-		{
-			stateIndex.put(minimizedDFA.startingState(), 0);
-			int idx = 1;
-			for (final State s : minimizedDFA.states()) {
-				if (s.equals(minimizedDFA.startingState())) {
-					continue;
-				}
-				stateIndex.put(s, idx);
-				idx++;
-			}
-		}
-
-		final List<State> allStates = stateIndex.entrySet().stream()
-				.sorted(Entry.comparingByValue())
-				.map(Entry::getKey)
-				.toList();
-
-		final List<String> sortedTokenTypes =
-				lexerProductions.stream().map(p -> p.start().name()).sorted().toList();
-		final Map<String, Integer> tokenTypeToIndex = IntStream.range(0, sortedTokenTypes.size())
-				.boxed()
-				.collect(Collectors.toMap(sortedTokenTypes::get, i -> i));
-		sb.append("public enum TokenType {\n")
-				.indent()
-				.append(String.join(",\n", sortedTokenTypes))
-				.append('\n')
-				.deindent()
-				.append("}\n")
-				.append("public record Token(TokenType type, String content) {\n")
-				.indent()
-				.append("public Token {\n")
-				.indent()
-				.append("Objects.requireNonNull(type);\n")
-				.append("Objects.requireNonNull(content);\n")
-				.deindent()
-				.append("}\n")
-				.deindent()
-				.append("}\n")
-				.append("public static final class ")
-				.append(lexerName)
-				.append(" {\n")
-				.indent();
-
-		final boolean[] isAccepting = new boolean[allStates.size()];
-		for (int i = 0; i < allStates.size(); i++) {
-			final State s = allStates.get(i);
-			isAccepting[i] = s.isAccepting();
-		}
-
-		final boolean[] isSkippable = new boolean[allStates.size()];
-		for (int i = 0; i < allStates.size(); i++) {
-			final State s = allStates.get(i);
-			isSkippable[i] = (s.isAccepting() && Production.isSkippable(((AcceptingState) s).tokenName()));
-		}
-
-		final int[] tokensToMatch = new int[allStates.size()];
-		for (int i = 0; i < allStates.size(); i++) {
-			final State s = allStates.get(i);
-			tokensToMatch[i] = s.isAccepting() ? tokenTypeToIndex.get(((AcceptingState) s).tokenName()) : -1;
-		}
-
-		final int allTransitions = minimizedDFA.states().stream()
-				.mapToInt(s -> minimizedDFA.neighbors(s).size())
-				.sum();
-		final int[] offsets = new int[allStates.size() + 1];
-		offsets[0] = 0;
-		final char[] symbols = new char[allTransitions];
-		final int[] destinations = new int[allTransitions];
-		int idx = 0;
-		for (int i = 1; i < allStates.size() + 1; i++) {
-			final State s = allStates.get(i - 1);
-			offsets[i] = offsets[i - 1] + minimizedDFA.neighbors(s).size();
-			for (final Entry<Character, State> e : minimizedDFA.neighbors(s).entrySet().stream()
-					.sorted(Entry.comparingByKey())
-					.toList()) {
-				symbols[idx] = e.getKey();
-				destinations[idx] = stateIndex.get(e.getValue());
-				idx++;
-			}
-		}
-
-		sb.append("private final boolean[] isAccepting;\n")
-				.append("private final boolean[] isSkippable;\n")
-				.append("private final TokenType[] tokensToMatch;\n")
-				.append("private final int[] offsets;\n")
-				.append("private final char[] symbols;\n")
-				.append("private final int[] destinations;\n");
-
-		final int totalBytes = 4
-				+ 4
-				+ isAccepting.length
-				+ isSkippable.length
-				+ Integer.BYTES * tokensToMatch.length
-				+ Integer.BYTES * offsets.length
-				+ Character.BYTES * symbols.length
-				+ Integer.BYTES * destinations.length;
-		final ByteBuffer bb = ByteBuffer.allocate(totalBytes).order(ByteOrder.BIG_ENDIAN);
-
-		final int numStates = tokensToMatch.length;
-		bb.putInt(numStates);
-		bb.putInt(symbols.length);
-		for (final boolean acc : isAccepting) {
-			bb.put(acc ? (byte) 0xff : (byte) 0x00);
-		}
-		for (final boolean skip : isSkippable) {
-			bb.put(skip ? (byte) 0xff : (byte) 0x00);
-		}
-		for (final int tokenIndex : tokensToMatch) {
-			bb.putInt(tokenIndex);
-		}
-		for (final int off : offsets) {
-			bb.putInt(off);
-		}
-		for (final char sym : symbols) {
-			bb.putChar(sym);
-		}
-		for (final int dest : destinations) {
-			bb.putInt(dest);
-		}
-
-		final String encoded = Base64.getEncoder().encodeToString(bb.array());
-
-		sb.append("public ")
-				.append(lexerName)
-				.append("() {\n")
-				.indent()
-				.append("final String encoded = \"")
-				.append(Utils.getEscapedString(encoded))
-				.append("\";\n")
-				.append(
-						"final ByteBuffer bb = ByteBuffer.wrap(Base64.getDecoder().decode(encoded)).order(ByteOrder.BIG_ENDIAN);\n")
-				.append("final int num_states = bb.getInt();\n")
-				.append("final int num_destinations = bb.getInt();\n")
-				.append("this.isAccepting = new boolean[num_states];\n")
-				.append("this.isSkippable = new boolean[num_states];\n")
-				.append("this.tokensToMatch = new TokenType[num_states];\n")
-				.append("this.offsets = new int[num_states + 1];\n")
-				.append("this.symbols = new char[num_destinations];\n")
-				.append("this.destinations = new int[num_destinations];\n")
-				.append("for (int i = 0; i < num_states; i++) {\n")
-				.indent()
-				.append("this.isAccepting[i] = bb.get() == (byte) 0xff;\n")
-				.deindent()
-				.append("}\n")
-				.append("for (int i = 0; i < num_states; i++) {\n")
-				.indent()
-				.append("this.isSkippable[i] = bb.get() == (byte) 0xff;\n")
-				.deindent()
-				.append("}\n")
-				.append("final TokenType[] tokenTypes = TokenType.values();\n")
-				.append("for (int i = 0; i < num_states; i++) {\n")
-				.indent()
-				.append("final int x = bb.getInt();\n")
-				.append("this.tokensToMatch[i] = x == -1 ? null : tokenTypes[x];\n")
-				.deindent()
-				.append("}\n")
-				.append("for (int i = 0; i < num_states + 1; i++) {\n")
-				.indent()
-				.append("this.offsets[i] = bb.getInt();\n")
-				.deindent()
-				.append("}\n")
-				.append("for (int i = 0; i < num_destinations; i++) {\n")
-				.indent()
-				.append("this.symbols[i] = bb.getChar();\n")
-				.deindent()
-				.append("}\n")
-				.append("for (int i = 0; i < num_destinations; i++) {\n")
-				.indent()
-				.append("this.destinations[i] = bb.getInt();\n")
-				.deindent()
-				.append("}\n")
-				.deindent()
-				.append("}\n")
-				// TODO: this can optimized to a binary search
-				.append("private int transition(final int currentState, final char symbol) {\n")
-				.indent()
-				.append("final int start = this.offsets[currentState];\n")
-				.append("final int end = this.offsets[currentState + 1];\n")
-				.append("for (int i = start; i < end; i++) {\n")
-				.indent()
-				.append("if (this.symbols[i] == symbol) {\n")
-				.indent()
-				.append("return this.destinations[i];\n")
-				.deindent()
-				.append("}\n")
-				.deindent()
-				.append("}\n")
-				.append("return -1;\n")
-				.deindent()
-				.append("}\n")
-				.append("public List<Token> tokenize(final String input) {\n")
-				.indent()
-				.append("final char[] v = input.toCharArray();\n")
-				.append("int pos = 0;\n")
-				.append("int lastTokenMatchStart = 0;\n")
-				.append("int lastTokenMatchEnd = 0;\n")
-				.append("final List<Token> tokens = new ArrayList<>();\n")
-				.append("int currentState = 0;\n")
-				.append("while (pos < v.length) {\n")
-				.indent()
-				.append("if (isAccepting[currentState]) {\n")
-				.indent()
-				.append("lastTokenMatchEnd = pos;\n")
-				.deindent()
-				.append("}\n")
-				.append("final char ch = v[pos];\n")
-				.append("final int nextState = transition(currentState, ch);\n")
-				.append("if (nextState != -1) {\n")
-				.indent()
-				.append("currentState = nextState;\n")
-				.append("pos++;\n")
-				.deindent()
-				.append("} else {\n")
-				.indent()
-				.append("if (isAccepting[currentState]) {\n")
-				.indent()
-				.append("final int length = lastTokenMatchEnd - lastTokenMatchStart;\n")
-				.append("if (length == 0) {\n")
-				.indent()
-				.append(
-						"throw new IllegalArgumentException(String.format(\"No token emitted for empty match at index %,d.\", pos));\n")
-				.deindent()
-				.append("}\n")
-				.append("if (!isSkippable[currentState]) {\n")
-				.indent()
-				.append("final String match = String.copyValueOf(v, lastTokenMatchStart, length);\n")
-				.append("tokens.add(new Token(tokensToMatch[currentState], match));\n")
-				.deindent()
-				.append("}\n")
-				.append("lastTokenMatchStart = pos;\n")
-				.append("lastTokenMatchEnd = -1;\n")
-				.append("currentState = 0;\n")
-				.deindent()
-				.append("} else {\n")
-				.indent()
-				.append("throw new IllegalArgumentException(String.format(\"Lexical error at index %,d.\", pos));\n")
-				.deindent()
-				.append("}\n")
-				.deindent()
-				.append("}\n")
-				.deindent()
-				.append("}\n")
-				.append("if (isAccepting[currentState]) {\n")
-				.indent()
-				.append("lastTokenMatchEnd = pos;\n")
-				.deindent()
-				.append("}\n")
-				.append("final int length = lastTokenMatchEnd - lastTokenMatchStart;\n")
-				.append("if (isAccepting[currentState] && length > 0 && !isSkippable[currentState]) {\n")
-				.indent()
-				.append("final String match = String.copyValueOf(v, lastTokenMatchStart, length);\n")
-				.append("tokens.add(new Token(tokensToMatch[currentState], match));\n")
-				.deindent()
-				.append("}\n")
-				.append("return tokens;\n")
-				.deindent()
-				.append("}\n")
-				.deindent()
-				.append("}\n");
-	}
-
-	private static void generateOr(
-			final IndentedStringBuilder sb, final String productionName, final Or or, final Set<String> tokenNames) {
-		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
-				.indent();
-		final List<Expression> nodes = or.nodes();
-		for (int i = 0; i < nodes.size(); i++) {
-			final Expression exp = nodes.get(i);
-			final String nodeName = "n_" + i;
-			final String actualName = NODE_NAMES.get(exp);
-			final String innerTypeName = getGenerateNodeTypeName(exp, tokenNames);
-			sb.append("final " + innerTypeName + " " + nodeName + " = ");
-			if (exp instanceof NonTerminal && tokenNames.contains(actualName)) {
-				sb.append("parseTerminal(TokenType." + actualName + ");\n");
-			} else {
-				sb.append("parse_" + actualName + "();\n");
-			}
-			sb.append("if (" + nodeName + " != null) {\n")
-					.indent()
-					.append("return new ")
-					.append(productionName)
-					.append("(" + nodeName + ");\n")
-					.deindent()
-					.append("}\n");
-		}
-		sb.append("return null;\n").deindent().append("}\n");
-	}
-
-	private static void generateZeroOrMore(
-			final IndentedStringBuilder sb,
-			final String productionName,
-			final ZeroOrMore zom,
-			final Set<String> tokenNames) {
-		final String actualName = NODE_NAMES.get(zom.inner());
-		final String innerTypeName = getGenerateNodeTypeName(zom.inner(), tokenNames);
-		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
-				.indent()
-				.append("final List<" + innerTypeName + "> nodes = new ArrayList<>();\n")
-				.append("while (true) {\n")
-				.indent()
-				.append("final " + innerTypeName + " n = ");
-		if (zom.inner() instanceof NonTerminal && tokenNames.contains(actualName)) {
-			sb.append("parseTerminal(TokenType." + actualName + ")");
-		} else {
-			sb.append("parse_" + actualName + "()");
-		}
-		sb.append(";\n");
-		if (!(zom.inner() instanceof ZeroOrMore) && !(zom.inner() instanceof ZeroOrOne)) {
-			sb.append("if (n == null) {\n")
-					.indent()
-					.append("break;\n")
-					.deindent()
-					.append("}\n");
-		}
-		sb.append("nodes.add(n);\n")
-				.deindent()
-				.append("}\n")
-				.append("return new ")
-				.append(productionName)
-				.append("(nodes);\n")
-				.deindent()
-				.append("}\n");
-	}
-
-	private static void generateOneOrMore(
-			final IndentedStringBuilder sb,
-			final String productionName,
-			final OneOrMore oom,
-			final Set<String> tokenNames) {
-		final String actualName = NODE_NAMES.get(oom.inner());
-		final String innerTypeName = getGenerateNodeTypeName(oom.inner(), tokenNames);
-		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
-				.indent()
-				.append("final " + innerTypeName + " n_0 = ");
-		if (oom.inner() instanceof NonTerminal && tokenNames.contains(actualName)) {
-			sb.append("parseTerminal(TokenType." + actualName + ")");
-		} else {
-			sb.append("parse_" + actualName + "()");
-		}
-		sb.append(";\n");
-		if (!(oom.inner() instanceof ZeroOrMore) && !(oom.inner() instanceof ZeroOrOne)) {
-			sb.append("if (n_0 == null) {\n")
-					.indent()
-					.append("return null;\n")
-					.deindent()
-					.append("}\n");
-		}
-		sb.append("final List<" + innerTypeName + "> nodes = new ArrayList<>();\n")
-				.append("nodes.add(n_0);\n")
-				.append("while (true) {\n")
-				.indent()
-				.append("final " + innerTypeName + " n = ");
-		if (oom.inner() instanceof NonTerminal && tokenNames.contains(actualName)) {
-			sb.append("parseTerminal(TokenType." + actualName + ")");
-		} else {
-			sb.append("parse_" + actualName + "()");
-		}
-		sb.append(";\n");
-		if (!(oom.inner() instanceof ZeroOrMore) && !(oom.inner() instanceof ZeroOrOne)) {
-			sb.append("if (n == null) {\n")
-					.indent()
-					.append("break;\n")
-					.deindent()
-					.append("}\n");
-		}
-		sb.append("nodes.add(n);\n")
-				.deindent()
-				.append("}\n")
-				.append("return new " + productionName + "(nodes);\n")
-				.deindent()
-				.append("}\n");
-	}
-
-	private static void generateSequence(
-			final IndentedStringBuilder sb,
-			final String productionName,
-			final Sequence s,
-			final Set<String> tokenNames) {
-		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
-				.indent()
-				.append("stack.push(this.pos);\n");
-
-		final List<Expression> seq = s.nodes();
-		for (int i = 0; i < seq.size(); i++) {
-			final Expression exp = seq.get(i);
-			final String nodeName = "n_" + i;
-			final String actualName = NODE_NAMES.get(exp);
-			final String innerTypeName = getGenerateNodeTypeName(exp, tokenNames);
-			sb.append("final " + innerTypeName + " " + nodeName + " = ");
-			if (exp instanceof NonTerminal && tokenNames.contains(actualName)) {
-				sb.append("parseTerminal(TokenType." + actualName + ")");
-			} else {
-				sb.append("parse_" + actualName + "()");
-			}
-			sb.append(";\n");
-			if (!(exp instanceof ZeroOrMore) && !(exp instanceof ZeroOrOne)) {
-				sb.append("if (" + nodeName + " == null) {\n")
-						.indent()
-						.append("this.pos = stack.pop();\n")
-						.append("return null;\n")
-						.deindent()
-						.append("}\n");
-			}
-		}
-
-		sb.append("stack.pop();\n")
-				.append("return new " + productionName + "(")
-				.append(IntStream.range(0, seq.size()).mapToObj(i -> "n_" + i).collect(Collectors.joining(", ")))
-				.append(");\n")
-				.deindent()
-				.append("}\n");
-	}
-
-	private static void generateNonTerminal(
-			final IndentedStringBuilder sb,
-			final NonTerminal start,
-			final Expression result,
-			final Set<String> tokenNames) {
-		final String typeName = NODE_NAMES.get(start);
-		final String innerTypeName = getGenerateNodeTypeName(result, tokenNames);
-		sb.append("private " + typeName + " parse_" + typeName)
-				.append("() {\n")
-				.indent()
-				.append("final " + innerTypeName + " inner = ");
-		if (result instanceof NonTerminal(final String tokenName) && tokenNames.contains(tokenName)) {
-			sb.append("parseTerminal(TokenType." + tokenName + ")");
-		} else {
-			sb.append("parse_" + NODE_NAMES.get(result) + "()");
-		}
-		sb.append(";\n");
-
-		if (result instanceof ZeroOrOne || result instanceof ZeroOrMore) {
-			sb.append("return new " + typeName + "(inner);\n");
-		} else {
-			sb.append("return inner == null ? null : new " + typeName + "(inner);\n");
-		}
-		sb.deindent().append("}\n");
-	}
-
 	private static void generateNames(final List<Production> parserProductions) {
 		final Set<Node> visited = new HashSet<>();
 		final Queue<Node> q = new ArrayDeque<>();
@@ -1059,10 +380,8 @@ public final class Generator {
 					q.add(oom.inner());
 				}
 				case Sequence s -> {
-					if (!NODE_NAMES.containsKey(s)) {
-						NODE_NAMES.put(s, "sequence_" + sequenceCounter);
-						sequenceCounter++;
-					}
+					NODE_NAMES.put(s, "sequence_" + sequenceCounter);
+					sequenceCounter++;
 					q.addAll(s.nodes());
 				}
 				case Or or -> {
@@ -1073,28 +392,5 @@ public final class Generator {
 				default -> throw new IllegalArgumentException(String.format("Unknown Node '%s'.", n));
 			}
 		}
-	}
-
-	private static void generateZeroOrOne(
-			final IndentedStringBuilder sb,
-			final String productionName,
-			final ZeroOrOne o,
-			final Set<String> tokenNames) {
-		final String innerName = NODE_NAMES.get(o.inner());
-		final String innerTypeName = getGenerateNodeTypeName(o.inner(), tokenNames);
-		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
-				.indent()
-				.append("final " + innerTypeName + " inner = ");
-		if (o.inner() instanceof NonTerminal && tokenNames.contains(innerName)) {
-			sb.append("parseTerminal(TokenType." + innerName + ")");
-		} else {
-			sb.append("parse_" + innerName + "()");
-		}
-		sb.append(";\n")
-				.append("return new ")
-				.append(productionName)
-				.append("(inner);\n")
-				.deindent()
-				.append("}\n");
 	}
 }

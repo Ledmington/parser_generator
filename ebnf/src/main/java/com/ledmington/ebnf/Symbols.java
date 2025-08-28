@@ -51,7 +51,19 @@ public enum Symbols implements Token {
 	ASTERISK('*'),
 
 	/** The hyphens minus symbol (U+002D). */
-	DASH('-');
+	DASH('-'),
+
+	/** The double quotes symbol (U+0022). */
+	DOUBLE_QUOTES('\"'),
+
+	/** The line feed symbol (U+000A). */
+	NEWLINE('\n'),
+
+	/** The character tabulation symbol (U+0009). */
+	TAB('\t'),
+
+	/** The whitespace symbol (U+0020). */
+	WHITESPACE(' ');
 
 	private final char character;
 
