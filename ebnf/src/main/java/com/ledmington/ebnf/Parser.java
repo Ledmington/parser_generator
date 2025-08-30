@@ -31,11 +31,6 @@ import java.util.stream.IntStream;
 /** A parser of EBNF grammars. */
 public final class Parser {
 
-	private static final char DOUBLE_QUOTES = '\"';
-	private static final char NEWLINE = '\n';
-	private static final char WHITESPACE = ' ';
-	private static final char TAB = '\t';
-
 	private Parser() {}
 
 	/**
@@ -80,7 +75,9 @@ public final class Parser {
 		final StringCharacterIterator it = new StringCharacterIterator(input);
 		while (it.current() != CharacterIterator.DONE) {
 			final char ch = it.current();
-			if (ch == WHITESPACE || ch == TAB || ch == NEWLINE) {
+			if (ch == Symbols.WHITESPACE.getCharacter()
+					|| ch == Symbols.TAB.getCharacter()
+					|| ch == Symbols.NEWLINE.getCharacter()) {
 				skipWhitespaces(it);
 			} else if (Character.isAlphabetic(ch) || ch == Symbols.UNDERSCORE.getCharacter()) {
 				tokens.add(readWord(it));
@@ -114,7 +111,7 @@ public final class Parser {
 			} else if (ch == Symbols.DASH.getCharacter()) {
 				tokens.add(Symbols.DASH);
 				it.next();
-			} else if (ch == DOUBLE_QUOTES) {
+			} else if (ch == Symbols.DOUBLE_QUOTES.getCharacter()) {
 				tokens.add(readStringLiteral(it));
 			} else {
 				throw new ParsingException(String.format("Unknown character: '%c' (U+%04X).", ch, (int) ch));
@@ -125,21 +122,21 @@ public final class Parser {
 
 	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
 	private static StringLiteral readStringLiteral(final StringCharacterIterator it) {
-		if (it.current() != DOUBLE_QUOTES) {
+		if (it.current() != Symbols.DOUBLE_QUOTES.getCharacter()) {
 			throw new AssertionError("Expected string literal to start with '\"'.");
 		}
 		it.next();
 		final StringBuilder sb = new StringBuilder();
-		while (it.current() != CharacterIterator.DONE && it.current() != DOUBLE_QUOTES) {
-			if (it.current() == NEWLINE) {
+		while (it.current() != CharacterIterator.DONE && it.current() != Symbols.DOUBLE_QUOTES.getCharacter()) {
+			if (it.current() == Symbols.NEWLINE.getCharacter()) {
 				// string literals must be on the same line
 				throw new ParsingException("Unexpected newline while reading string literal.");
 			}
 			final int idx = it.getIndex();
 			if (it.current() == '\\') {
 				it.next();
-				if (it.current() == DOUBLE_QUOTES) {
-					sb.append(DOUBLE_QUOTES);
+				if (it.current() == Symbols.DOUBLE_QUOTES.getCharacter()) {
+					sb.append(Symbols.DOUBLE_QUOTES.getCharacter());
 				} else if (it.current() == 'n') {
 					sb.append('\n');
 				} else if (it.current() == 't') {
@@ -168,7 +165,9 @@ public final class Parser {
 
 	private static void skipWhitespaces(final StringCharacterIterator it) {
 		while (it.current() != CharacterIterator.DONE
-				&& (it.current() == WHITESPACE || it.current() == TAB || it.current() == NEWLINE)) {
+				&& (it.current() == Symbols.WHITESPACE.getCharacter()
+						|| it.current() == Symbols.TAB.getCharacter()
+						|| it.current() == Symbols.NEWLINE.getCharacter())) {
 			it.next();
 		}
 	}
