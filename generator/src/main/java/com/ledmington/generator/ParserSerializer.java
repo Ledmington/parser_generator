@@ -36,12 +36,21 @@ import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.ZeroOrMore;
 import com.ledmington.ebnf.ZeroOrOne;
 
+/** An helper class to generate java code for a given set of parser productions. */
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public final class ParserSerializer {
 
 	private final IndentedStringBuilder sb;
 	private final Set<String> tokenNames;
 	private final Map<Node, String> globalNodeNames;
 
+	/**
+	 * Creates a new ParserSerializer.
+	 *
+	 * @param sb The StringBuilder to use.
+	 * @param tokenNames The set of non-terminals corresponding to lexer productions.
+	 * @param nodeNames A map of the name for each node in the grammar.
+	 */
 	public ParserSerializer(
 			final IndentedStringBuilder sb, final Set<String> tokenNames, final Map<Node, String> nodeNames) {
 		this.sb = Objects.requireNonNull(sb);
@@ -53,6 +62,12 @@ public final class ParserSerializer {
 		return this.tokenNames.contains(tokenName);
 	}
 
+	/**
+	 * Generates java code of an LL(*) parser for the given list of productions.
+	 *
+	 * @param parserProductions The productions to be used.
+	 */
+	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
 	public void generateParser(final List<Production> parserProductions) {
 		for (final Production p : parserProductions) {
 			final String newNodeName = p.start().name();

@@ -105,7 +105,6 @@ public final class Generator {
 		sb.append("import java.nio.ByteBuffer;\n")
 				.append("import java.nio.ByteOrder;\n")
 				.append("import java.util.ArrayList;\n")
-				.append("import java.util.Arrays;\n")
 				.append("import java.util.Base64;\n")
 				.append("import java.util.List;\n");
 		sb.append("import java.util.Objects;\n");

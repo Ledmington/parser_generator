@@ -34,10 +34,19 @@ import com.ledmington.generator.automata.DFA;
 import com.ledmington.generator.automata.NFA;
 import com.ledmington.generator.automata.State;
 
+/** Helper class to generate java code for a DFA parsing a given list of productions. */
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public final class DFASerializer {
 
 	private DFASerializer() {}
 
+	/**
+	 * Generates code of a DFA to match a list of tokens.
+	 *
+	 * @param sb THe StringBuilder to place the generated code into.
+	 * @param lexerName The name of the resulting class.
+	 * @param lexerProductions The list of token productions, sorted by priority.
+	 */
 	public static void generateLexer(
 			final IndentedStringBuilder sb, final String lexerName, final List<Production> lexerProductions) {
 		final NFA epsilonNFA = AutomataUtils.grammarToEpsilonNFA(lexerProductions);
