@@ -34,6 +34,7 @@ import com.ledmington.generator.automata.DFA;
 import com.ledmington.generator.automata.EpsilonNFAToNFA;
 import com.ledmington.generator.automata.GrammarToEpsilonNFA;
 import com.ledmington.generator.automata.NFA;
+import com.ledmington.generator.automata.NFAToDFA;
 import com.ledmington.generator.automata.State;
 
 /** Helper class to generate java code for a DFA parsing a given list of productions. */
@@ -58,7 +59,8 @@ public final class DFASerializer {
 		final EpsilonNFAToNFA ENFA2NFA = new EpsilonNFAToNFA();
 		final NFA nfa = ENFA2NFA.convertEpsilonNFAToNFA(epsilonNFA);
 		AutomataUtils.assertNFAValid(nfa);
-		final DFA dfa = AutomataUtils.NFAtoDFA(nfa);
+		final NFAToDFA NFA2DFA = new NFAToDFA();
+		final DFA dfa = NFA2DFA.convertNFAToDFA(nfa);
 		AutomataUtils.assertDFAValid(dfa);
 		final DFA minimizedDFA = AutomataUtils.minimizeDFA(dfa);
 		AutomataUtils.assertDFAValid(minimizedDFA);

@@ -18,17 +18,14 @@
 package com.ledmington.generator.automata;
 
 import java.util.ArrayDeque;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /** A collection of common algorithms on finite-state automata. */
 public final class AutomataUtils {
@@ -37,95 +34,6 @@ public final class AutomataUtils {
 	private static final StateFactory stateFactory = new StateFactory();
 
 	private AutomataUtils() {}
-
-	private static Set<State> move(final Set<State> states, final char symbol, final NFA nfa) {
-		final Set<State> result = new HashSet<>();
-		for (final State s : states) {
-			final Map<Character, Set<State>> neighbors = nfa.neighbors(s);
-			if (neighbors == null) {
-				continue;
-			}
-			if (neighbors.containsKey(symbol)) {
-				result.addAll(neighbors.get(symbol));
-			}
-		}
-		return result;
-	}
-
-	/**
-	 * Converts the given NFA into a DFA.
-	 *
-	 * @param nfa The NFA to be converted.
-	 * @return A new DFA.
-	 */
-	public static DFA NFAtoDFA(final NFA nfa) {
-		final AutomataUtils converter = new AutomataUtils();
-		return converter.convertNFAToDFA(nfa);
-	}
-
-	private DFA convertNFAToDFA(final NFA nfa) {
-		final Map<Set<State>, State> stateMapping = new HashMap<>();
-		final Queue<Set<State>> queue = new LinkedList<>();
-		final DFABuilder builder = DFA.builder();
-		final Map<String, Integer> priorities = nfa.priorities();
-
-		final Set<Character> alphabet = nfa.states().stream()
-				.flatMap(s -> {
-					final Map<Character, Set<State>> m = nfa.neighbors(s);
-					if (m == null) {
-						return Stream.of();
-					}
-					return m.keySet().stream();
-				})
-				.collect(Collectors.toUnmodifiableSet());
-
-		final Set<State> startSet = new HashSet<>();
-		startSet.add(nfa.startingState());
-		final boolean isAccepting = startSet.stream().anyMatch(State::isAccepting);
-		final State dfaStartState = isAccepting
-				? stateFactory.getNewAcceptingState(((AcceptingState) startSet.stream()
-								.filter(State::isAccepting)
-								.min(Comparator.comparing(s ->
-										priorities.getOrDefault(((AcceptingState) s).tokenName(), Integer.MAX_VALUE)))
-								.orElseThrow())
-						.tokenName())
-				: stateFactory.getNewState();
-		stateMapping.put(startSet, dfaStartState);
-		queue.add(startSet);
-
-		while (!queue.isEmpty()) {
-			final Set<State> currentSet = queue.remove();
-			final State fromDFAState = stateMapping.get(currentSet);
-
-			for (final char symbol : alphabet) {
-				final Set<State> moveSet = move(currentSet, symbol, nfa);
-				if (moveSet.isEmpty()) {
-					continue;
-				}
-
-				final State toDFAState;
-				if (stateMapping.containsKey(moveSet)) {
-					toDFAState = stateMapping.get(moveSet);
-				} else {
-					final boolean accept = moveSet.stream().anyMatch(State::isAccepting);
-					toDFAState = accept
-							? stateFactory.getNewAcceptingState(((AcceptingState) moveSet.stream()
-											.filter(State::isAccepting)
-											.min(Comparator.comparing(s -> priorities.getOrDefault(
-													((AcceptingState) s).tokenName(), Integer.MAX_VALUE)))
-											.orElseThrow())
-									.tokenName())
-							: stateFactory.getNewState();
-					stateMapping.put(moveSet, toDFAState);
-					queue.add(moveSet);
-				}
-
-				builder.addTransition(fromDFAState, symbol, toDFAState);
-			}
-		}
-
-		return builder.start(dfaStartState).build();
-	}
 
 	/**
 	 * Converts the given DFA into a minimized DFA.
