@@ -190,10 +190,13 @@ public final class DFASerializer {
 
 		final String encoded = Utils.getEscapedString(Base64.getEncoder().encodeToString(bb.array()));
 
-		// java has an hard-coded limit of 65'535 characters for "constant string" (string literals), so if the string
-		// we need to write is longer, we split it into chunks and concatenate them in such a way that the (dumb)
-		// compiler cannot inline
-		final int maxChunkLength = 65_535;
+		/*
+		java has an hard-coded limit of 65'534 characters for "constant strings" (string literals), so if the string
+		we need to write is longer, we split it into chunks and concatenate them in such a way that the (dumb)
+		compiler cannot inline (declaring separate non-final variables and concatenate them into another non-final
+		variable)
+		 */
+		final int maxChunkLength = 65_534;
 
 		sb.append("public ").append(lexerName).append("() {\n").indent();
 
@@ -201,13 +204,13 @@ public final class DFASerializer {
 			sb.append("final String encoded = \"").append(encoded).append("\";\n");
 		} else {
 			// Split encoded string into chunks
-			sb.append("final String encoded;\n").append("{\n").indent();
+			sb.append("String encoded;\n").append("{\n").indent();
 			final int n = encoded.length();
 			int chunkIndex = 0;
 			int start = 0;
 			for (; start + maxChunkLength < n; start += maxChunkLength, chunkIndex++) {
 				final String chunkName = "chunk_" + chunkIndex;
-				sb.append("final String ")
+				sb.append("String ")
 						.append(chunkName)
 						.append(" = \"")
 						.append(encoded.substring(start, start + maxChunkLength))
@@ -215,7 +218,7 @@ public final class DFASerializer {
 			}
 			// encode last chunk "manually"
 			final String lastChunkName = "chunk_" + (chunkIndex++);
-			sb.append("final String ")
+			sb.append("String ")
 					.append(lastChunkName)
 					.append(" = \"")
 					.append(encoded.substring(start))
