@@ -216,6 +216,7 @@ public final class TestParser {
 	@ParameterizedTest
 	@ValueSource(
 			strings = {
+				"",
 				"=",
 				";",
 				"a",
