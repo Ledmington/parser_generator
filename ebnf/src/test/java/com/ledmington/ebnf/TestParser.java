@@ -33,6 +33,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public final class TestParser {
@@ -40,11 +41,16 @@ public final class TestParser {
 	private static final List<Arguments> CORRECT_TEST_CASES = List.of(
 			Arguments.of("a=\"a\";", g(p("a", t("a")))),
 			Arguments.of("a=B;B=\"a\";", g(p("a", nt("B")), p("B", t("a")))),
-			Arguments.of("(**)a=\"a\";", g(p("a", t("a")))),
-			Arguments.of("a(**)=\"a\";", g(p("a", t("a")))),
-			Arguments.of("a=(**)\"a\";", g(p("a", t("a")))),
-			Arguments.of("a=\"a\"(**);", g(p("a", t("a")))),
-			Arguments.of("a=\"a\";(**)", g(p("a", t("a")))),
+			Arguments.of("/**/a=\"a\";", g(p("a", t("a")))),
+			Arguments.of("a/**/=\"a\";", g(p("a", t("a")))),
+			Arguments.of("a=/**/\"a\";", g(p("a", t("a")))),
+			Arguments.of("a=\"a\"/**/;", g(p("a", t("a")))),
+			Arguments.of("a=\"a\";/**/", g(p("a", t("a")))),
+			Arguments.of("a=//comment\n\"a\";", g(p("a", t("a")))),
+			Arguments.of("a=\"/*a\";", g(p("a", t("/*a")))),
+			Arguments.of("a=\"//a\";", g(p("a", t("//a")))),
+			Arguments.of("a=/*\"a\"*/\"b\";", g(p("a", t("b")))),
+			Arguments.of("a=\"a\";//", g(p("a", t("a")))),
 			Arguments.of("my_symbol = \"a\";", g(p("my_symbol", t("a")))),
 			Arguments.of("a = \"a\" \"b\";", g(p("a", seq(t("a"), t("b"))))),
 			Arguments.of("a=\"a\";b=\"b\";", g(p("a", t("a")), p("b", t("b")))),
@@ -162,21 +168,6 @@ public final class TestParser {
 											t("0"), t("1"), t("2"), t("3"), t("4"), t("5"), t("6"), t("7"), t("8"),
 											t("9"))))));
 
-	private static final List<String> INVALID_TEST_CASES = List.of(
-			"=",
-			";",
-			"a",
-			"a=\";",
-			"a=\"a\",;",
-			"a=,\"a\";",
-			"a=\"a\",,\"a\";",
-			"a=\"a\nb\";",
-			"1=\"a\";",
-			"1a=\"a\";",
-			"a=(\"a\";",
-			"a=\"a\");",
-			"a=(\"a\";)");
-
 	private static String readFile(final String filename) {
 		final URL url = Thread.currentThread().getContextClassLoader().getResource(filename);
 		try {
@@ -222,6 +213,33 @@ public final class TestParser {
 		return new OneOrMore(inner);
 	}
 
+	@ParameterizedTest
+	@ValueSource(
+			strings = {
+				"=",
+				";",
+				"a",
+				"a=\"",
+				"a=\";",
+				"a=\"a\",;",
+				"a=,\"a\";",
+				"a=\"a\",,\"a\";",
+				"a=\"a\nb\";",
+				"1=\"a\";",
+				"1a=\"a\";",
+				"a=(\"a\";",
+				"a=\"a\");",
+				"a=(\"a\";)",
+				"a=\"a\";/",
+				"a=\"a\";/*",
+				"a=\"a\";/**",
+				"a=/*\"*/a\";",
+				"a=\"a/*\"*/;"
+			})
+	void invalid(final String input) {
+		assertThrows(ParsingException.class, () -> Parser.parse(input));
+	}
+
 	private static ZeroOrMore zero_or_more(final Expression exp) {
 		return new ZeroOrMore(exp);
 	}
@@ -240,15 +258,5 @@ public final class TestParser {
 				() -> String.format(
 						"Expected the first grammar but parsed the second one.%n%s%n%s%n",
 						Utils.prettyPrint(expected, "  "), Utils.prettyPrint(actual, "  ")));
-	}
-
-	private static Stream<Arguments> invalidTestCases() {
-		return INVALID_TEST_CASES.stream().map(Arguments::of);
-	}
-
-	@ParameterizedTest
-	@MethodSource("invalidTestCases")
-	void invalid(final String input) {
-		assertThrows(ParsingException.class, () -> Parser.parse(input));
 	}
 }
