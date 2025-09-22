@@ -22,6 +22,7 @@ import com.ledmington.ebnf.Parser;
 import com.ledmington.generator.GrammarChecker;
 import com.ledmington.generator.automata.AutomataUtils;
 import com.ledmington.generator.automata.DFA;
+import com.ledmington.generator.automata.GrammarToEpsilonNFA;
 import com.ledmington.generator.automata.NFA;
 
 public class Main {
@@ -52,6 +53,8 @@ public class Main {
 				DIGIT = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
 				""";
 
+		final GrammarToEpsilonNFA grammarToENFA = new GrammarToEpsilonNFA();
+
 		final int iterations = 10;
 		long t;
 		for (int i = 0; i < iterations; i++) {
@@ -71,7 +74,7 @@ public class Main {
 			System.gc();
 
 			t = System.nanoTime();
-			final NFA epsilonNFA = AutomataUtils.grammarToEpsilonNFA(g);
+			final NFA epsilonNFA = grammarToENFA.convert(g);
 			final long grammarToEpsilonNFATime = System.nanoTime() - t;
 			final long grammarToEpsilonNFAMemory = memory() - initialUsedMemory;
 			System.gc();

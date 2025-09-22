@@ -19,15 +19,9 @@ package com.ledmington.generator.automata;
 
 public final class StateFactory {
 
-	private static final StateFactory instance = new StateFactory();
-
 	private int stateID = 1;
 
-	private StateFactory() {}
-
-	public static StateFactory getInstance() {
-		return instance;
-	}
+	public StateFactory() {}
 
 	public State getNewState() {
 		return new State("S" + (stateID++));

@@ -18,173 +18,25 @@
 package com.ledmington.generator.automata;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import com.ledmington.ebnf.Grammar;
-import com.ledmington.ebnf.Node;
-import com.ledmington.ebnf.OneOrMore;
-import com.ledmington.ebnf.Or;
-import com.ledmington.ebnf.Production;
-import com.ledmington.ebnf.Sequence;
-import com.ledmington.ebnf.Terminal;
-import com.ledmington.ebnf.ZeroOrMore;
-import com.ledmington.ebnf.ZeroOrOne;
-import com.ledmington.generator.GrammarUtils;
-
 /** A collection of common algorithms on finite-state automata. */
 public final class AutomataUtils {
 	// FIXME: find a better name or place for these functions
 
+	private static final StateFactory stateFactory = new StateFactory();
+
 	private AutomataUtils() {}
-
-	/**
-	 * Converts the given grammar into an epsilon-NFA by first extracting the lexer productions.
-	 *
-	 * @param g The grammar to be converted.
-	 * @return A new epsilon-NFA representing all the lexer productions of the grammar combined.
-	 */
-	public static NFA grammarToEpsilonNFA(final Grammar g) {
-		final List<Production> lexerProductions = new ArrayList<>();
-		final List<Production> parserProductions = new ArrayList<>();
-		GrammarUtils.splitProductions(g.productions(), lexerProductions, parserProductions);
-		return grammarToEpsilonNFA(
-				lexerProductions,
-				g.productions().entrySet().stream()
-						.collect(Collectors.toMap(e -> e.getKey().start().name(), Entry::getValue)));
-	}
-
-	/**
-	 * Converts the given list of token productions into an epsilon-NFA by deducing the priorities from the order.
-	 *
-	 * @param lexerProductions The list of token productions ordered by priority.
-	 * @return A new epsilon-NFA representing all the lexer productions of the grammar combined.
-	 */
-	public static NFA grammarToEpsilonNFA(final List<Production> lexerProductions) {
-		final Map<String, Integer> priorities = new HashMap<>();
-		for (int i = 0; i < lexerProductions.size(); i++) {
-			priorities.put(lexerProductions.get(i).start().name(), i + 1);
-		}
-		return grammarToEpsilonNFA(lexerProductions, priorities);
-	}
-
-	/**
-	 * Converts the given list of productions into an epsilon-NFA.
-	 *
-	 * @param lexerProductions The productions to be converted.
-	 * @param priorities The map of priorities for each token production.
-	 * @return A new epsilon-NFA.
-	 */
-	public static NFA grammarToEpsilonNFA(
-			final List<Production> lexerProductions, final Map<String, Integer> priorities) {
-		final AutomataUtils converter = new AutomataUtils();
-		return converter.convertGrammarToEpsilonNFA(lexerProductions, priorities);
-	}
-
-	private NFA convertGrammarToEpsilonNFA(
-			final List<Production> lexerProductions, final Map<String, Integer> priorities) {
-		final NFABuilder builder = NFA.builder();
-
-		final State globalStart = StateFactory.getInstance().getNewState();
-
-		for (final Production p : lexerProductions) {
-			final String productionName = p.start().name();
-			final State productionStart = StateFactory.getInstance().getNewState();
-			final State productionEnd = StateFactory.getInstance().getNewAcceptingState(productionName);
-
-			builder.addTransition(globalStart, NFA.EPSILON, productionStart);
-
-			convertNode(p.result(), builder, productionStart, productionEnd);
-		}
-
-		return builder.start(globalStart).priorities(priorities).build();
-	}
-
-	private void convertNode(final Node n, final NFABuilder builder, final State start, final State end) {
-		switch (n) {
-			case Terminal t -> convertTerminal(t, builder, start, end);
-			case ZeroOrOne zoo -> convertZeroOrOne(zoo, builder, start, end);
-			case ZeroOrMore zom -> convertZeroOrMore(zom, builder, start, end);
-			case OneOrMore oom -> convertOneOrMore(oom, builder, start, end);
-			case Or a -> convertAlternation(a, builder, start, end);
-			case Sequence s -> convertSequence(s, builder, start, end);
-			default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
-		}
-	}
-
-	private void convertOneOrMore(final OneOrMore oom, final NFABuilder builder, final State start, final State end) {
-		final State a = StateFactory.getInstance().getNewState();
-		final State b = StateFactory.getInstance().getNewState();
-
-		builder.addTransition(start, NFA.EPSILON, a);
-		convertNode(oom.inner(), builder, a, b);
-		builder.addTransition(b, NFA.EPSILON, a);
-		builder.addTransition(b, NFA.EPSILON, end);
-	}
-
-	private void convertZeroOrMore(final ZeroOrMore zom, final NFABuilder builder, final State start, final State end) {
-		final State a = StateFactory.getInstance().getNewState();
-		final State b = StateFactory.getInstance().getNewState();
-
-		builder.addTransition(start, NFA.EPSILON, end);
-		builder.addTransition(start, NFA.EPSILON, a);
-		convertNode(zom.inner(), builder, a, b);
-		builder.addTransition(b, NFA.EPSILON, a);
-		builder.addTransition(b, NFA.EPSILON, end);
-	}
-
-	private void convertSequence(final Sequence s, final NFABuilder builder, final State start, final State end) {
-		State prev = StateFactory.getInstance().getNewState();
-		builder.addTransition(start, NFA.EPSILON, prev);
-		for (int i = 0; i < s.nodes().size(); i++) {
-			final State tmp = StateFactory.getInstance().getNewState();
-			convertNode(s.nodes().get(i), builder, prev, tmp);
-			prev = tmp;
-		}
-		builder.addTransition(prev, NFA.EPSILON, end);
-	}
-
-	private void convertZeroOrOne(final ZeroOrOne zoo, final NFABuilder builder, final State start, final State end) {
-		final State a = StateFactory.getInstance().getNewState();
-		final State b = StateFactory.getInstance().getNewState();
-
-		builder.addTransition(start, NFA.EPSILON, end);
-		builder.addTransition(start, NFA.EPSILON, a);
-		convertNode(zoo.inner(), builder, a, b);
-		builder.addTransition(b, NFA.EPSILON, end);
-	}
-
-	private void convertAlternation(final Or or, final NFABuilder builder, final State start, final State end) {
-		for (final Node n : or.nodes()) {
-			final State newStart = StateFactory.getInstance().getNewState();
-			final State newEnd = StateFactory.getInstance().getNewState();
-			builder.addTransition(start, NFA.EPSILON, newStart);
-			builder.addTransition(newEnd, NFA.EPSILON, end);
-			convertNode(n, builder, newStart, newEnd);
-		}
-	}
-
-	private void convertTerminal(final Terminal t, final NFABuilder builder, final State start, final State end) {
-		State prev = StateFactory.getInstance().getNewState();
-		builder.addTransition(start, NFA.EPSILON, prev);
-		for (int i = 0; i < t.literal().length(); i++) {
-			final State s = StateFactory.getInstance().getNewState();
-			builder.addTransition(prev, t.literal().charAt(i), s);
-			prev = s;
-		}
-		builder.addTransition(prev, NFA.EPSILON, end);
-	}
 
 	private static Set<State> epsilonClosure(final State state, final NFA nfa) {
 		final Queue<State> q = new ArrayDeque<>();
@@ -236,13 +88,12 @@ public final class AutomataUtils {
 			stateMapping.put(
 					s,
 					isAccepting
-							? StateFactory.getInstance()
-									.getNewAcceptingState(((AcceptingState) closure.stream()
-													.filter(State::isAccepting)
-													.findFirst()
-													.orElseThrow())
-											.tokenName())
-							: StateFactory.getInstance().getNewState());
+							? stateFactory.getNewAcceptingState(((AcceptingState) closure.stream()
+											.filter(State::isAccepting)
+											.findFirst()
+											.orElseThrow())
+									.tokenName())
+							: stateFactory.getNewState());
 		}
 
 		final NFABuilder builder = NFA.builder();
@@ -351,14 +202,13 @@ public final class AutomataUtils {
 		startSet.add(nfa.startingState());
 		final boolean isAccepting = startSet.stream().anyMatch(State::isAccepting);
 		final State dfaStartState = isAccepting
-				? StateFactory.getInstance()
-						.getNewAcceptingState(((AcceptingState) startSet.stream()
-										.filter(State::isAccepting)
-										.min(Comparator.comparing(s -> priorities.getOrDefault(
-												((AcceptingState) s).tokenName(), Integer.MAX_VALUE)))
-										.orElseThrow())
-								.tokenName())
-				: StateFactory.getInstance().getNewState();
+				? stateFactory.getNewAcceptingState(((AcceptingState) startSet.stream()
+								.filter(State::isAccepting)
+								.min(Comparator.comparing(s ->
+										priorities.getOrDefault(((AcceptingState) s).tokenName(), Integer.MAX_VALUE)))
+								.orElseThrow())
+						.tokenName())
+				: stateFactory.getNewState();
 		stateMapping.put(startSet, dfaStartState);
 		queue.add(startSet);
 
@@ -378,14 +228,13 @@ public final class AutomataUtils {
 				} else {
 					final boolean accept = moveSet.stream().anyMatch(State::isAccepting);
 					toDFAState = accept
-							? StateFactory.getInstance()
-									.getNewAcceptingState(((AcceptingState) moveSet.stream()
-													.filter(State::isAccepting)
-													.min(Comparator.comparing(s -> priorities.getOrDefault(
-															((AcceptingState) s).tokenName(), Integer.MAX_VALUE)))
-													.orElseThrow())
-											.tokenName())
-							: StateFactory.getInstance().getNewState();
+							? stateFactory.getNewAcceptingState(((AcceptingState) moveSet.stream()
+											.filter(State::isAccepting)
+											.min(Comparator.comparing(s -> priorities.getOrDefault(
+													((AcceptingState) s).tokenName(), Integer.MAX_VALUE)))
+											.orElseThrow())
+									.tokenName())
+							: stateFactory.getNewState();
 					stateMapping.put(moveSet, toDFAState);
 					queue.add(moveSet);
 				}
@@ -495,13 +344,12 @@ public final class AutomataUtils {
 		for (final Set<State> eqClass : new HashSet<>(equivalentGroups.values())) {
 			final boolean isAccept = eqClass.stream().anyMatch(State::isAccepting);
 			final State rep = isAccept
-					? StateFactory.getInstance()
-							.getNewAcceptingState(((AcceptingState) eqClass.stream()
-											.filter(State::isAccepting)
-											.findFirst()
-											.orElseThrow())
-									.tokenName())
-					: StateFactory.getInstance().getNewState();
+					? stateFactory.getNewAcceptingState(((AcceptingState) eqClass.stream()
+									.filter(State::isAccepting)
+									.findFirst()
+									.orElseThrow())
+							.tokenName())
+					: stateFactory.getNewState();
 			for (final State s : eqClass) {
 				oldToNew.put(s, rep);
 			}
