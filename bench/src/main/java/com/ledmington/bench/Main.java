@@ -22,6 +22,7 @@ import com.ledmington.ebnf.Parser;
 import com.ledmington.generator.GrammarChecker;
 import com.ledmington.generator.automata.AutomataUtils;
 import com.ledmington.generator.automata.DFA;
+import com.ledmington.generator.automata.DFAMinimizer;
 import com.ledmington.generator.automata.EpsilonNFAToNFA;
 import com.ledmington.generator.automata.GrammarToEpsilonNFA;
 import com.ledmington.generator.automata.NFA;
@@ -58,6 +59,7 @@ public class Main {
 		final GrammarToEpsilonNFA grammar2ENFA = new GrammarToEpsilonNFA();
 		final EpsilonNFAToNFA ENFA2NFA = new EpsilonNFAToNFA();
 		final NFAToDFA NFA2DFA = new NFAToDFA();
+		final DFAMinimizer DFAmin = new DFAMinimizer();
 
 		final int iterations = 10;
 		long t;
@@ -114,7 +116,7 @@ public class Main {
 			System.gc();
 
 			t = System.nanoTime();
-			final DFA minimizedDFA = AutomataUtils.minimizeDFA(dfa);
+			final DFA minimizedDFA = DFAmin.convertDFAToMinimizedDFA(dfa);
 			final long minimizingDFATime = System.nanoTime() - t;
 			final long minimizingDFAMemory = memory() - initialUsedMemory;
 			System.gc();

@@ -31,6 +31,7 @@ import com.ledmington.ebnf.Utils;
 import com.ledmington.generator.automata.AcceptingState;
 import com.ledmington.generator.automata.AutomataUtils;
 import com.ledmington.generator.automata.DFA;
+import com.ledmington.generator.automata.DFAMinimizer;
 import com.ledmington.generator.automata.EpsilonNFAToNFA;
 import com.ledmington.generator.automata.GrammarToEpsilonNFA;
 import com.ledmington.generator.automata.NFA;
@@ -62,7 +63,8 @@ public final class DFASerializer {
 		final NFAToDFA NFA2DFA = new NFAToDFA();
 		final DFA dfa = NFA2DFA.convertNFAToDFA(nfa);
 		AutomataUtils.assertDFAValid(dfa);
-		final DFA minimizedDFA = AutomataUtils.minimizeDFA(dfa);
+		final DFAMinimizer DFAmin = new DFAMinimizer();
+		final DFA minimizedDFA = DFAmin.convertDFAToMinimizedDFA(dfa);
 		AutomataUtils.assertDFAValid(minimizedDFA);
 
 		// re-index DFA states

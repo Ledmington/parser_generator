@@ -20,145 +20,15 @@ package com.ledmington.generator.automata;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /** A collection of common algorithms on finite-state automata. */
 public final class AutomataUtils {
 	// FIXME: find a better name or place for these functions
 
-	private static final StateFactory stateFactory = new StateFactory();
-
 	private AutomataUtils() {}
-
-	/**
-	 * Converts the given DFA into a minimized DFA.
-	 *
-	 * @param dfa The DFA to be minimized.
-	 * @return A new minimized DFA.
-	 */
-	public static DFA minimizeDFA(final DFA dfa) {
-		final AutomataUtils converter = new AutomataUtils();
-		return converter.convertDFAToMinimizedDFA(dfa);
-	}
-
-	private DFA convertDFAToMinimizedDFA(final DFA dfa) {
-		// Myhill-Nerode theorem
-		final DFABuilder builder = DFA.builder();
-		final List<State> oldStates = dfa.states().stream().toList();
-		final Map<State, Integer> oldStatesIndex =
-				IntStream.range(0, oldStates.size()).boxed().collect(Collectors.toMap(oldStates::get, i -> i));
-		final int n = oldStates.size();
-		final boolean[][] isDistinguishable = new boolean[n][n];
-		for (int i = 0; i < n; i++) {
-			final State a = oldStates.get(i);
-			for (int j = i + 1; j < n; j++) {
-				final State b = oldStates.get(j);
-				// any accepting state is trivially distinguishable from any non-accepting one
-				if (a.isAccepting() != b.isAccepting()) {
-					isDistinguishable[i][j] = true;
-					isDistinguishable[j][i] = true;
-				} else
-				// two accepting states are trivially distinguishable if they refer to different tokens
-				if (a.isAccepting()
-						&& b.isAccepting()
-						&& !((AcceptingState) a).tokenName().equals(((AcceptingState) b).tokenName())) {
-					isDistinguishable[i][j] = true;
-					isDistinguishable[j][i] = true;
-				}
-			}
-		}
-
-		boolean atLeastOnePairDistinguished;
-		do {
-			atLeastOnePairDistinguished = false;
-			for (int i = 0; i < n; i++) {
-				final State p = oldStates.get(i);
-				final Map<Character, State> px = dfa.neighbors(p);
-				if (px == null) {
-					continue;
-				}
-
-				for (int j = i + 1; j < n; j++) {
-					if (isDistinguishable[i][j]) {
-						continue;
-					}
-
-					final State q = oldStates.get(j);
-					final Map<Character, State> qx = dfa.neighbors(q);
-					if (qx == null) {
-						continue;
-					}
-
-					if (!px.keySet().equals(qx.keySet())) {
-						isDistinguishable[i][j] = true;
-						isDistinguishable[j][i] = true;
-						atLeastOnePairDistinguished = true;
-						continue;
-					}
-					for (final char x : px.keySet()) {
-						final int pxx = oldStatesIndex.get(px.get(x));
-						final int qxx = oldStatesIndex.get(qx.get(x));
-						if (isDistinguishable[pxx][qxx]) {
-							isDistinguishable[i][j] = true;
-							isDistinguishable[j][i] = true;
-							atLeastOnePairDistinguished = true;
-							break;
-						}
-					}
-				}
-			}
-		} while (atLeastOnePairDistinguished);
-
-		// Create group of equivalent states
-		final Map<State, Set<State>> equivalentGroups = new HashMap<>();
-		for (int i = 0; i < n; i++) {
-			final State a = oldStates.get(i);
-			equivalentGroups.putIfAbsent(a, new HashSet<>(Set.of(a)));
-			for (int j = i + 1; j < n; j++) {
-				final State b = oldStates.get(j);
-				if (!isDistinguishable[i][j]) {
-					equivalentGroups.get(a).add(b);
-					equivalentGroups.put(b, equivalentGroups.get(a));
-				}
-			}
-		}
-
-		// Create a new state for each equivalent state
-		final Map<State, State> oldToNew = new HashMap<>();
-		for (final Set<State> eqClass : new HashSet<>(equivalentGroups.values())) {
-			final boolean isAccept = eqClass.stream().anyMatch(State::isAccepting);
-			final State rep = isAccept
-					? stateFactory.getNewAcceptingState(((AcceptingState) eqClass.stream()
-									.filter(State::isAccepting)
-									.findFirst()
-									.orElseThrow())
-							.tokenName())
-					: stateFactory.getNewState();
-			for (final State s : eqClass) {
-				oldToNew.put(s, rep);
-			}
-		}
-
-		// Add transitions
-		for (final State src : oldStates) {
-			final Map<Character, State> neighbors = dfa.neighbors(src);
-			if (neighbors == null) {
-				continue;
-			}
-			for (final Map.Entry<Character, State> e : neighbors.entrySet()) {
-				builder.addTransition(oldToNew.get(src), e.getKey(), oldToNew.get(e.getValue()));
-			}
-		}
-
-		final State newStart = oldToNew.get(dfa.startingState());
-
-		return builder.start(newStart).build();
-	}
 
 	/**
 	 * Checks whether the given automaton is a valid epsilon-NFA.
