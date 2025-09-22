@@ -22,10 +22,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Node;
+import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.OneOrMore;
 import com.ledmington.ebnf.Or;
 import com.ledmington.ebnf.Production;
@@ -38,6 +38,9 @@ import com.ledmington.generator.GrammarUtils;
 public final class GrammarToEpsilonNFA {
 
 	private final StateFactory stateFactory;
+	private final List<Production> lexerProductions = new ArrayList<>();
+	private final Map<String, Integer> priorities = new HashMap<>();
+	private NFABuilder builder = null;
 
 	public GrammarToEpsilonNFA(final StateFactory factory) {
 		this.stateFactory = Objects.requireNonNull(factory);
@@ -47,6 +50,12 @@ public final class GrammarToEpsilonNFA {
 		this(new StateFactory());
 	}
 
+	private void reset() {
+		this.lexerProductions.clear();
+		this.priorities.clear();
+		this.builder = NFA.builder();
+	}
+
 	/**
 	 * Converts the given grammar into an epsilon-NFA by first extracting the lexer productions.
 	 *
@@ -54,13 +63,11 @@ public final class GrammarToEpsilonNFA {
 	 * @return A new epsilon-NFA representing all the lexer productions of the grammar combined.
 	 */
 	public NFA convert(final Grammar g) {
-		final List<Production> lexerProductions = new ArrayList<>();
-		final List<Production> parserProductions = new ArrayList<>();
-		GrammarUtils.splitProductions(g.productions(), lexerProductions, parserProductions);
-		return convertGrammarToEpsilonNFA(
-				lexerProductions,
-				g.productions().entrySet().stream()
-						.collect(Collectors.toMap(e -> e.getKey().start().name(), Map.Entry::getValue)));
+		reset();
+
+		GrammarUtils.splitProductions(g.productions(), this.lexerProductions, new ArrayList<>());
+		g.productions().forEach((key, value) -> this.priorities.put(key.start().name(), value));
+		return convertGrammarToEpsilonNFA();
 	}
 
 	/**
@@ -70,17 +77,17 @@ public final class GrammarToEpsilonNFA {
 	 * @return A new epsilon-NFA representing all the lexer productions of the grammar combined.
 	 */
 	public NFA convert(final List<Production> lexerProductions) {
-		final Map<String, Integer> priorities = new HashMap<>();
+		reset();
+
+		this.lexerProductions.addAll(lexerProductions);
+
 		for (int i = 0; i < lexerProductions.size(); i++) {
-			priorities.put(lexerProductions.get(i).start().name(), i + 1);
+			this.priorities.put(lexerProductions.get(i).start().name(), i + 1);
 		}
-		return convertGrammarToEpsilonNFA(lexerProductions, priorities);
+		return convertGrammarToEpsilonNFA();
 	}
 
-	private NFA convertGrammarToEpsilonNFA(
-			final List<Production> lexerProductions, final Map<String, Integer> priorities) {
-		final NFABuilder builder = NFA.builder();
-
+	private NFA convertGrammarToEpsilonNFA() {
 		final State globalStart = stateFactory.getNewState();
 
 		for (final Production p : lexerProductions) {
@@ -90,77 +97,86 @@ public final class GrammarToEpsilonNFA {
 
 			builder.addTransition(globalStart, NFA.EPSILON, productionStart);
 
-			convertNode(p.result(), builder, productionStart, productionEnd);
+			convertNode(p.result(), productionStart, productionEnd);
 		}
 
 		return builder.start(globalStart).priorities(priorities).build();
 	}
 
-	private void convertNode(final Node n, final NFABuilder builder, final State start, final State end) {
+	private void convertNode(final Node n, final State start, final State end) {
 		switch (n) {
-			case Terminal t -> convertTerminal(t, builder, start, end);
-			case ZeroOrOne zoo -> convertZeroOrOne(zoo, builder, start, end);
-			case ZeroOrMore zom -> convertZeroOrMore(zom, builder, start, end);
-			case OneOrMore oom -> convertOneOrMore(oom, builder, start, end);
-			case Or a -> convertAlternation(a, builder, start, end);
-			case Sequence s -> convertSequence(s, builder, start, end);
+			case Terminal t -> convertTerminal(t, start, end);
+			case NonTerminal nt -> {
+				final Node referenced = lexerProductions.stream()
+						.filter(p -> p.start().name().equals(nt.name()))
+						.findFirst()
+						.orElseThrow()
+						.result();
+				// for each non-terminal, we just copy the whole sub-automaton
+				convertNode(referenced, start, end);
+			}
+			case ZeroOrOne zoo -> convertZeroOrOne(zoo, start, end);
+			case ZeroOrMore zom -> convertZeroOrMore(zom, start, end);
+			case OneOrMore oom -> convertOneOrMore(oom, start, end);
+			case Or a -> convertAlternation(a, start, end);
+			case Sequence s -> convertSequence(s, start, end);
 			default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
 		}
 	}
 
-	private void convertOneOrMore(final OneOrMore oom, final NFABuilder builder, final State start, final State end) {
+	private void convertOneOrMore(final OneOrMore oom, final State start, final State end) {
 		final State a = stateFactory.getNewState();
 		final State b = stateFactory.getNewState();
 
 		builder.addTransition(start, NFA.EPSILON, a);
-		convertNode(oom.inner(), builder, a, b);
+		convertNode(oom.inner(), a, b);
 		builder.addTransition(b, NFA.EPSILON, a);
 		builder.addTransition(b, NFA.EPSILON, end);
 	}
 
-	private void convertZeroOrMore(final ZeroOrMore zom, final NFABuilder builder, final State start, final State end) {
+	private void convertZeroOrMore(final ZeroOrMore zom, final State start, final State end) {
 		final State a = stateFactory.getNewState();
 		final State b = stateFactory.getNewState();
 
 		builder.addTransition(start, NFA.EPSILON, end);
 		builder.addTransition(start, NFA.EPSILON, a);
-		convertNode(zom.inner(), builder, a, b);
+		convertNode(zom.inner(), a, b);
 		builder.addTransition(b, NFA.EPSILON, a);
 		builder.addTransition(b, NFA.EPSILON, end);
 	}
 
-	private void convertSequence(final Sequence s, final NFABuilder builder, final State start, final State end) {
+	private void convertSequence(final Sequence s, final State start, final State end) {
 		State prev = stateFactory.getNewState();
 		builder.addTransition(start, NFA.EPSILON, prev);
 		for (int i = 0; i < s.nodes().size(); i++) {
 			final State tmp = stateFactory.getNewState();
-			convertNode(s.nodes().get(i), builder, prev, tmp);
+			convertNode(s.nodes().get(i), prev, tmp);
 			prev = tmp;
 		}
 		builder.addTransition(prev, NFA.EPSILON, end);
 	}
 
-	private void convertZeroOrOne(final ZeroOrOne zoo, final NFABuilder builder, final State start, final State end) {
+	private void convertZeroOrOne(final ZeroOrOne zoo, final State start, final State end) {
 		final State a = stateFactory.getNewState();
 		final State b = stateFactory.getNewState();
 
 		builder.addTransition(start, NFA.EPSILON, end);
 		builder.addTransition(start, NFA.EPSILON, a);
-		convertNode(zoo.inner(), builder, a, b);
+		convertNode(zoo.inner(), a, b);
 		builder.addTransition(b, NFA.EPSILON, end);
 	}
 
-	private void convertAlternation(final Or or, final NFABuilder builder, final State start, final State end) {
+	private void convertAlternation(final Or or, final State start, final State end) {
 		for (final Node n : or.nodes()) {
 			final State newStart = stateFactory.getNewState();
 			final State newEnd = stateFactory.getNewState();
 			builder.addTransition(start, NFA.EPSILON, newStart);
 			builder.addTransition(newEnd, NFA.EPSILON, end);
-			convertNode(n, builder, newStart, newEnd);
+			convertNode(n, newStart, newEnd);
 		}
 	}
 
-	private void convertTerminal(final Terminal t, final NFABuilder builder, final State start, final State end) {
+	private void convertTerminal(final Terminal t, final State start, final State end) {
 		State prev = stateFactory.getNewState();
 		builder.addTransition(start, NFA.EPSILON, prev);
 		for (int i = 0; i < t.literal().length(); i++) {

@@ -55,7 +55,6 @@ public final class DFASerializer {
 			final IndentedStringBuilder sb, final String lexerName, final List<Production> lexerProductions) {
 		final GrammarToEpsilonNFA g2enfa = new GrammarToEpsilonNFA();
 		final NFA epsilonNFA = g2enfa.convert(lexerProductions);
-		System.out.println(epsilonNFA.toGraphviz());
 		AutomataUtils.assertEpsilonNFAValid(epsilonNFA);
 		final EpsilonNFAToNFA enfa2nfa = new EpsilonNFAToNFA();
 		final NFA nfa = enfa2nfa.convert(epsilonNFA);
