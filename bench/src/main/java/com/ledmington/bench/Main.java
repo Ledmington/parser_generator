@@ -22,6 +22,7 @@ import com.ledmington.ebnf.Parser;
 import com.ledmington.generator.GrammarChecker;
 import com.ledmington.generator.automata.AutomataUtils;
 import com.ledmington.generator.automata.DFA;
+import com.ledmington.generator.automata.EpsilonNFAToNFA;
 import com.ledmington.generator.automata.GrammarToEpsilonNFA;
 import com.ledmington.generator.automata.NFA;
 
@@ -53,7 +54,8 @@ public class Main {
 				DIGIT = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
 				""";
 
-		final GrammarToEpsilonNFA grammarToENFA = new GrammarToEpsilonNFA();
+		final GrammarToEpsilonNFA grammar2ENFA = new GrammarToEpsilonNFA();
+		final EpsilonNFAToNFA ENFA2NFA = new EpsilonNFAToNFA();
 
 		final int iterations = 10;
 		long t;
@@ -74,7 +76,7 @@ public class Main {
 			System.gc();
 
 			t = System.nanoTime();
-			final NFA epsilonNFA = grammarToENFA.convert(g);
+			final NFA epsilonNFA = grammar2ENFA.convert(g);
 			final long grammarToEpsilonNFATime = System.nanoTime() - t;
 			final long grammarToEpsilonNFAMemory = memory() - initialUsedMemory;
 			System.gc();
@@ -86,7 +88,7 @@ public class Main {
 			System.gc();
 
 			t = System.nanoTime();
-			final NFA nfa = AutomataUtils.epsilonNFAtoNFA(epsilonNFA);
+			final NFA nfa = ENFA2NFA.convertEpsilonNFAToNFA(epsilonNFA);
 			final long epsilonNFAToNFATime = System.nanoTime() - t;
 			final long epsilonNFAToNFAMemory = memory() - initialUsedMemory;
 			System.gc();

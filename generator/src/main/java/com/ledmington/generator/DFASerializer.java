@@ -31,6 +31,7 @@ import com.ledmington.ebnf.Utils;
 import com.ledmington.generator.automata.AcceptingState;
 import com.ledmington.generator.automata.AutomataUtils;
 import com.ledmington.generator.automata.DFA;
+import com.ledmington.generator.automata.EpsilonNFAToNFA;
 import com.ledmington.generator.automata.GrammarToEpsilonNFA;
 import com.ledmington.generator.automata.NFA;
 import com.ledmington.generator.automata.State;
@@ -50,11 +51,12 @@ public final class DFASerializer {
 	 */
 	public static void generateLexer(
 			final IndentedStringBuilder sb, final String lexerName, final List<Production> lexerProductions) {
-		final GrammarToEpsilonNFA grammarToENFA = new GrammarToEpsilonNFA();
-		final NFA epsilonNFA = grammarToENFA.convert(lexerProductions);
+		final GrammarToEpsilonNFA grammar2ENFA = new GrammarToEpsilonNFA();
+		final NFA epsilonNFA = grammar2ENFA.convert(lexerProductions);
 		System.out.println(epsilonNFA.toGraphviz());
 		AutomataUtils.assertEpsilonNFAValid(epsilonNFA);
-		final NFA nfa = AutomataUtils.epsilonNFAtoNFA(epsilonNFA);
+		final EpsilonNFAToNFA ENFA2NFA = new EpsilonNFAToNFA();
+		final NFA nfa = ENFA2NFA.convertEpsilonNFAToNFA(epsilonNFA);
 		AutomataUtils.assertNFAValid(nfa);
 		final DFA dfa = AutomataUtils.NFAtoDFA(nfa);
 		AutomataUtils.assertDFAValid(dfa);
