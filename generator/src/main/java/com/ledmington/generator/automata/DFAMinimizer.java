@@ -21,15 +21,22 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class DFAMinimizer {
 
-	private final StateFactory stateFactory = new StateFactory();
+	private final StateFactory stateFactory;
 
-	public DFAMinimizer() {}
+	public DFAMinimizer(final StateFactory factory) {
+		this.stateFactory = Objects.requireNonNull(factory);
+	}
+
+	public DFAMinimizer() {
+		this(new StateFactory());
+	}
 
 	/**
 	 * Converts the given DFA into a minimized DFA.
@@ -37,7 +44,7 @@ public class DFAMinimizer {
 	 * @param dfa The DFA to be minimized.
 	 * @return A new minimized DFA.
 	 */
-	public DFA convertDFAToMinimizedDFA(final DFA dfa) {
+	public DFA minimize(final DFA dfa) {
 		// Myhill-Nerode theorem
 		final DFABuilder builder = DFA.builder();
 		final List<State> oldStates = dfa.states().stream().toList();

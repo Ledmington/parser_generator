@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -29,9 +30,15 @@ import java.util.stream.Stream;
 
 public final class NFAToDFA {
 
-	private final StateFactory stateFactory = new StateFactory();
+	private final StateFactory stateFactory;
 
-	public NFAToDFA() {}
+	public NFAToDFA(final StateFactory factory) {
+		this.stateFactory = Objects.requireNonNull(factory);
+	}
+
+	public NFAToDFA() {
+		this(new StateFactory());
+	}
 
 	/**
 	 * Converts the given NFA into a DFA.
@@ -39,7 +46,7 @@ public final class NFAToDFA {
 	 * @param nfa The NFA to be converted.
 	 * @return A new DFA.
 	 */
-	public DFA convertNFAToDFA(final NFA nfa) {
+	public DFA convert(final NFA nfa) {
 		final Map<Set<State>, State> stateMapping = new HashMap<>();
 		final Queue<Set<State>> queue = new LinkedList<>();
 		final DFABuilder builder = DFA.builder();

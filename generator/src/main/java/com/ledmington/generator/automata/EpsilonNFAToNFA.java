@@ -21,14 +21,21 @@ import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 
 public final class EpsilonNFAToNFA {
 
-	private final StateFactory stateFactory = new StateFactory();
+	private final StateFactory stateFactory;
 
-	public EpsilonNFAToNFA() {}
+	public EpsilonNFAToNFA(final StateFactory factory) {
+		this.stateFactory = Objects.requireNonNull(factory);
+	}
+
+	public EpsilonNFAToNFA() {
+		this(new StateFactory());
+	}
 
 	/**
 	 * Converts the given epsilon-NFA to an NFA without epsilon transitions.
@@ -36,7 +43,7 @@ public final class EpsilonNFAToNFA {
 	 * @param epsilonNFA The epsilon-NFA to be converted.
 	 * @return A new NFA without epsilon transitions.
 	 */
-	public NFA convertEpsilonNFAToNFA(final NFA epsilonNFA) {
+	public NFA convert(final NFA epsilonNFA) {
 		final Set<State> oldStates = epsilonNFA.states();
 		final Map<State, Set<State>> epsilonClosures = new HashMap<>();
 

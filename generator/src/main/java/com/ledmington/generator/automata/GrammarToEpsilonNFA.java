@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import com.ledmington.ebnf.Grammar;
@@ -36,9 +37,15 @@ import com.ledmington.generator.GrammarUtils;
 
 public final class GrammarToEpsilonNFA {
 
-	private final StateFactory stateFactory = new StateFactory();
+	private final StateFactory stateFactory;
 
-	public GrammarToEpsilonNFA() {}
+	public GrammarToEpsilonNFA(final StateFactory factory) {
+		this.stateFactory = Objects.requireNonNull(factory);
+	}
+
+	public GrammarToEpsilonNFA() {
+		this(new StateFactory());
+	}
 
 	/**
 	 * Converts the given grammar into an epsilon-NFA by first extracting the lexer productions.
