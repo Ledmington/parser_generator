@@ -22,7 +22,11 @@ import com.ledmington.ebnf.Parser;
 import com.ledmington.generator.GrammarChecker;
 import com.ledmington.generator.automata.AutomataUtils;
 import com.ledmington.generator.automata.DFA;
+import com.ledmington.generator.automata.DFAMinimizer;
+import com.ledmington.generator.automata.EpsilonNFAToNFA;
+import com.ledmington.generator.automata.GrammarToEpsilonNFA;
 import com.ledmington.generator.automata.NFA;
+import com.ledmington.generator.automata.NFAToDFA;
 
 public class Main {
 
@@ -52,6 +56,11 @@ public class Main {
 				DIGIT = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
 				""";
 
+		final GrammarToEpsilonNFA g2enfa = new GrammarToEpsilonNFA();
+		final EpsilonNFAToNFA enfa2nfa = new EpsilonNFAToNFA();
+		final NFAToDFA nfa2dfa = new NFAToDFA();
+		final DFAMinimizer DFAmin = new DFAMinimizer();
+
 		final int iterations = 10;
 		long t;
 		for (int i = 0; i < iterations; i++) {
@@ -71,7 +80,7 @@ public class Main {
 			System.gc();
 
 			t = System.nanoTime();
-			final NFA epsilonNFA = AutomataUtils.grammarToEpsilonNFA(g);
+			final NFA epsilonNFA = g2enfa.convert(g);
 			final long grammarToEpsilonNFATime = System.nanoTime() - t;
 			final long grammarToEpsilonNFAMemory = memory() - initialUsedMemory;
 			System.gc();
@@ -83,7 +92,7 @@ public class Main {
 			System.gc();
 
 			t = System.nanoTime();
-			final NFA nfa = AutomataUtils.epsilonNFAtoNFA(epsilonNFA);
+			final NFA nfa = enfa2nfa.convert(epsilonNFA);
 			final long epsilonNFAToNFATime = System.nanoTime() - t;
 			final long epsilonNFAToNFAMemory = memory() - initialUsedMemory;
 			System.gc();
@@ -95,7 +104,7 @@ public class Main {
 			System.gc();
 
 			t = System.nanoTime();
-			final DFA dfa = AutomataUtils.NFAtoDFA(nfa);
+			final DFA dfa = nfa2dfa.convert(nfa);
 			final long NFAToDFATime = System.nanoTime() - t;
 			final long NFAToDFAMemory = memory() - initialUsedMemory;
 			System.gc();
@@ -107,7 +116,7 @@ public class Main {
 			System.gc();
 
 			t = System.nanoTime();
-			final DFA minimizedDFA = AutomataUtils.minimizeDFA(dfa);
+			final DFA minimizedDFA = DFAmin.minimize(dfa);
 			final long minimizingDFATime = System.nanoTime() - t;
 			final long minimizingDFAMemory = memory() - initialUsedMemory;
 			System.gc();

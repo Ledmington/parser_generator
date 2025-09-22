@@ -31,7 +31,11 @@ import com.ledmington.ebnf.Utils;
 import com.ledmington.generator.automata.AcceptingState;
 import com.ledmington.generator.automata.AutomataUtils;
 import com.ledmington.generator.automata.DFA;
+import com.ledmington.generator.automata.DFAMinimizer;
+import com.ledmington.generator.automata.EpsilonNFAToNFA;
+import com.ledmington.generator.automata.GrammarToEpsilonNFA;
 import com.ledmington.generator.automata.NFA;
+import com.ledmington.generator.automata.NFAToDFA;
 import com.ledmington.generator.automata.State;
 
 /** Helper class to generate java code for a DFA parsing a given list of productions. */
@@ -49,13 +53,17 @@ public final class DFASerializer {
 	 */
 	public static void generateLexer(
 			final IndentedStringBuilder sb, final String lexerName, final List<Production> lexerProductions) {
-		final NFA epsilonNFA = AutomataUtils.grammarToEpsilonNFA(lexerProductions);
+		final GrammarToEpsilonNFA g2enfa = new GrammarToEpsilonNFA();
+		final NFA epsilonNFA = g2enfa.convert(lexerProductions);
 		AutomataUtils.assertEpsilonNFAValid(epsilonNFA);
-		final NFA nfa = AutomataUtils.epsilonNFAtoNFA(epsilonNFA);
+		final EpsilonNFAToNFA enfa2nfa = new EpsilonNFAToNFA();
+		final NFA nfa = enfa2nfa.convert(epsilonNFA);
 		AutomataUtils.assertNFAValid(nfa);
-		final DFA dfa = AutomataUtils.NFAtoDFA(nfa);
+		final NFAToDFA nfa2dfa = new NFAToDFA();
+		final DFA dfa = nfa2dfa.convert(nfa);
 		AutomataUtils.assertDFAValid(dfa);
-		final DFA minimizedDFA = AutomataUtils.minimizeDFA(dfa);
+		final DFAMinimizer DFAmin = new DFAMinimizer();
+		final DFA minimizedDFA = DFAmin.minimize(dfa);
 		AutomataUtils.assertDFAValid(minimizedDFA);
 
 		// re-index DFA states
