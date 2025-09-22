@@ -188,16 +188,50 @@ public final class DFASerializer {
 			bb.putInt(dest);
 		}
 
-		final String encoded = Base64.getEncoder().encodeToString(bb.array());
+		final String encoded = Utils.getEscapedString(Base64.getEncoder().encodeToString(bb.array()));
 
-		sb.append("public ")
-				.append(lexerName)
-				.append("() {\n")
-				.indent()
-				.append("final String encoded = \"")
-				.append(Utils.getEscapedString(encoded))
-				.append("\";\n")
-				.append(
+		// java has an hard-coded limit of 65'535 characters for "constant string" (string literals), so if the string
+		// we need to write is longer, we split it into chunks and concatenate them in such a way that the (dumb)
+		// compiler cannot inline
+		final int maxChunkLength = 65_535;
+
+		sb.append("public ").append(lexerName).append("() {\n").indent();
+
+		if (encoded.length() < maxChunkLength) {
+			sb.append("final String encoded = \"").append(encoded).append("\";\n");
+		} else {
+			// Split encoded string into chunks
+			sb.append("final String encoded;\n").append("{\n").indent();
+			final int n = encoded.length();
+			int chunkIndex = 0;
+			int start = 0;
+			for (; start + maxChunkLength < n; start += maxChunkLength, chunkIndex++) {
+				final String chunkName = "chunk_" + chunkIndex;
+				sb.append("final String ")
+						.append(chunkName)
+						.append(" = \"")
+						.append(encoded.substring(start, start + maxChunkLength))
+						.append("\";\n");
+			}
+			// encode last chunk "manually"
+			final String lastChunkName = "chunk_" + (chunkIndex++);
+			sb.append("final String ")
+					.append(lastChunkName)
+					.append(" = \"")
+					.append(encoded.substring(start))
+					.append("\";\n")
+					.append("encoded = ");
+			for (int i = 0; i < chunkIndex; i++) {
+				final String chunkName = "chunk_" + i;
+				sb.append(chunkName);
+				if (i < chunkIndex - 1) {
+					sb.append(" + ");
+				}
+			}
+			sb.append(";\n").deindent().append("}\n");
+		}
+
+		sb.append(
 						"final ByteBuffer bb = ByteBuffer.wrap(Base64.getDecoder().decode(encoded)).order(ByteOrder.BIG_ENDIAN);\n")
 				.append("final int num_states = bb.getInt();\n")
 				.append("final int num_destinations = bb.getInt();\n")
