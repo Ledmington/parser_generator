@@ -26,14 +26,21 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+/** A class to minimize a given DFA with the Myhill-Nerode algorithm. */
 public class DFAMinimizer {
 
 	private final StateFactory stateFactory;
 
+	/**
+	 * Constructs a DFAMinimizer with the specified StateFactory.
+	 *
+	 * @param factory the StateFactory to be used for creating states
+	 */
 	public DFAMinimizer(final StateFactory factory) {
 		this.stateFactory = Objects.requireNonNull(factory);
 	}
 
+	/** Constructs a DFAMinimizer with a default StateFactory. */
 	public DFAMinimizer() {
 		this(new StateFactory());
 	}

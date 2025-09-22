@@ -17,16 +17,32 @@
  */
 package com.ledmington.generator.automata;
 
+/**
+ * A factory class for generating new states. This class provides methods to create regular states and accepting states,
+ * each with a unique name.
+ */
 public final class StateFactory {
 
 	private int stateID = 1;
 
+	/** Constructs a new StateFactory. */
 	public StateFactory() {}
 
+	/**
+	 * Creates a new regular state with a unique name.
+	 *
+	 * @return a new regular state with a unique name
+	 */
 	public State getNewState() {
 		return new State("S" + (stateID++));
 	}
 
+	/**
+	 * Creates a new accepting state with a unique name and the given production name.
+	 *
+	 * @param productionName the production name associated with the accepting state
+	 * @return a new accepting state with a unique name and the provided production name
+	 */
 	public AcceptingState getNewAcceptingState(final String productionName) {
 		return new AcceptingState("S" + (stateID++), productionName);
 	}

@@ -25,14 +25,21 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 
+/** A class to convert an epsilon NFA into an NFA without epsilon transitions. */
 public final class EpsilonNFAToNFA {
 
 	private final StateFactory stateFactory;
 
+	/**
+	 * Constructs an EpsilonNFAToNFA with the specified StateFactory.
+	 *
+	 * @param factory the StateFactory to be used for creating states
+	 */
 	public EpsilonNFAToNFA(final StateFactory factory) {
 		this.stateFactory = Objects.requireNonNull(factory);
 	}
 
+	/** Constructs an EpsilonNFAToNFA with a default StateFactory. */
 	public EpsilonNFAToNFA() {
 		this(new StateFactory());
 	}

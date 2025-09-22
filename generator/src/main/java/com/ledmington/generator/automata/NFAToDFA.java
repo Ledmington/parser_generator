@@ -28,14 +28,21 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/** A class to convert an NFA into a DFA. */
 public final class NFAToDFA {
 
 	private final StateFactory stateFactory;
 
+	/**
+	 * Constructs an NFAToDFA with the specified StateFactory.
+	 *
+	 * @param factory the StateFactory to be used for creating states
+	 */
 	public NFAToDFA(final StateFactory factory) {
 		this.stateFactory = Objects.requireNonNull(factory);
 	}
 
+	/** Constructs an NFAToDFA with a default StateFactory. */
 	public NFAToDFA() {
 		this(new StateFactory());
 	}

@@ -22,16 +22,30 @@ import java.util.List;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Production;
 
+/** A collection of conversions from an EBNF grammar into various types of automata. */
 public final class AutomataConversions {
 
 	private AutomataConversions() {}
 
+	/**
+	 * Converts a given grammar to an epsilon NFA.
+	 *
+	 * @param g the grammar to be converted
+	 * @return the corresponding epsilon NFA
+	 */
 	public static NFA convertGrammarToEpsilonNFA(final Grammar g) {
 		final StateFactory stateFactory = new StateFactory();
 		final GrammarToEpsilonNFA g2enfa = new GrammarToEpsilonNFA(stateFactory);
 		return g2enfa.convert(g);
 	}
 
+	/**
+	 * Converts a given grammar to a standard NFA by first converting it to an epsilon NFA and then removing epsilon
+	 * transitions.
+	 *
+	 * @param g the grammar to be converted
+	 * @return the corresponding NFA
+	 */
 	public static NFA convertGrammarToNFA(final Grammar g) {
 		final StateFactory stateFactory = new StateFactory();
 		final GrammarToEpsilonNFA g2enfa = new GrammarToEpsilonNFA(stateFactory);
@@ -39,6 +53,13 @@ public final class AutomataConversions {
 		return enfa2nfa.convert(g2enfa.convert(g));
 	}
 
+	/**
+	 * Converts a list of productions to a standard NFA by first converting it to an epsilon NFA and then removing
+	 * epsilon transitions.
+	 *
+	 * @param productions the list of productions to be converted
+	 * @return the corresponding NFA
+	 */
 	public static NFA convertGrammarToNFA(final List<Production> productions) {
 		final StateFactory stateFactory = new StateFactory();
 		final GrammarToEpsilonNFA g2enfa = new GrammarToEpsilonNFA(stateFactory);
@@ -46,6 +67,13 @@ public final class AutomataConversions {
 		return enfa2nfa.convert(g2enfa.convert(productions));
 	}
 
+	/**
+	 * Converts a given grammar to a DFA by first converting it to an epsilon NFA, then to a standard NFA, and finally
+	 * to a DFA.
+	 *
+	 * @param g the grammar to be converted
+	 * @return the corresponding DFA
+	 */
 	public static DFA convertGrammarToDFA(final Grammar g) {
 		final StateFactory stateFactory = new StateFactory();
 		final GrammarToEpsilonNFA g2enfa = new GrammarToEpsilonNFA(stateFactory);
@@ -54,6 +82,13 @@ public final class AutomataConversions {
 		return nfa2dfa.convert(enfa2nfa.convert(g2enfa.convert(g)));
 	}
 
+	/**
+	 * Converts a list of productions to a DFA by first converting it to an epsilon NFA, then to a standard NFA, and
+	 * finally to a DFA.
+	 *
+	 * @param productions the list of productions to be converted
+	 * @return the corresponding DFA
+	 */
 	public static DFA convertGrammarToDFA(final List<Production> productions) {
 		final StateFactory stateFactory = new StateFactory();
 		final GrammarToEpsilonNFA g2enfa = new GrammarToEpsilonNFA(stateFactory);
@@ -62,6 +97,13 @@ public final class AutomataConversions {
 		return nfa2dfa.convert(enfa2nfa.convert(g2enfa.convert(productions)));
 	}
 
+	/**
+	 * Converts a given grammar to a minimized DFA by first converting it to an epsilon NFA, then to a standard NFA,
+	 * followed by a DFA, and finally minimizing the DFA.
+	 *
+	 * @param g the grammar to be converted
+	 * @return the minimized DFA
+	 */
 	public static DFA convertGrammarToMinimizedDFA(final Grammar g) {
 		final StateFactory stateFactory = new StateFactory();
 		final GrammarToEpsilonNFA g2enfa = new GrammarToEpsilonNFA(stateFactory);
@@ -71,6 +113,13 @@ public final class AutomataConversions {
 		return DFAmin.minimize(nfa2dfa.convert(enfa2nfa.convert(g2enfa.convert(g))));
 	}
 
+	/**
+	 * Converts a list of productions to a minimized DFA by first converting it to an epsilon NFA, then to a standard
+	 * NFA, followed by a DFA, and finally minimizing the DFA.
+	 *
+	 * @param productions the list of productions to be converted
+	 * @return the minimized DFA
+	 */
 	public static DFA convertGrammarToMinimizedDFA(final List<Production> productions) {
 		final StateFactory stateFactory = new StateFactory();
 		final GrammarToEpsilonNFA g2enfa = new GrammarToEpsilonNFA(stateFactory);

@@ -35,6 +35,7 @@ import com.ledmington.ebnf.ZeroOrMore;
 import com.ledmington.ebnf.ZeroOrOne;
 import com.ledmington.generator.GrammarUtils;
 
+/** A class to convert an EBNF grammar into an epsilon NFA. */
 public final class GrammarToEpsilonNFA {
 
 	private final StateFactory stateFactory;
@@ -42,10 +43,16 @@ public final class GrammarToEpsilonNFA {
 	private final Map<String, Integer> priorities = new HashMap<>();
 	private NFABuilder builder = null;
 
+	/**
+	 * Constructs a GrammarToEpsilonNFA with the specified StateFactory.
+	 *
+	 * @param factory the StateFactory to be used for creating states
+	 */
 	public GrammarToEpsilonNFA(final StateFactory factory) {
 		this.stateFactory = Objects.requireNonNull(factory);
 	}
 
+	/** Constructs a GrammarToEpsilonNFA with a default StateFactory. */
 	public GrammarToEpsilonNFA() {
 		this(new StateFactory());
 	}
