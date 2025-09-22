@@ -214,6 +214,10 @@ public final class Parser {
 
 	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
 	private static Grammar parse(final List<Token> tokens) {
+		if (tokens.isEmpty()) {
+			throw new ParsingException("No tokens.");
+		}
+
 		// ugly method: the alternative is to manually convert the EBNF grammar for EBNF grammars to be left-recursive
 		// and then implement it that way
 		final List<Object> v = new ArrayList<>(tokens);
