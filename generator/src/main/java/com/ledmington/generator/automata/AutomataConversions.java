@@ -17,7 +17,10 @@
  */
 package com.ledmington.generator.automata;
 
+import java.util.List;
+
 import com.ledmington.ebnf.Grammar;
+import com.ledmington.ebnf.Production;
 
 public final class AutomataConversions {
 
@@ -36,12 +39,27 @@ public final class AutomataConversions {
 		return enfa2nfa.convert(g2enfa.convert(g));
 	}
 
+	public static NFA convertGrammarToNFA(final List<Production> productions) {
+		final StateFactory stateFactory = new StateFactory();
+		final GrammarToEpsilonNFA g2enfa = new GrammarToEpsilonNFA(stateFactory);
+		final EpsilonNFAToNFA enfa2nfa = new EpsilonNFAToNFA(stateFactory);
+		return enfa2nfa.convert(g2enfa.convert(productions));
+	}
+
 	public static DFA convertGrammarToDFA(final Grammar g) {
 		final StateFactory stateFactory = new StateFactory();
 		final GrammarToEpsilonNFA g2enfa = new GrammarToEpsilonNFA(stateFactory);
 		final EpsilonNFAToNFA enfa2nfa = new EpsilonNFAToNFA(stateFactory);
 		final NFAToDFA nfa2dfa = new NFAToDFA(stateFactory);
 		return nfa2dfa.convert(enfa2nfa.convert(g2enfa.convert(g)));
+	}
+
+	public static DFA convertGrammarToDFA(final List<Production> productions) {
+		final StateFactory stateFactory = new StateFactory();
+		final GrammarToEpsilonNFA g2enfa = new GrammarToEpsilonNFA(stateFactory);
+		final EpsilonNFAToNFA enfa2nfa = new EpsilonNFAToNFA(stateFactory);
+		final NFAToDFA nfa2dfa = new NFAToDFA(stateFactory);
+		return nfa2dfa.convert(enfa2nfa.convert(g2enfa.convert(productions)));
 	}
 
 	public static DFA convertGrammarToMinimizedDFA(final Grammar g) {
@@ -51,5 +69,14 @@ public final class AutomataConversions {
 		final NFAToDFA nfa2dfa = new NFAToDFA(stateFactory);
 		final DFAMinimizer DFAmin = new DFAMinimizer(stateFactory);
 		return DFAmin.minimize(nfa2dfa.convert(enfa2nfa.convert(g2enfa.convert(g))));
+	}
+
+	public static DFA convertGrammarToMinimizedDFA(final List<Production> productions) {
+		final StateFactory stateFactory = new StateFactory();
+		final GrammarToEpsilonNFA g2enfa = new GrammarToEpsilonNFA(stateFactory);
+		final EpsilonNFAToNFA enfa2nfa = new EpsilonNFAToNFA(stateFactory);
+		final NFAToDFA nfa2dfa = new NFAToDFA(stateFactory);
+		final DFAMinimizer DFAmin = new DFAMinimizer(stateFactory);
+		return DFAmin.minimize(nfa2dfa.convert(enfa2nfa.convert(g2enfa.convert(productions))));
 	}
 }
