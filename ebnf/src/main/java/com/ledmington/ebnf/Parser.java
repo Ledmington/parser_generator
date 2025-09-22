@@ -49,24 +49,61 @@ public final class Parser {
 		}
 	}
 
+	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
 	private static String removeComments(final String input) {
-		final StringBuilder sb = new StringBuilder();
+		final StringBuilder sb = new StringBuilder(input.length());
 		final int n = input.length();
-		boolean ignore = false;
+
+		boolean inBlockComment = false;
+		boolean inLineComment = false;
+		boolean inString = false;
+
 		for (int i = 0; i < n; i++) {
-			if (ignore) {
-				if (i + 1 < n && input.charAt(i) == '*' && input.charAt(i + 1) == ')') {
-					ignore = false;
+			final char c = input.charAt(i);
+
+			if (inBlockComment) {
+				// End of block comment
+				if (i + 1 < n && c == '*' && input.charAt(i + 1) == '/') {
+					inBlockComment = false;
 					i++;
 				}
+			} else if (inLineComment) {
+				// End of line comment
+				if (c == '\n') {
+					inLineComment = false;
+					sb.append(c);
+				}
+			} else if (inString) {
+				sb.append(c);
+				if (c == '\\' && i + 1 < n) {
+					sb.append(input.charAt(++i));
+				} else if (c == '"') {
+					inString = false;
+				}
 			} else {
-				if (i + 1 < n && input.charAt(i) == '(' && input.charAt(i + 1) == '*') {
-					ignore = true;
+				// Not inside a string or comment
+				if (i + 1 < n && c == '/' && input.charAt(i + 1) == '*') {
+					inBlockComment = true;
+					i++;
+				} else if (i + 1 < n && c == '/' && input.charAt(i + 1) == '/') {
+					inLineComment = true;
+					i++;
 				} else {
-					sb.append(input.charAt(i));
+					sb.append(c);
+					if (c == '"') {
+						inString = true;
+					}
 				}
 			}
 		}
+
+		if (inBlockComment) {
+			throw new ParsingException("Unterminated block comment.");
+		}
+		if (inString) {
+			throw new ParsingException("Unterminated string literal.");
+		}
+
 		return sb.toString();
 	}
 
@@ -148,6 +185,9 @@ public final class Parser {
 				sb.append(it.current());
 			}
 			it.next();
+		}
+		if (it.current() == CharacterIterator.DONE) {
+			throw new ParsingException(String.format("Unclosed double quotes in string literal '%s'.", sb));
 		}
 		it.next();
 		return new StringLiteral(sb.toString());
