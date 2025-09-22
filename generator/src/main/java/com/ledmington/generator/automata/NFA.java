@@ -19,8 +19,7 @@ package com.ledmington.generator.automata;
 
 import java.util.Map;
 import java.util.Set;
-
-import com.ledmington.ebnf.Utils;
+import java.util.function.Function;
 
 /** Common interface for non-deterministic finite-state automata. */
 public interface NFA extends Automaton {
@@ -63,6 +62,14 @@ public interface NFA extends Automaton {
 		sb.append("    __start__ [shape = point];\n");
 		sb.append("    __start__ -> ").append(startingState().name()).append(";\n");
 
+		final Function<Character, String> escape = ch -> switch (ch) {
+			case NFA.EPSILON -> "ε";
+			case ' ' -> "\\\\s";
+			case '\t' -> "\\\\t";
+			case '\n' -> "\\\\n";
+			default -> "" + ch;
+		};
+
 		for (final State src : allStates) {
 			final Map<Character, Set<State>> neighbors = neighbors(src);
 			if (neighbors == null) {
@@ -76,7 +83,7 @@ public interface NFA extends Automaton {
 							.append(" -> ")
 							.append(dst.name())
 							.append(" [label=\"")
-							.append(symbol == NFA.EPSILON ? "ε" : (Utils.getEscapedCharacter(symbol)))
+							.append(escape.apply(symbol))
 							.append("\"];\n");
 				}
 			}
