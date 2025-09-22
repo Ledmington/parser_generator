@@ -47,17 +47,7 @@ import com.ledmington.generator.GrammarUtils;
 public final class AutomataUtils {
 	// FIXME: find a better name or place for these functions
 
-	private int stateID = 1;
-
 	private AutomataUtils() {}
-
-	private State state() {
-		return new State("S" + (stateID++));
-	}
-
-	private AcceptingState acceptingState(final String productionName) {
-		return new AcceptingState("S" + (stateID++), productionName);
-	}
 
 	/**
 	 * Converts the given grammar into an epsilon-NFA by first extracting the lexer productions.
@@ -106,12 +96,12 @@ public final class AutomataUtils {
 			final List<Production> lexerProductions, final Map<String, Integer> priorities) {
 		final NFABuilder builder = NFA.builder();
 
-		final State globalStart = state();
+		final State globalStart = StateFactory.getInstance().getNewState();
 
 		for (final Production p : lexerProductions) {
 			final String productionName = p.start().name();
-			final State productionStart = state();
-			final State productionEnd = acceptingState(productionName);
+			final State productionStart = StateFactory.getInstance().getNewState();
+			final State productionEnd = StateFactory.getInstance().getNewAcceptingState(productionName);
 
 			builder.addTransition(globalStart, NFA.EPSILON, productionStart);
 
@@ -134,8 +124,8 @@ public final class AutomataUtils {
 	}
 
 	private void convertOneOrMore(final OneOrMore oom, final NFABuilder builder, final State start, final State end) {
-		final State a = state();
-		final State b = state();
+		final State a = StateFactory.getInstance().getNewState();
+		final State b = StateFactory.getInstance().getNewState();
 
 		builder.addTransition(start, NFA.EPSILON, a);
 		convertNode(oom.inner(), builder, a, b);
@@ -144,8 +134,8 @@ public final class AutomataUtils {
 	}
 
 	private void convertZeroOrMore(final ZeroOrMore zom, final NFABuilder builder, final State start, final State end) {
-		final State a = state();
-		final State b = state();
+		final State a = StateFactory.getInstance().getNewState();
+		final State b = StateFactory.getInstance().getNewState();
 
 		builder.addTransition(start, NFA.EPSILON, end);
 		builder.addTransition(start, NFA.EPSILON, a);
@@ -155,10 +145,10 @@ public final class AutomataUtils {
 	}
 
 	private void convertSequence(final Sequence s, final NFABuilder builder, final State start, final State end) {
-		State prev = state();
+		State prev = StateFactory.getInstance().getNewState();
 		builder.addTransition(start, NFA.EPSILON, prev);
 		for (int i = 0; i < s.nodes().size(); i++) {
-			final State tmp = state();
+			final State tmp = StateFactory.getInstance().getNewState();
 			convertNode(s.nodes().get(i), builder, prev, tmp);
 			prev = tmp;
 		}
@@ -166,8 +156,8 @@ public final class AutomataUtils {
 	}
 
 	private void convertZeroOrOne(final ZeroOrOne zoo, final NFABuilder builder, final State start, final State end) {
-		final State a = state();
-		final State b = state();
+		final State a = StateFactory.getInstance().getNewState();
+		final State b = StateFactory.getInstance().getNewState();
 
 		builder.addTransition(start, NFA.EPSILON, end);
 		builder.addTransition(start, NFA.EPSILON, a);
@@ -177,8 +167,8 @@ public final class AutomataUtils {
 
 	private void convertAlternation(final Or or, final NFABuilder builder, final State start, final State end) {
 		for (final Node n : or.nodes()) {
-			final State newStart = state();
-			final State newEnd = state();
+			final State newStart = StateFactory.getInstance().getNewState();
+			final State newEnd = StateFactory.getInstance().getNewState();
 			builder.addTransition(start, NFA.EPSILON, newStart);
 			builder.addTransition(newEnd, NFA.EPSILON, end);
 			convertNode(n, builder, newStart, newEnd);
@@ -186,10 +176,10 @@ public final class AutomataUtils {
 	}
 
 	private void convertTerminal(final Terminal t, final NFABuilder builder, final State start, final State end) {
-		State prev = state();
+		State prev = StateFactory.getInstance().getNewState();
 		builder.addTransition(start, NFA.EPSILON, prev);
 		for (int i = 0; i < t.literal().length(); i++) {
-			final State s = state();
+			final State s = StateFactory.getInstance().getNewState();
 			builder.addTransition(prev, t.literal().charAt(i), s);
 			prev = s;
 		}
@@ -246,12 +236,13 @@ public final class AutomataUtils {
 			stateMapping.put(
 					s,
 					isAccepting
-							? acceptingState(((AcceptingState) closure.stream()
-											.filter(State::isAccepting)
-											.findFirst()
-											.orElseThrow())
-									.tokenName())
-							: state());
+							? StateFactory.getInstance()
+									.getNewAcceptingState(((AcceptingState) closure.stream()
+													.filter(State::isAccepting)
+													.findFirst()
+													.orElseThrow())
+											.tokenName())
+							: StateFactory.getInstance().getNewState());
 		}
 
 		final NFABuilder builder = NFA.builder();
@@ -360,13 +351,14 @@ public final class AutomataUtils {
 		startSet.add(nfa.startingState());
 		final boolean isAccepting = startSet.stream().anyMatch(State::isAccepting);
 		final State dfaStartState = isAccepting
-				? acceptingState(((AcceptingState) startSet.stream()
-								.filter(State::isAccepting)
-								.min(Comparator.comparing(s ->
-										priorities.getOrDefault(((AcceptingState) s).tokenName(), Integer.MAX_VALUE)))
-								.orElseThrow())
-						.tokenName())
-				: state();
+				? StateFactory.getInstance()
+						.getNewAcceptingState(((AcceptingState) startSet.stream()
+										.filter(State::isAccepting)
+										.min(Comparator.comparing(s -> priorities.getOrDefault(
+												((AcceptingState) s).tokenName(), Integer.MAX_VALUE)))
+										.orElseThrow())
+								.tokenName())
+				: StateFactory.getInstance().getNewState();
 		stateMapping.put(startSet, dfaStartState);
 		queue.add(startSet);
 
@@ -386,13 +378,14 @@ public final class AutomataUtils {
 				} else {
 					final boolean accept = moveSet.stream().anyMatch(State::isAccepting);
 					toDFAState = accept
-							? acceptingState(((AcceptingState) moveSet.stream()
-											.filter(State::isAccepting)
-											.min(Comparator.comparing(s -> priorities.getOrDefault(
-													((AcceptingState) s).tokenName(), Integer.MAX_VALUE)))
-											.orElseThrow())
-									.tokenName())
-							: state();
+							? StateFactory.getInstance()
+									.getNewAcceptingState(((AcceptingState) moveSet.stream()
+													.filter(State::isAccepting)
+													.min(Comparator.comparing(s -> priorities.getOrDefault(
+															((AcceptingState) s).tokenName(), Integer.MAX_VALUE)))
+													.orElseThrow())
+											.tokenName())
+							: StateFactory.getInstance().getNewState();
 					stateMapping.put(moveSet, toDFAState);
 					queue.add(moveSet);
 				}
@@ -502,12 +495,13 @@ public final class AutomataUtils {
 		for (final Set<State> eqClass : new HashSet<>(equivalentGroups.values())) {
 			final boolean isAccept = eqClass.stream().anyMatch(State::isAccepting);
 			final State rep = isAccept
-					? acceptingState(((AcceptingState) eqClass.stream()
-									.filter(State::isAccepting)
-									.findFirst()
-									.orElseThrow())
-							.tokenName())
-					: state();
+					? StateFactory.getInstance()
+							.getNewAcceptingState(((AcceptingState) eqClass.stream()
+											.filter(State::isAccepting)
+											.findFirst()
+											.orElseThrow())
+									.tokenName())
+					: StateFactory.getInstance().getNewState();
 			for (final State s : eqClass) {
 				oldToNew.put(s, rep);
 			}
