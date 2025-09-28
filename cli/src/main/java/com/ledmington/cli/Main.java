@@ -25,8 +25,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import com.ledmington.ebnf.Grammar;
-import com.ledmington.ebnf.Parser;
 import com.ledmington.ebnf.Utils;
+import com.ledmington.ebnf._Parser;
 import com.ledmington.generator.Generator;
 
 public class Main {
@@ -116,7 +116,7 @@ public class Main {
 
 		final Grammar g;
 		try {
-			g = Parser.parse(Files.readString(Path.of(grammarFile)));
+			g = _Parser.parse(Files.readString(Path.of(grammarFile)));
 			if (verbose) {
 				System.out.println(Utils.prettyPrint(g));
 			}

@@ -29,9 +29,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /** A parser of EBNF grammars. */
-public final class Parser {
+public final class _Parser {
 
-	private Parser() {}
+	private _Parser() {}
 
 	/**
 	 * Parses the given String as an EBNF grammar.
@@ -248,16 +248,24 @@ public final class Parser {
 		}
 
 		final List<BiPredicate<List<Object>, Integer>> transformations = List.of(
-				Parser::asterisk,
-				Parser::plus,
-				Parser::questionMark,
-				Parser::parenthesis,
-				Parser::mergeSequence,
-				Parser::mergeOr,
-				Parser::createProduction,
-				Parser::mergeProductions);
+				_Parser::asterisk,
+				_Parser::plus,
+				_Parser::questionMark,
+				_Parser::parenthesis,
+				_Parser::mergeSequence,
+				_Parser::mergeOr,
+				_Parser::createProduction,
+				_Parser::mergeProductions);
 
-		while (v.size() > 1) {
+		for (int pass = 1; v.size() > 1; pass++) {
+			System.out.printf(" ### START PASS N. %d ### %n", pass);
+			for (int i = 0; i < v.size(); i++) {
+				System.out.printf(
+						" %3d : %n%s%n",
+						i, v.get(i) instanceof Token ? v.get(i).toString() : Utils.prettyPrint((Node) v.get(i)));
+			}
+			System.out.printf(" ### END PASS N. %d ### %n", pass);
+
 			// do one pass
 			final int initialSize = v.size();
 

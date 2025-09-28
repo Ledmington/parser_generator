@@ -39,14 +39,14 @@ import org.junit.jupiter.params.provider.ValueSource;
 public final class TestParser {
 
 	private static final List<Arguments> CORRECT_TEST_CASES = List.of(
-			Arguments.of("a=\"a\";", g(p("a", t("a")))),
+			Arguments.of("A=\"a\";", g(p("A", t("a")))),
 			Arguments.of("a=B;B=\"a\";", g(p("a", nt("B")), p("B", t("a")))),
-			Arguments.of("/**/a=\"a\";", g(p("a", t("a")))),
-			Arguments.of("a/**/=\"a\";", g(p("a", t("a")))),
-			Arguments.of("a=/**/\"a\";", g(p("a", t("a")))),
-			Arguments.of("a=\"a\"/**/;", g(p("a", t("a")))),
-			Arguments.of("a=\"a\";/**/", g(p("a", t("a")))),
-			Arguments.of("a=//comment\n\"a\";", g(p("a", t("a")))),
+			Arguments.of("/**/A=\"a\";", g(p("A", t("a")))),
+			Arguments.of("A/**/=\"a\";", g(p("A", t("a")))),
+			Arguments.of("A=/**/\"a\";", g(p("A", t("a")))),
+			Arguments.of("A=\"a\"/**/;", g(p("A", t("a")))),
+			Arguments.of("A=\"a\";/**/", g(p("A", t("a")))),
+			Arguments.of("A=//comment\n\"a\";", g(p("A", t("a")))),
 			Arguments.of("a=\"/*a\";", g(p("a", t("/*a")))),
 			Arguments.of("a=\"//a\";", g(p("a", t("//a")))),
 			Arguments.of("a=/*\"a\"*/\"b\";", g(p("a", t("b")))),
@@ -255,7 +255,7 @@ public final class TestParser {
 				"a=\"a/*\"*/;"
 			})
 	void invalid(final String input) {
-		assertThrows(ParsingException.class, () -> Parser.parse(input));
+		assertThrows(ParsingException.class, () -> _Parser.parse(input));
 	}
 
 	private static ZeroOrMore zero_or_more(final Expression exp) {
@@ -269,7 +269,7 @@ public final class TestParser {
 	@ParameterizedTest
 	@MethodSource("correctTestCases")
 	void correct(final String input, final Grammar expected) {
-		final Grammar actual = Parser.parse(input);
+		final Grammar actual = EBNFReader.read(input);
 		assertEquals(
 				expected,
 				actual,
