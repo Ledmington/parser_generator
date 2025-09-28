@@ -118,7 +118,7 @@ public class Main {
 		try {
 			g = Parser.parse(Files.readString(Path.of(grammarFile)));
 			if (verbose) {
-				System.out.println(Utils.prettyPrint(g, "  "));
+				System.out.println(Utils.prettyPrint(g));
 			}
 		} catch (final IOException e) {
 			throw new RuntimeException(e);

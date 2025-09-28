@@ -275,6 +275,6 @@ public final class TestParser {
 				actual,
 				() -> String.format(
 						"Expected the first grammar but parsed the second one.%n%s%n%s%n",
-						Utils.prettyPrint(expected, "  "), Utils.prettyPrint(actual, "  ")));
+						Utils.prettyPrint(expected), Utils.prettyPrint(actual)));
 	}
 }
