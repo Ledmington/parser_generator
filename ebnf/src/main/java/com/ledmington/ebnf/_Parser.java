@@ -178,6 +178,8 @@ public final class _Parser {
 					sb.append('\n');
 				} else if (it.current() == 't') {
 					sb.append('\t');
+				} else if (it.current() == '\\') {
+					sb.append('\\');
 				} else {
 					it.setIndex(idx);
 				}
@@ -241,7 +243,7 @@ public final class _Parser {
 			if (v.get(i).equals(Symbols.DOT)) {
 				v.set(
 						i,
-						new Or(IntStream.range(32, 127)
+						new Or(IntStream.range(32, 128)
 								.mapToObj(x -> (Expression) new Terminal("" + (char) x))
 								.toList()));
 			}

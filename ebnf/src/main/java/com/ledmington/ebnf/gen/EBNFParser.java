@@ -208,15 +208,32 @@ public final class EBNFParser {
 		}
 	}
 
-	public record parser_expression(Node match) implements Or {
+	public record parser_alternation(parser_concatenation parser_concatenation, zero_or_more_2 zero_or_more_2)
+			implements Sequence {
 		@Override
 		public String name() {
-			return "parser_expression";
+			return "parser_alternation";
+		}
+
+		@Override
+		public List<Node> nodes() {
+			return List.of(parser_concatenation, zero_or_more_2);
 		}
 	}
 
-	public record sequence_2(Terminal LEFT_PARENTHESIS, parser_expression parser_expression, Terminal RIGHT_PARENTHESIS)
-			implements Sequence {
+	public record zero_or_more_2(List<sequence_2> sequence_2) implements ZeroOrMore {
+		@Override
+		public String name() {
+			return "zero_or_more_2";
+		}
+
+		@Override
+		public List<Node> nodes() {
+			return sequence_2.stream().map(n -> (Node) n).toList();
+		}
+	}
+
+	public record sequence_2(Terminal VERTICAL_LINE, parser_concatenation parser_concatenation) implements Sequence {
 		@Override
 		public String name() {
 			return "sequence_2";
@@ -224,11 +241,56 @@ public final class EBNFParser {
 
 		@Override
 		public List<Node> nodes() {
-			return List.of(LEFT_PARENTHESIS, parser_expression, RIGHT_PARENTHESIS);
+			return List.of(VERTICAL_LINE, parser_concatenation);
 		}
 	}
 
-	public record sequence_3(parser_expression parser_expression, Terminal QUESTION_MARK) implements Sequence {
+	public record parser_concatenation(parser_repetition parser_repetition, zero_or_more_3 zero_or_more_3)
+			implements Sequence {
+		@Override
+		public String name() {
+			return "parser_concatenation";
+		}
+
+		@Override
+		public List<Node> nodes() {
+			return List.of(parser_repetition, zero_or_more_3);
+		}
+	}
+
+	public record zero_or_more_3(List<parser_repetition> parser_repetition) implements ZeroOrMore {
+		@Override
+		public String name() {
+			return "zero_or_more_3";
+		}
+
+		@Override
+		public List<Node> nodes() {
+			return parser_repetition.stream().map(n -> (Node) n).toList();
+		}
+	}
+
+	public record parser_expression(parser_alternation parser_alternation) implements NonTerminal {
+		@Override
+		public String name() {
+			return "parser_expression";
+		}
+
+		@Override
+		public Node match() {
+			return parser_alternation;
+		}
+	}
+
+	public record parser_primary(Node match) implements Or {
+		@Override
+		public String name() {
+			return "parser_primary";
+		}
+	}
+
+	public record sequence_3(Terminal LEFT_PARENTHESIS, parser_expression parser_expression, Terminal RIGHT_PARENTHESIS)
+			implements Sequence {
 		@Override
 		public String name() {
 			return "sequence_3";
@@ -236,58 +298,7 @@ public final class EBNFParser {
 
 		@Override
 		public List<Node> nodes() {
-			return List.of(parser_expression, QUESTION_MARK);
-		}
-	}
-
-	public record sequence_4(parser_expression parser_expression, Terminal PLUS) implements Sequence {
-		@Override
-		public String name() {
-			return "sequence_4";
-		}
-
-		@Override
-		public List<Node> nodes() {
-			return List.of(parser_expression, PLUS);
-		}
-	}
-
-	public record sequence_5(parser_expression parser_expression, Terminal ASTERISK) implements Sequence {
-		@Override
-		public String name() {
-			return "sequence_5";
-		}
-
-		@Override
-		public List<Node> nodes() {
-			return List.of(parser_expression, ASTERISK);
-		}
-	}
-
-	public record sequence_6(
-			parser_expression parser_expression_0, Terminal VERTICAL_LINE, parser_expression parser_expression_1)
-			implements Sequence {
-		@Override
-		public String name() {
-			return "sequence_6";
-		}
-
-		@Override
-		public List<Node> nodes() {
-			return List.of(parser_expression_0, VERTICAL_LINE, parser_expression_1);
-		}
-	}
-
-	public record sequence_7(parser_expression parser_expression_0, parser_expression parser_expression_1)
-			implements Sequence {
-		@Override
-		public String name() {
-			return "sequence_7";
-		}
-
-		@Override
-		public List<Node> nodes() {
-			return List.of(parser_expression_0, parser_expression_1);
+			return List.of(LEFT_PARENTHESIS, parser_expression, RIGHT_PARENTHESIS);
 		}
 	}
 
@@ -301,6 +312,30 @@ public final class EBNFParser {
 		@Override
 		public List<Node> nodes() {
 			return List.of(PARSER_SYMBOL, EQUALS, parser_expression);
+		}
+	}
+
+	public record parser_repetition(parser_primary parser_primary, zero_or_one_1 zero_or_one_1) implements Sequence {
+		@Override
+		public String name() {
+			return "parser_repetition";
+		}
+
+		@Override
+		public List<Node> nodes() {
+			return List.of(parser_primary, zero_or_one_1);
+		}
+	}
+
+	public record zero_or_one_1(quantifier quantifier) implements ZeroOrOne {
+		@Override
+		public String name() {
+			return "zero_or_one_1";
+		}
+
+		@Override
+		public Node match() {
+			return quantifier;
 		}
 	}
 
@@ -506,43 +541,100 @@ public final class EBNFParser {
 		return new zero_or_one_0(inner);
 	}
 
+	private parser_alternation parse_parser_alternation() {
+		stack.push(this.pos);
+		final parser_concatenation n_0 = parse_parser_concatenation();
+		if (n_0 == null) {
+			this.pos = stack.pop();
+			return null;
+		}
+		final zero_or_more_2 n_1 = parse_zero_or_more_2();
+		if (n_1 == null) {
+			this.pos = stack.pop();
+			return null;
+		}
+		stack.pop();
+		return new parser_alternation(n_0, n_1);
+	}
+
+	private zero_or_more_2 parse_zero_or_more_2() {
+		final List<sequence_2> nodes = new ArrayList<>();
+		while (true) {
+			final sequence_2 n = parse_sequence_2();
+			if (n == null) {
+				break;
+			}
+			nodes.add(n);
+		}
+		return new zero_or_more_2(nodes);
+	}
+
+	private sequence_2 parse_sequence_2() {
+		stack.push(this.pos);
+		final Terminal n_0 = parseTerminal(TokenType.VERTICAL_LINE);
+		if (n_0 == null) {
+			this.pos = stack.pop();
+			return null;
+		}
+		final parser_concatenation n_1 = parse_parser_concatenation();
+		if (n_1 == null) {
+			this.pos = stack.pop();
+			return null;
+		}
+		stack.pop();
+		return new sequence_2(n_0, n_1);
+	}
+
+	private parser_concatenation parse_parser_concatenation() {
+		stack.push(this.pos);
+		final parser_repetition n_0 = parse_parser_repetition();
+		if (n_0 == null) {
+			this.pos = stack.pop();
+			return null;
+		}
+		final zero_or_more_3 n_1 = parse_zero_or_more_3();
+		if (n_1 == null) {
+			this.pos = stack.pop();
+			return null;
+		}
+		stack.pop();
+		return new parser_concatenation(n_0, n_1);
+	}
+
+	private zero_or_more_3 parse_zero_or_more_3() {
+		final List<parser_repetition> nodes = new ArrayList<>();
+		while (true) {
+			final parser_repetition n = parse_parser_repetition();
+			if (n == null) {
+				break;
+			}
+			nodes.add(n);
+		}
+		return new zero_or_more_3(nodes);
+	}
+
 	private parser_expression parse_parser_expression() {
+		final parser_alternation inner = parse_parser_alternation();
+		return inner == null ? null : new parser_expression(inner);
+	}
+
+	private parser_primary parse_parser_primary() {
 		final Terminal n_0 = parseTerminal(TokenType.PARSER_SYMBOL);
 		if (n_0 != null) {
-			return new parser_expression(n_0);
+			return new parser_primary(n_0);
 		}
 		final Terminal n_1 = parseTerminal(TokenType.LEXER_SYMBOL);
 		if (n_1 != null) {
-			return new parser_expression(n_1);
+			return new parser_primary(n_1);
 		}
-		final sequence_2 n_2 = parse_sequence_2();
+		final sequence_3 n_2 = parse_sequence_3();
 		if (n_2 != null) {
-			return new parser_expression(n_2);
-		}
-		final sequence_3 n_3 = parse_sequence_3();
-		if (n_3 != null) {
-			return new parser_expression(n_3);
-		}
-		final sequence_4 n_4 = parse_sequence_4();
-		if (n_4 != null) {
-			return new parser_expression(n_4);
-		}
-		final sequence_5 n_5 = parse_sequence_5();
-		if (n_5 != null) {
-			return new parser_expression(n_5);
-		}
-		final sequence_6 n_6 = parse_sequence_6();
-		if (n_6 != null) {
-			return new parser_expression(n_6);
-		}
-		final sequence_7 n_7 = parse_sequence_7();
-		if (n_7 != null) {
-			return new parser_expression(n_7);
+			return new parser_primary(n_2);
 		}
 		return null;
 	}
 
-	private sequence_2 parse_sequence_2() {
+	private sequence_3 parse_sequence_3() {
 		stack.push(this.pos);
 		final Terminal n_0 = parseTerminal(TokenType.LEFT_PARENTHESIS);
 		if (n_0 == null) {
@@ -560,92 +652,7 @@ public final class EBNFParser {
 			return null;
 		}
 		stack.pop();
-		return new sequence_2(n_0, n_1, n_2);
-	}
-
-	private sequence_3 parse_sequence_3() {
-		stack.push(this.pos);
-		final parser_expression n_0 = parse_parser_expression();
-		if (n_0 == null) {
-			this.pos = stack.pop();
-			return null;
-		}
-		final Terminal n_1 = parseTerminal(TokenType.QUESTION_MARK);
-		if (n_1 == null) {
-			this.pos = stack.pop();
-			return null;
-		}
-		stack.pop();
-		return new sequence_3(n_0, n_1);
-	}
-
-	private sequence_4 parse_sequence_4() {
-		stack.push(this.pos);
-		final parser_expression n_0 = parse_parser_expression();
-		if (n_0 == null) {
-			this.pos = stack.pop();
-			return null;
-		}
-		final Terminal n_1 = parseTerminal(TokenType.PLUS);
-		if (n_1 == null) {
-			this.pos = stack.pop();
-			return null;
-		}
-		stack.pop();
-		return new sequence_4(n_0, n_1);
-	}
-
-	private sequence_5 parse_sequence_5() {
-		stack.push(this.pos);
-		final parser_expression n_0 = parse_parser_expression();
-		if (n_0 == null) {
-			this.pos = stack.pop();
-			return null;
-		}
-		final Terminal n_1 = parseTerminal(TokenType.ASTERISK);
-		if (n_1 == null) {
-			this.pos = stack.pop();
-			return null;
-		}
-		stack.pop();
-		return new sequence_5(n_0, n_1);
-	}
-
-	private sequence_6 parse_sequence_6() {
-		stack.push(this.pos);
-		final parser_expression n_0 = parse_parser_expression();
-		if (n_0 == null) {
-			this.pos = stack.pop();
-			return null;
-		}
-		final Terminal n_1 = parseTerminal(TokenType.VERTICAL_LINE);
-		if (n_1 == null) {
-			this.pos = stack.pop();
-			return null;
-		}
-		final parser_expression n_2 = parse_parser_expression();
-		if (n_2 == null) {
-			this.pos = stack.pop();
-			return null;
-		}
-		stack.pop();
-		return new sequence_6(n_0, n_1, n_2);
-	}
-
-	private sequence_7 parse_sequence_7() {
-		stack.push(this.pos);
-		final parser_expression n_0 = parse_parser_expression();
-		if (n_0 == null) {
-			this.pos = stack.pop();
-			return null;
-		}
-		final parser_expression n_1 = parse_parser_expression();
-		if (n_1 == null) {
-			this.pos = stack.pop();
-			return null;
-		}
-		stack.pop();
-		return new sequence_7(n_0, n_1);
+		return new sequence_3(n_0, n_1, n_2);
 	}
 
 	private parser_production parse_parser_production() {
@@ -667,6 +674,27 @@ public final class EBNFParser {
 		}
 		stack.pop();
 		return new parser_production(n_0, n_1, n_2);
+	}
+
+	private parser_repetition parse_parser_repetition() {
+		stack.push(this.pos);
+		final parser_primary n_0 = parse_parser_primary();
+		if (n_0 == null) {
+			this.pos = stack.pop();
+			return null;
+		}
+		final zero_or_one_1 n_1 = parse_zero_or_one_1();
+		if (n_1 == null) {
+			this.pos = stack.pop();
+			return null;
+		}
+		stack.pop();
+		return new parser_repetition(n_0, n_1);
+	}
+
+	private zero_or_one_1 parse_zero_or_one_1() {
+		final quantifier inner = parse_quantifier();
+		return new zero_or_one_1(inner);
 	}
 
 	private production parse_production() {
@@ -715,8 +743,10 @@ public final class EBNFParser {
 
 	public enum TokenType {
 		ASTERISK,
+		BACKSLASH,
 		DOUBLE_QUOTES,
 		EQUALS,
+		ESCAPED_DOUBLE_QUOTES,
 		LEFT_PARENTHESIS,
 		LETTER,
 		LEXER_SYMBOL,
@@ -726,13 +756,12 @@ public final class EBNFParser {
 		QUESTION_MARK,
 		RIGHT_PARENTHESIS,
 		SEMICOLON,
+		SLASH,
 		STRING_LITERAL,
 		SYMBOL,
 		UNDERSCORE,
 		UPPERCASE_LETTER,
 		VERTICAL_LINE,
-		_LINE_COMMENT,
-		_MULTI_LINE_COMMENT,
 		_WHITESPACE
 	}
 
@@ -753,7 +782,7 @@ public final class EBNFParser {
 
 		public EBNFParser_Lexer() {
 			final String encoded =
-					"AAAAFwAAAt7/AAD/AP//AP////8A//////////////8AAAAAAAAAAAAA/wAAAP8AAP8AAAAAAAAAE///////////AAAABf////8AAAAKAAAADv////8AAAAIAAAAAAAAAAIAAAAR/////wAAAAMAAAALAAAAEwAAAAcAAAAJAAAAEgAAABAAAAAFAAAADAAAAAEAAAAAAAAAQgAAAKEAAAEBAAABNgAAAXMAAAFzAAABqAAAAgcAAAIHAAACBwAAAgcAAAIHAAACCQAAAgkAAAIJAAACDAAAAicAAAInAAAChgAAAoYAAAKhAAACoQAAAt4ACQAKACAAIgAoACkAKgArAC8AOwA9AD8AQQBCAEMARABFAEYARwBIAEkASgBLAEwATQBOAE8AUABRAFIAUwBUAFUAVgBXAFgAWQBaAF8AYQBiAGMAZABlAGYAZwBoAGkAagBrAGwAbQBuAG8AcABxAHIAcwB0AHUAdgB3AHgAeQB6AHwAIAAhACIAIwAkACUAJgAnACgAKQAqACsALAAtAC4ALwAwADEAMgAzADQANQA2ADcAOAA5ADoAOwA8AD0APgA/AEAAQQBCAEMARABFAEYARwBIAEkASgBLAEwATQBOAE8AUABRAFIAUwBUAFUAVgBXAFgAWQBaAFsAXABdAF4AXwBgAGEAYgBjAGQAZQBmAGcAaABpAGoAawBsAG0AbgBvAHAAcQByAHMAdAB1AHYAdwB4AHkAegB7AHwAfQB+AAoAIAAhACIAIwAkACUAJgAnACgAKQAqACsALAAtAC4ALwAwADEAMgAzADQANQA2ADcAOAA5ADoAOwA8AD0APgA/AEAAQQBCAEMARABFAEYARwBIAEkASgBLAEwATQBOAE8AUABRAFIAUwBUAFUAVgBXAFgAWQBaAFsAXABdAF4AXwBgAGEAYgBjAGQAZQBmAGcAaABpAGoAawBsAG0AbgBvAHAAcQByAHMAdAB1AHYAdwB4AHkAegB7AHwAfQB+AEEAQgBDAEQARQBGAEcASABJAEoASwBMAE0ATgBPAFAAUQBSAFMAVABVAFYAVwBYAFkAWgBfAGEAYgBjAGQAZQBmAGcAaABpAGoAawBsAG0AbgBvAHAAcQByAHMAdAB1AHYAdwB4AHkAegAiACgAKQAqACsAOwA9AD8AQQBCAEMARABFAEYARwBIAEkASgBLAEwATQBOAE8AUABRAFIAUwBUAFUAVgBXAFgAWQBaAF8AYQBiAGMAZABlAGYAZwBoAGkAagBrAGwAbQBuAG8AcABxAHIAcwB0AHUAdgB3AHgAeQB6AEEAQgBDAEQARQBGAEcASABJAEoASwBMAE0ATgBPAFAAUQBSAFMAVABVAFYAVwBYAFkAWgBfAGEAYgBjAGQAZQBmAGcAaABpAGoAawBsAG0AbgBvAHAAcQByAHMAdAB1AHYAdwB4AHkAegAgACEAIgAjACQAJQAmACcAKAApACoAKwAsAC0ALgAvADAAMQAyADMANAA1ADYANwA4ADkAOgA7ADwAPQA+AD8AQABBAEIAQwBEAEUARgBHAEgASQBKAEsATABNAE4ATwBQAFEAUgBTAFQAVQBWAFcAWABZAFoAWwBcAF0AXgBfAGAAYQBiAGMAZABlAGYAZwBoAGkAagBrAGwAbQBuAG8AcABxAHIAcwB0AHUAdgB3AHgAeQB6AHsAfAB9AH4AKgAvAAkACgAgAF8AYQBiAGMAZABlAGYAZwBoAGkAagBrAGwAbQBuAG8AcABxAHIAcwB0AHUAdgB3AHgAeQB6ACAAIQAiACMAJAAlACYAJwAoACkAKgArACwALQAuAC8AMAAxADIAMwA0ADUANgA3ADgAOQA6ADsAPAA9AD4APwBAAEEAQgBDAEQARQBGAEcASABJAEoASwBMAE0ATgBPAFAAUQBSAFMAVABVAFYAVwBYAFkAWgBbAFwAXQBeAF8AYABhAGIAYwBkAGUAZgBnAGgAaQBqAGsAbABtAG4AbwBwAHEAcgBzAHQAdQB2AHcAeAB5AHoAewB8AH0AfgBBAEIAQwBEAEUARgBHAEgASQBKAEsATABNAE4ATwBQAFEAUgBTAFQAVQBWAFcAWABZAFoAXwAiACgAKQAqACsAOwA9AD8AQQBCAEMARABFAEYARwBIAEkASgBLAEwATQBOAE8AUABRAFIAUwBUAFUAVgBXAFgAWQBaAF8AYQBiAGMAZABlAGYAZwBoAGkAagBrAGwAbQBuAG8AcABxAHIAcwB0AHUAdgB3AHgAeQB6AAAADwAAAA8AAAAPAAAAFgAAAA0AAAAFAAAACQAAAAgAAAAMAAAADgAAAAoAAAARAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAGAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAATAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAcAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAALAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAAAMAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABUAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAAAMAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAAHAAAAAQAAAAEAAAABAAAAAQAAABIAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAIAAAAPAAAADwAAAA8AAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAABwAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABUAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQ=";
+					"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AAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAAVAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAUAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAABQAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAAA4AAAAOAAAADgAAAAMAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAAIAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAUAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAABQAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAABEAAAARAAAAEQAAAAgAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAABQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQ==";
 			final ByteBuffer bb =
 					ByteBuffer.wrap(Base64.getDecoder().decode(encoded)).order(ByteOrder.BIG_ENDIAN);
 			final int num_states = bb.getInt();

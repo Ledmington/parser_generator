@@ -4,14 +4,14 @@ parser_production = PARSER_SYMBOL EQUALS parser_expression ;
 lexer_production = LEXER_SYMBOL EQUALS lexer_expression ;
 
 // parser expressions
-parser_expression = PARSER_SYMBOL
-                  | LEXER_SYMBOL
-                  | LEFT_PARENTHESIS parser_expression RIGHT_PARENTHESIS
-                  | parser_expression QUESTION_MARK
-                  | parser_expression PLUS
-                  | parser_expression ASTERISK
-                  | parser_expression VERTICAL_LINE parser_expression
-                  | parser_expression parser_expression ;
+parser_expression = parser_alternation ;
+parser_alternation = parser_concatenation ( VERTICAL_LINE parser_concatenation )* ;
+parser_concatenation = parser_repetition parser_repetition* ;
+parser_repetition = parser_primary quantifier? ;
+parser_primary = PARSER_SYMBOL
+               | LEXER_SYMBOL
+               | LEFT_PARENTHESIS parser_expression RIGHT_PARENTHESIS ;
+
 
 /*
 Lexer expressions
@@ -36,11 +36,14 @@ LEFT_PARENTHESIS = "(" ;
 RIGHT_PARENTHESIS = ")" ;
 DOUBLE_QUOTES = "\"" ;
 VERTICAL_LINE = "|" ;
+SLASH = "/" ;
+BACKSLASH = "\\" ;
+ESCAPED_DOUBLE_QUOTES = BACKSLASH DOUBLE_QUOTES;
 
-SYMBOL = SEMICOLON | EQUALS | UNDERSCORE | QUESTION_MARK | PLUS | ASTERISK | LEFT_PARENTHESIS | RIGHT_PARENTHESIS ;
+SYMBOL = SEMICOLON | EQUALS | UNDERSCORE | QUESTION_MARK | PLUS | SLASH | BACKSLASH | ASTERISK | LEFT_PARENTHESIS | RIGHT_PARENTHESIS ;
 LEXER_SYMBOL = ( UPPERCASE_LETTER | UNDERSCORE )+ ;
 PARSER_SYMBOL = ( LOWERCASE_LETTER | UNDERSCORE )+ ;
-STRING_LITERAL = DOUBLE_QUOTES ( LETTER | SYMBOL )* DOUBLE_QUOTES ;
+STRING_LITERAL = DOUBLE_QUOTES ( LETTER | SYMBOL | ESCAPED_DOUBLE_QUOTES )* DOUBLE_QUOTES ;
 
 LETTER = LOWERCASE_LETTER | UPPERCASE_LETTER ;
 LOWERCASE_LETTER = "a" | "b" | "c" | "d" | "e" | "f" | "g"
@@ -53,5 +56,3 @@ UPPERCASE_LETTER = "A" | "B" | "C" | "D" | "E" | "F" | "G"
                  | "V" | "W" | "X" | "Y" | "Z" ;
 
 _WHITESPACE = (" " | "\t" | "\n" )* ;
-_LINE_COMMENT = "//" .* "\n" ;
-_MULTI_LINE_COMMENT = "/*" .* "*/" ;
