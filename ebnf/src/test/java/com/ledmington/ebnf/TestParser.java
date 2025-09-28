@@ -56,20 +56,37 @@ public final class TestParser {
 			Arguments.of("a=\"a\";b=\"b\";", g(p("a", t("a")), p("b", t("b")))),
 			Arguments.of("a=\"a\";b=a;", g(p("a", t("a")), p("b", nt("a")))),
 			Arguments.of("a=b;b=a;", g(p("a", nt("b")), p("b", nt("a")))),
-			Arguments.of("a=\"a\"|\"b\";", g(p("a", alt(t("a"), t("b"))))),
+			Arguments.of("a=\"a\"|\"b\";", g(p("a", or(t("a"), t("b"))))),
 			Arguments.of("a=\"a\"? \"b\";", g(p("a", seq(zero_or_one(t("a")), t("b"))))),
 			Arguments.of("a=\"a\"* \"b\";", g(p("a", seq(zero_or_more(t("a")), t("b"))))),
 			Arguments.of("a=\"a\"+ \"b\";", g(p("a", seq(one_or_more(t("a")), t("b"))))),
 			Arguments.of("a=\"\\\"\";", g(p("a", t("\"")))),
 			Arguments.of("a=\"\\n\";", g(p("a", t("\n")))),
 			Arguments.of("a=\"\\t\";", g(p("a", t("\t")))),
-			Arguments.of("a=\"a\"|\"b\"|\"c\";", g(p("a", alt(t("a"), t("b"), t("c"))))),
-			Arguments.of("S=\"a\"|(\"b\" \"c\");", g(p("S", alt(t("a"), seq(t("b"), t("c")))))),
-			Arguments.of("S=\"a\" \"b\" | \"c\" \"d\";", g(p("S", alt(seq(t("a"), t("b")), seq(t("c"), t("d")))))),
-			Arguments.of("S=\"a\" (\"b\" | \"c\") \"d\";", g(p("S", seq(t("a"), alt(t("b"), t("c")), t("d"))))),
+			Arguments.of("a=\"a\"|\"b\"|\"c\";", g(p("a", or(t("a"), t("b"), t("c"))))),
+			Arguments.of("S=\"a\"|(\"b\" \"c\");", g(p("S", or(t("a"), seq(t("b"), t("c")))))),
+			Arguments.of("S=\"a\" \"b\" | \"c\" \"d\";", g(p("S", or(seq(t("a"), t("b")), seq(t("c"), t("d")))))),
+			Arguments.of("S=\"a\" (\"b\" | \"c\") \"d\";", g(p("S", seq(t("a"), or(t("b"), t("c")), t("d"))))),
 			Arguments.of(
 					"S=(\"a\" | \"b\") (\"a\" | \"b\" | \"c\")*;",
-					g(p("S", seq(alt(t("a"), t("b")), zero_or_more(alt(t("a"), t("b"), t("c"))))))),
+					g(p("S", seq(or(t("a"), t("b")), zero_or_more(or(t("a"), t("b"), t("c"))))))),
+			// Fix issue 30 (https://github.com/Ledmington/parser_generator/issues/30)
+			Arguments.of(
+					String.join(
+							"\n",
+							"start = A | B | C ( D | E ) ;",
+							"A = \"a\" ;",
+							"B = \"b\" ;",
+							"C = \"c\" ;",
+							"D = \"d\" ;",
+							"E = \"e\" ;"),
+					g(
+							p("start", or(nt("A"), nt("B"), seq(nt("C"), or(nt("D"), nt("E"))))),
+							p("A", t("a")),
+							p("B", t("b")),
+							p("C", t("c")),
+							p("D", t("d")),
+							p("E", t("e")))),
 			//
 			Arguments.of(
 					readFile("ebnf.g"),
@@ -78,13 +95,13 @@ public final class TestParser {
 							p(
 									"production",
 									seq(
-											zero_or_one(alt(nt("parser_production"), nt("lexer_production"))),
+											zero_or_one(or(nt("parser_production"), nt("lexer_production"))),
 											nt("SEMICOLON"))),
 							p("parser_production", seq(nt("PARSER_SYMBOL"), nt("EQUALS"), nt("parser_expression"))),
 							p("lexer_production", seq(nt("LEXER_SYMBOL"), nt("EQUALS"), nt("lexer_expression"))),
 							p(
 									"parser_expression",
-									alt(
+									or(
 											nt("PARSER_SYMBOL"),
 											nt("LEXER_SYMBOL"),
 											seq(nt("parser_expression"), nt("QUESTION_MARK")),
@@ -98,7 +115,7 @@ public final class TestParser {
 											seq(nt("parser_expression"), nt("parser_expression")))),
 							p(
 									"lexer_expression",
-									alt(
+									or(
 											seq(nt("lexer_expression"), nt("QUESTION_MARK")),
 											seq(nt("lexer_expression"), nt("PLUS")),
 											seq(nt("lexer_expression"), nt("ASTERISK")),
@@ -110,7 +127,7 @@ public final class TestParser {
 											seq(
 													nt("DOUBLE_QUOTES"),
 													one_or_more(
-															alt(
+															or(
 																	t(" "), t("!"), t("\""), t("#"), t("$"), t("%"),
 																	t("&"), t("'"), t("("), t(")"), t("*"), t("+"),
 																	t(","), t("-"), t("."), t("/"), t("0"), t("1"),
@@ -140,31 +157,31 @@ public final class TestParser {
 							p("VERTICAL_LINE", t("|")),
 							p(
 									"LEXER_SYMBOL",
-									one_or_more(alt(
+									one_or_more(or(
 											t("A"), t("B"), t("C"), t("D"), t("E"), t("F"), t("G"), t("H"), t("I"),
 											t("J"), t("K"), t("L"), t("M"), t("N"), t("O"), t("P"), t("Q"), t("R"),
 											t("S"), t("T"), t("U"), t("V"), t("W"), t("X"), t("Y"), t("Z"), t("_")))),
 							p(
 									"PARSER_SYMBOL",
-									one_or_more(alt(
+									one_or_more(or(
 											t("a"), t("b"), t("c"), t("d"), t("e"), t("f"), t("g"), t("h"), t("i"),
 											t("j"), t("k"), t("l"), t("m"), t("n"), t("o"), t("p"), t("q"), t("r"),
 											t("s"), t("t"), t("u"), t("v"), t("w"), t("x"), t("y"), t("z"), t("_")))),
-							p("_WHITESPACE", zero_or_more(alt(t(" "), t("\t"), t("\n")))))),
+							p("_WHITESPACE", zero_or_more(or(t(" "), t("\t"), t("\n")))))),
 			Arguments.of(
 					readFile("number.g"),
 					g(
 							p("S", seq(nt("SIGN"), nt("number"))),
-							p("number", alt(nt("ZERO"), nt("non_zero"))),
+							p("number", or(nt("ZERO"), nt("non_zero"))),
 							p("non_zero", seq(nt("DIGIT_EXCLUDING_ZERO"), zero_or_more(nt("DIGIT")))),
 							p("ZERO", t("0")),
-							p("SIGN", zero_or_one(alt(t("+"), t("-")))),
+							p("SIGN", zero_or_one(or(t("+"), t("-")))),
 							p(
 									"DIGIT_EXCLUDING_ZERO",
-									alt(t("1"), t("2"), t("3"), t("4"), t("5"), t("6"), t("7"), t("8"), t("9"))),
+									or(t("1"), t("2"), t("3"), t("4"), t("5"), t("6"), t("7"), t("8"), t("9"))),
 							p(
 									"DIGIT",
-									alt(
+									or(
 											t("0"), t("1"), t("2"), t("3"), t("4"), t("5"), t("6"), t("7"), t("8"),
 											t("9"))))));
 
@@ -201,7 +218,7 @@ public final class TestParser {
 		return new Sequence(expressions);
 	}
 
-	private static Or alt(final Expression... expressions) {
+	private static Or or(final Expression... expressions) {
 		return new Or(expressions);
 	}
 
