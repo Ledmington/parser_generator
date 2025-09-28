@@ -183,3 +183,18 @@ allprojects.each {
     it.tasks.compileJava.dependsOn(spotlessApply)
     it.tasks.build.dependsOn(it.tasks.javadoc)
 }
+
+tasks.register('generateEBNFParser', JavaExec) {
+    def jarTask = project(":cli").tasks.named("fatJar")
+    dependsOn jarTask
+    group = 'utilities'
+    description = 'Generates the parser of EBNF grammars'
+    classpath jarTask.map { it.outputs.files }
+    args = [
+            "-g", path(project.layout.projectDirectory.toString(), "ebnf", "src", "main", "resources", "ebnf.g"),
+            "-o", path(project.layout.projectDirectory.toString(), "ebnf", "src", "main", "java", "com", "ledmington", "ebnf", "gen", "EBNFParser.java"),
+            "-p", "com.ledmington.ebnf.gen",
+            "--overwrite",
+            // "--verbose"
+    ]
+}

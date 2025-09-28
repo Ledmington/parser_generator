@@ -25,8 +25,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import com.ledmington.ebnf.Grammar;
-import com.ledmington.ebnf.Parser;
 import com.ledmington.ebnf.Utils;
+import com.ledmington.ebnf._Parser;
 import com.ledmington.generator.Generator;
 
 public class Main {
@@ -116,9 +116,9 @@ public class Main {
 
 		final Grammar g;
 		try {
-			g = Parser.parse(Files.readString(Path.of(grammarFile)));
+			g = _Parser.parse(Files.readString(Path.of(grammarFile)));
 			if (verbose) {
-				System.out.println(Utils.prettyPrint(g, "  "));
+				System.out.println(Utils.prettyPrint(g));
 			}
 		} catch (final IOException e) {
 			throw new RuntimeException(e);
@@ -134,11 +134,13 @@ public class Main {
 			System.exit(0);
 		}
 
+		final int idx = outputFile.lastIndexOf(File.separator);
+		final String className = idx < 0 ? outputFile : outputFile.substring(idx + 1);
+		final String indent = "\t";
+		final String output = Generator.generate(g, className, packageName, indent, generateMainMethod);
+
 		try (final BufferedWriter bw = Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8)) {
-			final int idx = outputFile.lastIndexOf(File.separator);
-			final String className = idx < 0 ? outputFile : outputFile.substring(idx + 1);
-			final String indent = "\t";
-			bw.write(Generator.generate(g, className, packageName, indent, generateMainMethod));
+			bw.write(output);
 		} catch (final IOException e) {
 			throw new RuntimeException(e);
 		}

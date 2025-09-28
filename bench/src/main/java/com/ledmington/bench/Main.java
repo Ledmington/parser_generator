@@ -18,7 +18,7 @@
 package com.ledmington.bench;
 
 import com.ledmington.ebnf.Grammar;
-import com.ledmington.ebnf.Parser;
+import com.ledmington.ebnf._Parser;
 import com.ledmington.generator.GrammarChecker;
 import com.ledmington.generator.automata.AutomataUtils;
 import com.ledmington.generator.automata.DFA;
@@ -68,7 +68,7 @@ public class Main {
 			final long initialUsedMemory = memory();
 
 			t = System.nanoTime();
-			final Grammar g = Parser.parse(grammarText);
+			final Grammar g = _Parser.parse(grammarText);
 			final long grammarParsingTime = System.nanoTime() - t;
 			final long grammarParsingMemory = memory() - initialUsedMemory;
 			System.gc();

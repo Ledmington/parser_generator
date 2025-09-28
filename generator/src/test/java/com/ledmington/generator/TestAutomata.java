@@ -101,7 +101,7 @@ public final class TestAutomata {
 				epsilonNFA2,
 				() -> String.format(
 						"Expected epsilon-NFA generation to be deterministic, but the following grammar generated two different automata.%n%s%n%s%n%s%n",
-						Utils.prettyPrint(g, "  "), epsilonNFA1.toGraphviz(), epsilonNFA2.toGraphviz()));
+						Utils.prettyPrint(g), epsilonNFA1.toGraphviz(), epsilonNFA2.toGraphviz()));
 	}
 
 	@ParameterizedTest
@@ -114,7 +114,7 @@ public final class TestAutomata {
 				nfa2,
 				() -> String.format(
 						"Expected NFA generation to be deterministic, but the following grammar generated two different automata.%n%s%n%s%n%s%n",
-						Utils.prettyPrint(g, "  "), nfa1.toGraphviz(), nfa2.toGraphviz()));
+						Utils.prettyPrint(g), nfa1.toGraphviz(), nfa2.toGraphviz()));
 	}
 
 	@ParameterizedTest
@@ -127,7 +127,7 @@ public final class TestAutomata {
 				dfa2,
 				() -> String.format(
 						"Expected DFA generation to be deterministic, but the following grammar generated two different automata.%n%s%n%s%n%s%n",
-						Utils.prettyPrint(g, "  "), dfa1.toGraphviz(), dfa2.toGraphviz()));
+						Utils.prettyPrint(g), dfa1.toGraphviz(), dfa2.toGraphviz()));
 	}
 
 	@ParameterizedTest
@@ -140,7 +140,7 @@ public final class TestAutomata {
 				minimizedDFA2,
 				() -> String.format(
 						"Expected min-DFA generation to be deterministic, but the following grammar generated two different automata.%n%s%n%s%n%s%n",
-						Utils.prettyPrint(g, "  "), minimizedDFA1.toGraphviz(), minimizedDFA2.toGraphviz()));
+						Utils.prettyPrint(g), minimizedDFA1.toGraphviz(), minimizedDFA2.toGraphviz()));
 	}
 
 	private record Match(String name, String content) {}
