@@ -47,13 +47,58 @@ public final class EBNFReader {
 
 	public static Grammar read(final String input) {
 		final String clean = removeComments(input);
-		System.out.println(clean);
+		final String unescaped = unescapeStringLiterals(clean);
+		System.out.println(unescaped);
 		final EBNFParser parser = new EBNFParser();
-		final EBNFParser.Node result = parser.parse(clean);
+		final EBNFParser.Node result = parser.parse(unescaped);
 		if (result == null) {
 			throw new IllegalArgumentException("Could not parse input.");
 		}
 		return convertGrammar(result);
+	}
+
+	private static String unescapeStringLiterals(final String input) {
+		final StringBuilder sb = new StringBuilder(input.length());
+		final int n = input.length();
+		boolean inString = false;
+		for (int i = 0; i < n; i++) {
+			final char ch = input.charAt(i);
+			if (inString) {
+				if (ch == '\\' && i + 1 < n) {
+					final char next = input.charAt(i + 1);
+					switch (next) {
+						case '\\' -> {
+							sb.append('\\');
+							i++;
+						}
+						case 'n' -> {
+							sb.append('\n');
+							i++;
+						}
+						case 't' -> {
+							sb.append('\t');
+							i++;
+						}
+						case '"' -> {
+							sb.append('"');
+							i++;
+						}
+						default -> sb.append(ch);
+					}
+				} else if (ch == '"') {
+					inString = false;
+					sb.append(ch);
+				} else {
+					sb.append(ch);
+				}
+			} else {
+				if (ch == '"') {
+					inString = true;
+				}
+				sb.append(ch);
+			}
+		}
+		return sb.toString();
 	}
 
 	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")

@@ -25,6 +25,7 @@ import java.util.Objects;
  *
  * @param productions The productions which map to their corresponding priority.
  */
+// TODO: make it not implement Node
 public record Grammar(Map<Production, Integer> productions) implements Node {
 
 	/**

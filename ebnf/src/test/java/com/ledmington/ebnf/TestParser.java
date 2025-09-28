@@ -61,7 +61,7 @@ public final class TestParser {
 			Arguments.of("A=\"a\"* \"b\";", g(p("A", seq(zero_or_more(t("a")), t("b"))))),
 			Arguments.of("A=\"a\"+ \"b\";", g(p("A", seq(one_or_more(t("a")), t("b"))))),
 			Arguments.of("A=\"\\\"\";", g(p("A", t("\"")))),
-			Arguments.of("a=\"\\n\";", g(p("a", t("\n")))),
+			Arguments.of("A=\"\\n\";", g(p("A", t("\n")))),
 			Arguments.of("a=\"\\t\";", g(p("a", t("\t")))),
 			Arguments.of("a=\"a\"|\"b\"|\"c\";", g(p("a", or(t("a"), t("b"), t("c"))))),
 			Arguments.of("S=\"a\"|(\"b\" \"c\");", g(p("S", or(t("a"), seq(t("b"), t("c")))))),
