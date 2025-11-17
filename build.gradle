@@ -21,8 +21,8 @@ String authorMail = 'filippo.barbari@gmail.com'
 String appName = 'parser-gen'
 ext.appNameLowerCase = appName.toLowerCase(Locale.US)
 
-ext.junitVersion = '5.13.1'
-ext.junitLauncherVersion = '1.13.1'
+ext.junitVersion = '6.0.1'
+ext.junitLauncherVersion = '6.0.1'
 ext.jacocoVersion = '0.8.12'
 ext.pmdVersion = '7.13.0'
 ext.palantirVersion = '2.73.0'
