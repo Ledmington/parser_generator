@@ -30,9 +30,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /** A parser of EBNF grammars. */
-public final class _Parser {
+public final class Parser {
 
-	private _Parser() {}
+	private Parser() {}
 
 	/**
 	 * Parses the given String as an EBNF grammar.
@@ -287,14 +287,14 @@ public final class _Parser {
 
 	private static void applyTransformations(final List<Object> v) {
 		final List<BiPredicate<List<Object>, Integer>> transformations = List.of(
-				_Parser::asterisk,
-				_Parser::plus,
-				_Parser::questionMark,
-				_Parser::parenthesis,
-				_Parser::mergeSequence,
-				_Parser::mergeOr,
-				_Parser::createProduction,
-				_Parser::mergeProductions);
+				Parser::asterisk,
+				Parser::plus,
+				Parser::questionMark,
+				Parser::parenthesis,
+				Parser::mergeSequence,
+				Parser::mergeOr,
+				Parser::createProduction,
+				Parser::mergeProductions);
 
 		for (int pass = 1; v.size() > 1; pass++) {
 			// do one pass

@@ -255,7 +255,7 @@ public final class TestParser {
 				"a=\"a/*\"*/;"
 			})
 	void invalid(final String input) {
-		assertThrows(ParsingException.class, () -> _Parser.parse(input));
+		assertThrows(ParsingException.class, () -> Parser.parse(input));
 	}
 
 	private static ZeroOrMore zero_or_more(final Expression exp) {
@@ -269,7 +269,7 @@ public final class TestParser {
 	@ParameterizedTest
 	@MethodSource("correctTestCases")
 	void correct(final String input, final Grammar expected) {
-		final Grammar actual = EBNFReader.read(input);
+		final Grammar actual = Parser.parse(input);
 		assertEquals(
 				expected,
 				actual,
