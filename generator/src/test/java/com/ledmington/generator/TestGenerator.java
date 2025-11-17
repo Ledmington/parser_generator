@@ -203,10 +203,9 @@ public final class TestGenerator {
 		final Object obj = entrypoint.invoke(instance, correctInput);
 		assertNotNull(
 				obj,
-				// TODO: print parsed object
 				() -> String.format(
 						"Expected the following grammar to be able to parse the input '%s' but it did not.%n%s%n",
-						correctInput, Utils.prettyPrint(g, "  ")));
+						correctInput, Utils.prettyPrint(g)));
 	}
 
 	@ParameterizedTest
@@ -219,18 +218,16 @@ public final class TestGenerator {
 		final Class<?> klass = assertDoesNotThrow(
 				() -> compileJavaSource(className, sourceCode),
 				() -> String.format(
-						"The source code for the following grammar did not compile.%n%s%n",
-						Utils.prettyPrint(g, "  ")));
+						"The source code for the following grammar did not compile.%n%s%n", Utils.prettyPrint(g)));
 		final Object instance = klass.getConstructors()[0].newInstance();
 		final Method entrypoint = klass.getMethod("parse", String.class);
 
-		// TODO: print parsed object
 		final Object obj = entrypoint.invoke(instance, wrongInput);
 		assertNull(
 				obj,
 				() -> String.format(
 						"Expected the following grammar to NOT be able to parse the input '%s' but it did.%n%s%n",
-						wrongInput, Utils.prettyPrint(g, "  ")));
+						wrongInput, Utils.prettyPrint(g)));
 	}
 
 	@ParameterizedTest
@@ -243,6 +240,6 @@ public final class TestGenerator {
 				text2,
 				() -> String.format(
 						"The generator generated two different sources for the following grammar.\n%s\n\n --- Source 1 --- \n%s\n --- \n --- Source 2 --- \n%s\n --- ",
-						Utils.prettyPrint(g, "  "), text1, text2));
+						Utils.prettyPrint(g), text1, text2));
 	}
 }

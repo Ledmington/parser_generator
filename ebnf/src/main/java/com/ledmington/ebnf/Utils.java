@@ -17,13 +17,16 @@
  */
 package com.ledmington.ebnf;
 
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 
 /** A collection of various utilities. */
 public final class Utils {
+
+	private static final char VERTICAL_LINE = '│';
+	private static final char HORIZONTAL_LINE = '─';
+	private static final char JOINT = '├';
+	private static final char ANGLE = '└';
 
 	private Utils() {}
 
@@ -31,59 +34,64 @@ public final class Utils {
 	 * Returns a String representing the given tree with the given level of indentation.
 	 *
 	 * @param root The root of the tree to be serialized.
-	 * @param indent The level of indentation to use.
 	 * @return An indented String representation of the tree.
 	 */
-	public static String prettyPrint(final Node root, final String indent) {
+	public static String prettyPrint(final Node root) {
 		final StringBuilder sb = new StringBuilder();
-		prettyPrint(sb, root, "", indent);
+		prettyPrint(sb, root, "", "");
 		return sb.toString();
 	}
 
 	private static void prettyPrint(
-			final StringBuilder sb, final Node root, final String indentString, final String indent) {
-		switch (root) {
+			final StringBuilder sb, final Node n, final String indent, final String continuationIndent) {
+		switch (n) {
 			case Grammar g -> {
-				sb.append(indentString).append("Grammar {\n");
-				if (!g.productions().isEmpty()) {
-					final Iterator<Production> it = g.productions().entrySet().stream()
-							.sorted(Map.Entry.comparingByValue())
-							.map(Entry::getKey)
-							.iterator();
-					do {
-						final Production cur = it.next();
-						prettyPrint(sb, cur, indentString + indent, indent);
-						sb.append('\n');
-					} while (it.hasNext());
+				sb.append("grammar\n");
+				if (g.productions().isEmpty()) {
+					return;
 				}
-				sb.append(indentString).append("}");
+				final List<Production> productions = g.productions().entrySet().stream()
+						.sorted(Entry.comparingByValue())
+						.map(Entry::getKey)
+						.toList();
+				final int len = productions.size();
+				for (int i = 0; i < len - 1; i++) {
+					prettyPrint(
+							sb,
+							productions.get(i),
+							getJointIndent(continuationIndent),
+							getLineIndent(continuationIndent));
+				}
+				prettyPrint(
+						sb,
+						productions.getLast(),
+						getAngleIndent(continuationIndent),
+						getEmptyIndent(continuationIndent));
 			}
-			case Production p -> {
-				sb.append(indentString).append("Production {\n");
-				prettyPrint(sb, p.start(), indentString + indent, indent);
-				sb.append('\n');
-				prettyPrint(sb, p.result(), indentString + indent, indent);
-				sb.append('\n').append(indentString).append("}");
-			}
-			case Sequence c -> prettyPrintList(sb, "Sequence", c.nodes(), indentString, indent);
-			case Or a -> prettyPrintList(sb, "Or", a.nodes(), indentString, indent);
-			case ZeroOrMore zom -> prettyPrintContainer(sb, "ZeroOrMore", zom.inner(), indentString, indent);
-			case ZeroOrOne zoo -> prettyPrintContainer(sb, "ZeroOrOne", zoo.inner(), indentString, indent);
-			case OneOrMore oom -> prettyPrintContainer(sb, "OneOrMore", oom.inner(), indentString, indent);
-			case NonTerminal n ->
-				sb.append(indentString)
-						.append("NonTerminal { ")
-						.append(n.name())
-						.append(" }");
+			case Production p ->
+				prettyPrintList(sb, "production", List.of(p.start(), p.result()), indent, continuationIndent);
 			case Terminal t ->
-				sb.append(indentString)
-						.append("Terminal { ")
+				sb.append(indent)
+						.append("terminal '")
 						.append(Utils.getEscapedString(t.literal()))
-						.append(" }");
-			default ->
-				throw new IllegalArgumentException(String.format(
-						"Unknown Node of type %s.", root.getClass().getSimpleName()));
+						.append("'\n");
+			case NonTerminal nt ->
+				sb.append(indent).append("non_terminal '").append(nt.name()).append("'\n");
+			case Or or -> prettyPrintList(sb, "or", or.nodes(), indent, continuationIndent);
+			case Sequence s -> prettyPrintList(sb, "sequence", s.nodes(), indent, continuationIndent);
+			case ZeroOrOne zoo -> prettyPrintContainer(sb, "zero_or_one", zoo.inner(), indent, continuationIndent);
+			case ZeroOrMore zom -> prettyPrintContainer(sb, "zero_or_more", zom.inner(), indent, continuationIndent);
+			case OneOrMore oom -> prettyPrintContainer(sb, "one_or_more", oom.inner(), indent, continuationIndent);
+			default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'.", n));
 		}
+	}
+
+	private static String getEmptyIndent(final String s) {
+		return s + "   ";
+	}
+
+	private static String getLineIndent(final String s) {
+		return s + ' ' + VERTICAL_LINE + ' ';
 	}
 
 	private static void prettyPrintContainer(
@@ -99,18 +107,24 @@ public final class Utils {
 			final StringBuilder sb,
 			final String nodeName,
 			final List<Expression> nodes,
-			final String indentString,
-			final String indent) {
-		sb.append(indentString).append(nodeName).append(" {\n");
-		if (!nodes.isEmpty()) {
-			prettyPrint(sb, nodes.getFirst(), indentString + indent, indent);
-			sb.append('\n');
-			for (int i = 1; i < nodes.size(); i++) {
-				prettyPrint(sb, nodes.get(i), indentString + indent, indent);
-				sb.append('\n');
-			}
+			final String indent,
+			final String continuationIndent) {
+		sb.append(indent).append(nodeName).append('\n');
+		if (nodes.isEmpty()) {
+			return;
 		}
-		sb.append(indentString).append("}");
+		for (int i = 0; i < nodes.size() - 1; i++) {
+			prettyPrint(sb, nodes.get(i), getJointIndent(continuationIndent), getLineIndent(continuationIndent));
+		}
+		prettyPrint(sb, nodes.getLast(), getAngleIndent(continuationIndent), getEmptyIndent(continuationIndent));
+	}
+
+	private static String getJointIndent(final String s) {
+		return s + " " + JOINT + HORIZONTAL_LINE;
+	}
+
+	private static String getAngleIndent(final String s) {
+		return s + " " + ANGLE + HORIZONTAL_LINE;
 	}
 
 	/**

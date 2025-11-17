@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -178,6 +179,8 @@ public final class Parser {
 					sb.append('\n');
 				} else if (it.current() == 't') {
 					sb.append('\t');
+				} else if (it.current() == '\\') {
+					sb.append('\\');
 				} else {
 					it.setIndex(idx);
 				}
@@ -222,31 +225,67 @@ public final class Parser {
 		// and then implement it that way
 		final List<Object> v = new ArrayList<>(tokens);
 
-		// First hard-coded pass: convert all string literals into terminal symbols
-		for (int i = 0; i < v.size(); i++) {
-			if (v.get(i) instanceof StringLiteral(final String literal)) {
-				v.set(i, new Terminal(literal));
+		// Hard-coded passes
+		convertStringLiteralsToTerminals(v);
+		convertWordsToNonTerminals(v);
+		convertDotsToAlternations(v);
+
+		while (true) {
+			// Find closest pair of matching brackets which do not contain other brackets
+			final Optional<Pair<Integer, Integer>> bracketPositions = findBrackets(v);
+			if (bracketPositions.isEmpty()) {
+				break;
 			}
+			final int left = bracketPositions.orElseThrow().first();
+			final int right = bracketPositions.orElseThrow().second();
+			final List<Object> sublist = new ArrayList<>(v.subList(left, right + 1));
+			applyTransformations(sublist);
+			if (sublist.size() != 1) {
+				throw new AssertionError("Applied transformations did not reduce the expression to a single term.");
+			}
+			v.subList(left, right + 1).clear();
+			v.add(left, sublist.getFirst());
 		}
 
-		// Second hard-coded pass: convert all words into non-terminal symbols
-		for (int i = 0; i < v.size(); i++) {
-			if (v.get(i) instanceof Word(final String content)) {
-				v.set(i, new NonTerminal(content));
+		// one last pass of transformations
+		applyTransformations(v);
+
+		if (v.size() != 1) {
+			throw new AssertionError();
+		}
+		if (v.getFirst() instanceof final Production p) {
+			return new Grammar(new HashMap<>(Map.of(p, 1)));
+		}
+		if (!(v.getFirst() instanceof final Grammar g)) {
+			throw new ParsingException(
+					String.format("Expected root element to be a grammar but was '%s'.", v.getFirst()));
+		}
+		return g;
+	}
+
+	private static Optional<Pair<Integer, Integer>> findBrackets(final List<Object> v) {
+		final int n = v.size();
+		int leftBracketPosition = -1;
+		for (int i = 0; i < n; i++) {
+			if (v.get(i).equals(Symbols.LEFT_PARENTHESIS)) {
+				leftBracketPosition = i;
+				break;
 			}
 		}
-
-		// Third hard-coded pass: convert all dots into special Alternation symbols
-		for (int i = 0; i < v.size(); i++) {
-			if (v.get(i).equals(Symbols.DOT)) {
-				v.set(
-						i,
-						new Or(IntStream.range(32, 127)
-								.mapToObj(x -> (Expression) new Terminal("" + (char) x))
-								.toList()));
+		if (leftBracketPosition == -1) {
+			return Optional.empty();
+		}
+		for (int i = leftBracketPosition + 1; i < n; i++) {
+			if (v.get(i).equals(Symbols.LEFT_PARENTHESIS)) {
+				leftBracketPosition = i;
+			} else if (v.get(i).equals(Symbols.RIGHT_PARENTHESIS)) {
+				return Optional.of(new Pair<>(leftBracketPosition, i));
 			}
 		}
+		throw new ParsingException("No matching pair of brackets was found.");
+	}
 
+	private static void applyTransformations(final List<Object> v) {
 		final List<BiPredicate<List<Object>, Integer>> transformations = List.of(
 				Parser::asterisk,
 				Parser::plus,
@@ -257,7 +296,7 @@ public final class Parser {
 				Parser::createProduction,
 				Parser::mergeProductions);
 
-		while (v.size() > 1) {
+		for (int pass = 1; v.size() > 1; pass++) {
 			// do one pass
 			final int initialSize = v.size();
 
@@ -284,23 +323,38 @@ public final class Parser {
 										i,
 										v.get(i) instanceof Token
 												? v.get(i).toString()
-												: Utils.prettyPrint((Node) v.get(i), " ".repeat(6))))
+												: Utils.prettyPrint((Node) v.get(i))))
 								.collect(Collectors.joining("\n"))));
 			}
 		}
+	}
 
-		if (v.size() != 1) {
-			throw new AssertionError();
+	private static void convertStringLiteralsToTerminals(final List<Object> v) {
+		for (int i = 0; i < v.size(); i++) {
+			if (v.get(i) instanceof StringLiteral(final String literal)) {
+				v.set(i, new Terminal(literal));
+			}
 		}
-		if (v.getFirst() instanceof final Production p) {
-			return new Grammar(new HashMap<>(Map.of(p, 1)));
-		}
-		if (!(v.getFirst() instanceof final Grammar g)) {
-			throw new ParsingException(
-					String.format("Expected root element to be a grammar but was '%s'.", v.getFirst()));
-		}
+	}
 
-		return g;
+	private static void convertWordsToNonTerminals(final List<Object> v) {
+		for (int i = 0; i < v.size(); i++) {
+			if (v.get(i) instanceof Word(final String content)) {
+				v.set(i, new NonTerminal(content));
+			}
+		}
+	}
+
+	private static void convertDotsToAlternations(final List<Object> v) {
+		for (int i = 0; i < v.size(); i++) {
+			if (v.get(i).equals(Symbols.DOT)) {
+				v.set(
+						i,
+						new Or(IntStream.range(32, 127)
+								.mapToObj(x -> (Expression) new Terminal("" + (char) x))
+								.toList()));
+			}
+		}
 	}
 
 	private static boolean mergeProductions(final List<Object> v, final int i) {

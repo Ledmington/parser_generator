@@ -67,6 +67,8 @@ public interface NFA extends Automaton {
 			case ' ' -> "\\\\s";
 			case '\t' -> "\\\\t";
 			case '\n' -> "\\\\n";
+			case '"' -> "\\\"";
+			case '\\' -> "\\\\";
 			default -> "" + ch;
 		};
 
