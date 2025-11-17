@@ -238,12 +238,12 @@ public final class Parser {
 			}
 			final int left = bracketPositions.orElseThrow().first();
 			final int right = bracketPositions.orElseThrow().second();
-			final List<Object> sublist = new ArrayList<>(v.subList(left, right));
+			final List<Object> sublist = new ArrayList<>(v.subList(left, right + 1));
 			applyTransformations(sublist);
 			if (sublist.size() != 1) {
 				throw new AssertionError("Applied transformations did not reduce the expression to a single term.");
 			}
-			v.subList(left, right).clear();
+			v.subList(left, right + 1).clear();
 			v.add(left, sublist.getFirst());
 		}
 
@@ -282,7 +282,7 @@ public final class Parser {
 				return Optional.of(new Pair<>(leftBracketPosition, i));
 			}
 		}
-		throw new AssertionError("No matching pair of brackets was found.");
+		throw new ParsingException("No matching pair of brackets was found.");
 	}
 
 	private static void applyTransformations(final List<Object> v) {
