@@ -224,30 +224,10 @@ public final class _Parser {
 		// and then implement it that way
 		final List<Object> v = new ArrayList<>(tokens);
 
-		// First hard-coded pass: convert all string literals into terminal symbols
-		for (int i = 0; i < v.size(); i++) {
-			if (v.get(i) instanceof StringLiteral(final String literal)) {
-				v.set(i, new Terminal(literal));
-			}
-		}
-
-		// Second hard-coded pass: convert all words into non-terminal symbols
-		for (int i = 0; i < v.size(); i++) {
-			if (v.get(i) instanceof Word(final String content)) {
-				v.set(i, new NonTerminal(content));
-			}
-		}
-
-		// Third hard-coded pass: convert all dots into special Alternation symbols
-		for (int i = 0; i < v.size(); i++) {
-			if (v.get(i).equals(Symbols.DOT)) {
-				v.set(
-						i,
-						new Or(IntStream.range(32, 127)
-								.mapToObj(x -> (Expression) new Terminal("" + (char) x))
-								.toList()));
-			}
-		}
+		// Hard-coded passes
+		convertStringLiteralsToTerminals(v);
+		convertWordsToNonTerminals(v);
+		convertDotsToAlternations(v);
 
 		final List<BiPredicate<List<Object>, Integer>> transformations = List.of(
 				_Parser::asterisk,
@@ -311,6 +291,34 @@ public final class _Parser {
 		}
 
 		return g;
+	}
+
+	private static void convertStringLiteralsToTerminals(final List<Object> v) {
+		for (int i = 0; i < v.size(); i++) {
+			if (v.get(i) instanceof StringLiteral(final String literal)) {
+				v.set(i, new Terminal(literal));
+			}
+		}
+	}
+
+	private static void convertWordsToNonTerminals(final List<Object> v) {
+		for (int i = 0; i < v.size(); i++) {
+			if (v.get(i) instanceof Word(final String content)) {
+				v.set(i, new NonTerminal(content));
+			}
+		}
+	}
+
+	private static void convertDotsToAlternations(final List<Object> v) {
+		for (int i = 0; i < v.size(); i++) {
+			if (v.get(i).equals(Symbols.DOT)) {
+				v.set(
+						i,
+						new Or(IntStream.range(32, 127)
+								.mapToObj(x -> (Expression) new Terminal("" + (char) x))
+								.toList()));
+			}
+		}
 	}
 
 	private static boolean mergeProductions(final List<Object> v, final int i) {
