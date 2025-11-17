@@ -46,9 +46,16 @@ public final class EBNFReader {
 	private EBNFReader() {}
 
 	public static Grammar read(final String input) {
+		System.out.printf("original input  : '%s'%n", input);
 		final String clean = removeComments(input);
-		final String unescaped = unescapeStringLiterals(clean);
-		System.out.println(unescaped);
+		System.out.printf("without comments: '%s'%n", clean);
+		final String unescaped;
+		if (false) {
+			unescaped = clean;
+		} else {
+			unescaped = unescapeStringLiterals(clean);
+			System.out.printf("unescaped       : '%s'%n", unescaped);
+		}
 		final EBNFParser parser = new EBNFParser();
 		final EBNFParser.Node result = parser.parse(unescaped);
 		if (result == null) {
