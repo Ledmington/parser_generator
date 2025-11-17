@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -229,6 +230,62 @@ public final class _Parser {
 		convertWordsToNonTerminals(v);
 		convertDotsToAlternations(v);
 
+		while (true) {
+			// Find closest pair of matching brackets which do not contain other brackets
+			final Optional<Pair<Integer, Integer>> bracketPositions = findBrackets(v);
+			if (bracketPositions.isEmpty()) {
+				break;
+			}
+			final int left = bracketPositions.orElseThrow().first();
+			final int right = bracketPositions.orElseThrow().second();
+			final List<Object> sublist = new ArrayList<>(v.subList(left, right));
+			applyTransformations(sublist);
+			if (sublist.size() != 1) {
+				throw new AssertionError("Applied transformations did not reduce the expression to a single term.");
+			}
+			v.subList(left, right).clear();
+			v.add(left, sublist.getFirst());
+		}
+
+		// one last pass of transformations
+		applyTransformations(v);
+
+		if (v.size() != 1) {
+			throw new AssertionError();
+		}
+		if (v.getFirst() instanceof final Production p) {
+			return new Grammar(new HashMap<>(Map.of(p, 1)));
+		}
+		if (!(v.getFirst() instanceof final Grammar g)) {
+			throw new ParsingException(
+					String.format("Expected root element to be a grammar but was '%s'.", v.getFirst()));
+		}
+		return g;
+	}
+
+	private static Optional<Pair<Integer, Integer>> findBrackets(final List<Object> v) {
+		final int n = v.size();
+		int leftBracketPosition = -1;
+		for (int i = 0; i < n; i++) {
+			if (v.get(i).equals(Symbols.LEFT_PARENTHESIS)) {
+				leftBracketPosition = i;
+				break;
+			}
+		}
+		if (leftBracketPosition == -1) {
+			return Optional.empty();
+		}
+		for (int i = leftBracketPosition + 1; i < n; i++) {
+			if (v.get(i).equals(Symbols.LEFT_PARENTHESIS)) {
+				leftBracketPosition = i;
+			} else if (v.get(i).equals(Symbols.RIGHT_PARENTHESIS)) {
+				return Optional.of(new Pair<>(leftBracketPosition, i));
+			}
+		}
+		throw new AssertionError("No matching pair of brackets was found.");
+	}
+
+	private static void applyTransformations(final List<Object> v) {
 		final List<BiPredicate<List<Object>, Integer>> transformations = List.of(
 				_Parser::asterisk,
 				_Parser::plus,
@@ -240,14 +297,6 @@ public final class _Parser {
 				_Parser::mergeProductions);
 
 		for (int pass = 1; v.size() > 1; pass++) {
-			System.out.printf(" ### START PASS N. %d ### %n", pass);
-			for (int i = 0; i < v.size(); i++) {
-				System.out.printf(
-						" %3d : %n%s%n",
-						i, v.get(i) instanceof Token ? v.get(i).toString() : Utils.prettyPrint((Node) v.get(i)));
-			}
-			System.out.printf(" ### END PASS N. %d ### %n", pass);
-
 			// do one pass
 			final int initialSize = v.size();
 
@@ -278,19 +327,6 @@ public final class _Parser {
 								.collect(Collectors.joining("\n"))));
 			}
 		}
-
-		if (v.size() != 1) {
-			throw new AssertionError();
-		}
-		if (v.getFirst() instanceof final Production p) {
-			return new Grammar(new HashMap<>(Map.of(p, 1)));
-		}
-		if (!(v.getFirst() instanceof final Grammar g)) {
-			throw new ParsingException(
-					String.format("Expected root element to be a grammar but was '%s'.", v.getFirst()));
-		}
-
-		return g;
 	}
 
 	private static void convertStringLiteralsToTerminals(final List<Object> v) {
