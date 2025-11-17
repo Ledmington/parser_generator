@@ -45,8 +45,7 @@ public class Main {
 			System.err.println("Arguments provided but not needed. Ignoring them.");
 		}
 
-		final String grammarText =
-				"""
+		final String grammarText = """
 				start = SIGN number ;
 				number = ZERO | non_zero ;
 				non_zero = DIGIT_EXCLUDING_ZERO DIGIT* ;
