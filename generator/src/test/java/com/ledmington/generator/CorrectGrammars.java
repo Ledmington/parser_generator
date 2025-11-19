@@ -123,7 +123,12 @@ public final class CorrectGrammars {
 			Arguments.of(
 					g(p("start", seq(t("\\"), or(t("n"), t("t"))))),
 					List.of("\\n", "\\t"),
-					List.of("", "\\", "\n", "\t", "n", "t")));
+					List.of("", "\\", "\n", "\t", "n", "t")),
+			// Fix issue 35 https://github.com/Ledmington/parser_generator/issues/35
+			Arguments.of(
+					g(p("start", seq(t("a"), one_or_more(nt("B")), t("c"))), p("B", or(t("c"), t("d")))),
+					List.of("acc", "adc", "acdc", "adcc", "acdcdcdc", "acccc"),
+					List.of("a", "c", "d", "ac", "dc", "ad")));
 
 	static Grammar g(final Production... productions) {
 		final Map<Production, Integer> p = new HashMap<>();
