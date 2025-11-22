@@ -128,7 +128,14 @@ public final class CorrectGrammars {
 			Arguments.of(
 					g(p("start", seq(t("a"), one_or_more(nt("B")), t("c"))), p("B", or(t("c"), t("d")))),
 					List.of("acc", "adc", "acdc", "adcc", "acdcdcdc", "acccc"),
-					List.of("a", "c", "d", "ac", "dc", "ad")));
+					List.of("a", "c", "d", "ac", "dc", "ad")),
+			//
+			Arguments.of(
+					g(
+							p("start", seq(t("a"), one_or_more(nt("B")), t("c"), one_or_more(nt("B")), t("c"))),
+							p("B", or(t("c"), t("d")))),
+					List.of("acccc", "adccc", "accdc", "adcdc", "accccc"),
+					List.of("a", "d", "c", "ac", "acc", "accc", "accdd")));
 
 	static Grammar g(final Production... productions) {
 		final Map<Production, Integer> p = new HashMap<>();
