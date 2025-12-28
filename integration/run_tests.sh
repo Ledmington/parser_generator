@@ -31,7 +31,7 @@ for test_dir in ${TEST_CASES} ; do
   INPUT="${INTEGRATION_TEST_DIR}/${test_dir}"
 
   echo " - ${test_dir}..."
-  ${JAVA} -jar "${JAR_FILE}" -g "${INPUT}/grammar" -o "${GENERATED}" --main --overwrite
+  ${JAVA} -jar "${JAR_FILE}" -g "${INPUT}/grammar" -o "${GENERATED}" --package "" --main --overwrite
   ${JAVA} "${GENERATED}" "${INPUT}/input" > "${OUTPUT}"
   diff "${OUTPUT}" "${INPUT}/expected"
   echo -e " - ${test_dir} \e[32mOK\e[0m"
