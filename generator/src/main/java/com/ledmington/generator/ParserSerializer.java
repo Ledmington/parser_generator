@@ -69,6 +69,12 @@ public final class ParserSerializer {
 	 */
 	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
 	public void generateParser(final List<Production> parserProductions) {
+		generateTypes(parserProductions);
+		generateTerminalSymbolParsing();
+		generateProductions(parserProductions);
+	}
+
+	private void generateTypes(final List<Production> parserProductions) {
 		for (final Production p : parserProductions) {
 			final String newNodeName = p.start().name();
 			switch (p.result()) {
@@ -240,18 +246,9 @@ public final class ParserSerializer {
 				default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'.", p.result()));
 			}
 		}
+	}
 
-		sb.append("private Terminal parseTerminal(final TokenType expected) {\n")
-				.indent()
-				.append("if (pos < v.length && v[pos].type() == expected) {\n")
-				.indent()
-				.append("return new Terminal(v[pos++].content());\n")
-				.deindent()
-				.append("}\n")
-				.append("return null;\n")
-				.deindent()
-				.append("}\n");
-
+	private void generateProductions(final List<Production> parserProductions) {
 		for (final Production p : parserProductions) {
 			final NonTerminal start = p.start();
 			final Expression result = p.result();
@@ -267,6 +264,19 @@ public final class ParserSerializer {
 				default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'", result));
 			}
 		}
+	}
+
+	private void generateTerminalSymbolParsing() {
+		sb.append("private Terminal parseTerminal(final TokenType expected) {\n")
+				.indent()
+				.append("if (pos < v.length && v[pos].type() == expected) {\n")
+				.indent()
+				.append("return new Terminal(v[pos++].content());\n")
+				.deindent()
+				.append("}\n")
+				.append("return null;\n")
+				.deindent()
+				.append("}\n");
 	}
 
 	private String resolveTypeName(final Expression exp) {
