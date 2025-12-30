@@ -19,9 +19,11 @@ package com.ledmington.generator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -33,12 +35,16 @@ import com.ledmington.ebnf.OneOrMore;
 import com.ledmington.ebnf.Or;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Sequence;
+import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.ZeroOrMore;
 import com.ledmington.ebnf.ZeroOrOne;
 
 /** An helper class to generate java code for a given set of parser productions. */
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public final class ParserSerializer {
+
+	private static final Terminal EMPTY_TERMINAL = new Terminal("ε");
+	private static final Terminal END_OF_INPUT_TERMINAL = new Terminal("$");
 
 	private final IndentedStringBuilder sb;
 	private final Set<String> tokenNames;
@@ -69,9 +75,74 @@ public final class ParserSerializer {
 	 */
 	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
 	public void generateParser(final List<Production> parserProductions) {
+		final Map<NonTerminal, Set<Terminal>> firstSets = computeFirstSet(parserProductions);
+		for (final Map.Entry<NonTerminal, Set<Terminal>> e : firstSets.entrySet()) {
+			System.out.println(e);
+		}
+		checkFirstSets(firstSets);
+
 		generateTypes(parserProductions);
 		generateTerminalSymbolParsing();
 		generateProductions(parserProductions);
+	}
+
+	private void checkFirstSets(final Map<NonTerminal, Set<Terminal>> firstSets) {
+		for (final Map.Entry<NonTerminal, Set<Terminal>> e : firstSets.entrySet()) {
+			if (e.getValue().isEmpty()) {
+				throw new AssertionError(String.format(
+						"FIRST set of symbol '%s' is empty.", e.getKey().name()));
+			}
+			if (e.getValue().contains(END_OF_INPUT_TERMINAL)) {
+				throw new AssertionError(String.format(
+						"FIRST set of symbol '%s' contains END_OF_INPUT terminal.",
+						e.getKey().name()));
+			}
+		}
+	}
+
+	private Map<NonTerminal, Set<Terminal>> computeFirstSet(final List<Production> parserProductions) {
+		final Map<NonTerminal, Set<Terminal>> result = new HashMap<>();
+
+		for (final Production production : parserProductions) {
+			result.put(production.start(), computeFirstSet(parserProductions, production.result()));
+		}
+
+		return result;
+	}
+
+	private Set<Terminal> computeFirstSet(final List<Production> parserProductions, final Expression expr) {
+		final Set<Terminal> firstSet = new HashSet<>();
+
+		switch (expr) {
+			case Terminal t -> firstSet.add(t);
+			case NonTerminal nt -> {
+				final Optional<Production> otherProd = parserProductions.stream()
+						.filter(p -> p.start().equals(nt))
+						.findFirst();
+				if (otherProd.isPresent()) {
+					firstSet.addAll(computeFirstSet(
+							parserProductions, otherProd.orElseThrow().result()));
+				} else {
+					// TODO: if there are no production for this non-terminal, it is a fake one mapping directly to a
+					// lexer production
+				}
+			}
+			case Sequence s ->
+				firstSet.addAll(computeFirstSet(parserProductions, s.nodes().getFirst()));
+			case Or or -> or.nodes().forEach(e -> firstSet.addAll(computeFirstSet(parserProductions, e)));
+			case OneOrMore oom -> firstSet.addAll(computeFirstSet(parserProductions, oom.inner()));
+			case ZeroOrOne zoo -> {
+				firstSet.add(EMPTY_TERMINAL);
+				firstSet.addAll(computeFirstSet(parserProductions, zoo.inner()));
+			}
+			case ZeroOrMore zom -> {
+				firstSet.add(EMPTY_TERMINAL);
+				firstSet.addAll(computeFirstSet(parserProductions, zom.inner()));
+			}
+			default -> throw new AssertionError(String.format("Unknown node: '%s'.", expr));
+		}
+
+		return firstSet;
 	}
 
 	private void generateTypes(final List<Production> parserProductions) {
