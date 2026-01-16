@@ -75,11 +75,17 @@ public final class ParserSerializer {
 	 */
 	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
 	public void generateParser(final List<Production> parserProductions) {
-		final Map<NonTerminal, Set<Terminal>> firstSets = computeFirstSet(parserProductions);
+		final Map<NonTerminal, Set<Terminal>> firstSets = computeFirstSets(parserProductions);
 		for (final Map.Entry<NonTerminal, Set<Terminal>> e : firstSets.entrySet()) {
-			System.out.println(e);
+			System.out.printf("FIRST('%s') = %s%n", e.getKey().name(), e.getValue());
 		}
 		checkFirstSets(firstSets);
+
+		final Map<NonTerminal, Set<Terminal>> followSets = computeFollowSets(parserProductions);
+		for (final Map.Entry<NonTerminal, Set<Terminal>> e : followSets.entrySet()) {
+			System.out.printf("FOLLOW('%s') = %s%n", e.getKey().name(), e.getValue());
+		}
+		checkFollowSets(followSets);
 
 		generateTypes(parserProductions);
 		generateTerminalSymbolParsing();
@@ -100,7 +106,7 @@ public final class ParserSerializer {
 		}
 	}
 
-	private Map<NonTerminal, Set<Terminal>> computeFirstSet(final List<Production> parserProductions) {
+	private Map<NonTerminal, Set<Terminal>> computeFirstSets(final List<Production> parserProductions) {
 		final Map<NonTerminal, Set<Terminal>> result = new HashMap<>();
 
 		for (final Production production : parserProductions) {
@@ -143,6 +149,36 @@ public final class ParserSerializer {
 		}
 
 		return firstSet;
+	}
+
+	private void checkFollowSets(final Map<NonTerminal, Set<Terminal>> followSets) {
+		for (final Map.Entry<NonTerminal, Set<Terminal>> e : followSets.entrySet()) {
+			if (e.getValue().isEmpty()) {
+				throw new AssertionError(String.format(
+						"FOLLOW set of symbol '%s' is empty.", e.getKey().name()));
+			}
+		}
+	}
+
+	private Map<NonTerminal, Set<Terminal>> computeFollowSets(final List<Production> parserProductions) {
+		final Map<NonTerminal, Set<Terminal>> result = new HashMap<>();
+
+		for (final Production production : parserProductions) {
+			result.put(production.start(), computeFollowSet(parserProductions, production.result()));
+		}
+
+		return result;
+	}
+
+	private Set<Terminal> computeFollowSet(final List<Production> parserProductions, final Expression expr) {
+		final Set<Terminal> followSet = new HashSet<>();
+
+		switch (expr) {
+			case null -> {}
+			default -> throw new AssertionError(String.format("Unknown node: '%s'.", expr));
+		}
+
+		return followSet;
 	}
 
 	private void generateTypes(final List<Production> parserProductions) {
