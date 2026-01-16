@@ -43,8 +43,8 @@ import com.ledmington.ebnf.ZeroOrOne;
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public final class ParserSerializer {
 
-	private static final Terminal EMPTY_TERMINAL = new Terminal("ε");
-	private static final Terminal END_OF_INPUT_TERMINAL = new Terminal("$");
+	private static final Terminal EMPTY_TERMINAL = new Terminal("ε", true);
+	private static final Terminal END_OF_INPUT_TERMINAL = new Terminal("$", true);
 
 	private final IndentedStringBuilder sb;
 	private final Set<String> tokenNames;

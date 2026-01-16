@@ -24,7 +24,7 @@ import java.util.Objects;
  *
  * @param literal The content of the terminal symbol.c
  */
-public record Terminal(String literal) implements Expression {
+public record Terminal(String literal, boolean isSynthetic) implements Expression {
 
 	/**
 	 * Creates a new terminal symbol with the given string literal.
@@ -36,5 +36,9 @@ public record Terminal(String literal) implements Expression {
 		if (literal.isEmpty()) {
 			throw new IllegalArgumentException("Empty terminal symbol.");
 		}
+	}
+
+	public Terminal(final String literal) {
+		this(literal, false);
 	}
 }

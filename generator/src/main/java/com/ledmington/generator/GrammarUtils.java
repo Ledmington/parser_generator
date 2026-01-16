@@ -96,7 +96,7 @@ public final class GrammarUtils {
 		return switch (e) {
 			case Terminal t -> {
 				final Optional<Production> replacement = lexerProductions.stream()
-						.filter(p -> p.result() instanceof Terminal(final String literal)
+						.filter(p -> p.result() instanceof Terminal(final String literal, _)
 								&& t.literal().equals(literal))
 						.findFirst();
 				// Avoid generating fake non-terminal nodes for terminals already present in other productions
