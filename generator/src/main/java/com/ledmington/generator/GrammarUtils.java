@@ -20,12 +20,15 @@ package com.ledmington.generator;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -43,6 +46,9 @@ import com.ledmington.ebnf.ZeroOrOne;
 
 /** A collection of common operations to perform on EBNF grammars. */
 public final class GrammarUtils {
+
+	private static final Terminal EMPTY_TERMINAL = new Terminal("ε", true);
+	private static final Terminal END_OF_INPUT_TERMINAL = new Terminal("$", true);
 
 	private GrammarUtils() {}
 
@@ -96,7 +102,7 @@ public final class GrammarUtils {
 		return switch (e) {
 			case Terminal t -> {
 				final Optional<Production> replacement = lexerProductions.stream()
-						.filter(p -> p.result() instanceof Terminal(final String literal, _)
+						.filter(p -> p.result() instanceof Terminal(final String literal, final boolean ignored)
 								&& t.literal().equals(literal))
 						.findFirst();
 				// Avoid generating fake non-terminal nodes for terminals already present in other productions
@@ -264,5 +270,94 @@ public final class GrammarUtils {
 				nodes.stream().allMatch(n -> n instanceof NonTerminal || n instanceof Terminal);
 			default -> false;
 		};
+	}
+
+	public static void checkFirstSets(final Map<NonTerminal, Set<Terminal>> firstSets) {
+		for (final Map.Entry<NonTerminal, Set<Terminal>> e : firstSets.entrySet()) {
+			if (e.getValue().isEmpty()) {
+				throw new AssertionError(String.format(
+						"FIRST set of symbol '%s' is empty.", e.getKey().name()));
+			}
+			if (e.getValue().contains(END_OF_INPUT_TERMINAL)) {
+				throw new AssertionError(String.format(
+						"FIRST set of symbol '%s' contains END_OF_INPUT terminal.",
+						e.getKey().name()));
+			}
+		}
+	}
+
+	public static Map<NonTerminal, Set<Terminal>> computeFirstSets(final List<Production> parserProductions) {
+		final Map<NonTerminal, Set<Terminal>> result = new HashMap<>();
+
+		for (final Production production : parserProductions) {
+			result.put(production.start(), computeFirstSet(parserProductions, production.result()));
+		}
+
+		return result;
+	}
+
+	private static Set<Terminal> computeFirstSet(final List<Production> parserProductions, final Expression expr) {
+		final Set<Terminal> firstSet = new HashSet<>();
+
+		switch (expr) {
+			case Terminal t -> firstSet.add(t);
+			case NonTerminal nt -> {
+				final Optional<Production> otherProd = parserProductions.stream()
+						.filter(p -> p.start().equals(nt))
+						.findFirst();
+				if (otherProd.isPresent()) {
+					firstSet.addAll(computeFirstSet(
+							parserProductions, otherProd.orElseThrow().result()));
+				} else {
+					// TODO: if there are no production for this non-terminal, it is a fake one mapping directly to a
+					// lexer production
+				}
+			}
+			case Sequence s ->
+				firstSet.addAll(computeFirstSet(parserProductions, s.nodes().getFirst()));
+			case Or or -> or.nodes().forEach(e -> firstSet.addAll(computeFirstSet(parserProductions, e)));
+			case OneOrMore oom -> firstSet.addAll(computeFirstSet(parserProductions, oom.inner()));
+			case ZeroOrOne zoo -> {
+				firstSet.add(EMPTY_TERMINAL);
+				firstSet.addAll(computeFirstSet(parserProductions, zoo.inner()));
+			}
+			case ZeroOrMore zom -> {
+				firstSet.add(EMPTY_TERMINAL);
+				firstSet.addAll(computeFirstSet(parserProductions, zom.inner()));
+			}
+			default -> throw new AssertionError(String.format("Unknown node: '%s'.", expr));
+		}
+
+		return firstSet;
+	}
+
+	public static void checkFollowSets(final Map<NonTerminal, Set<Terminal>> followSets) {
+		for (final Map.Entry<NonTerminal, Set<Terminal>> e : followSets.entrySet()) {
+			if (e.getValue().isEmpty()) {
+				throw new AssertionError(String.format(
+						"FOLLOW set of symbol '%s' is empty.", e.getKey().name()));
+			}
+		}
+	}
+
+	public static Map<NonTerminal, Set<Terminal>> computeFollowSets(final List<Production> parserProductions) {
+		final Map<NonTerminal, Set<Terminal>> result = new HashMap<>();
+
+		for (final Production production : parserProductions) {
+			result.put(production.start(), computeFollowSet(parserProductions, production.result()));
+		}
+
+		return result;
+	}
+
+	private static Set<Terminal> computeFollowSet(final List<Production> parserProductions, final Expression expr) {
+		final Set<Terminal> followSet = new HashSet<>();
+
+		switch (expr) {
+			case null -> {}
+			default -> throw new AssertionError(String.format("Unknown node: '%s'.", expr));
+		}
+
+		return followSet;
 	}
 }
