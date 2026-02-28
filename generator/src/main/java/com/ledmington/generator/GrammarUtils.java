@@ -48,7 +48,7 @@ import com.ledmington.ebnf.ZeroOrOne;
 public final class GrammarUtils {
 
 	private static final Terminal EMPTY_TERMINAL = new Terminal("ε", true);
-	private static final Terminal END_OF_INPUT_TERMINAL = new Terminal("$", true);
+	static final Terminal END_OF_INPUT_TERMINAL = new Terminal("$", true);
 
 	private GrammarUtils() {}
 
@@ -340,17 +340,21 @@ public final class GrammarUtils {
 		}
 	}
 
-	public static Map<NonTerminal, Set<Terminal>> computeFollowSets(final List<Production> parserProductions) {
+	public static Map<NonTerminal, Set<Terminal>> computeFollowSets(
+			final List<Production> parserProductions, final Map<NonTerminal, Set<Terminal>> firstSets) {
 		final Map<NonTerminal, Set<Terminal>> result = new HashMap<>();
 
 		for (final Production production : parserProductions) {
-			result.put(production.start(), computeFollowSet(parserProductions, production.result()));
+			result.put(production.start(), computeFollowSet(parserProductions, production.result(), firstSets));
 		}
 
 		return result;
 	}
 
-	private static Set<Terminal> computeFollowSet(final List<Production> parserProductions, final Expression expr) {
+	private static Set<Terminal> computeFollowSet(
+			final List<Production> parserProductions,
+			final Expression expr,
+			final Map<NonTerminal, Set<Terminal>> firstSets) {
 		final Set<Terminal> followSet = new HashSet<>();
 
 		switch (expr) {

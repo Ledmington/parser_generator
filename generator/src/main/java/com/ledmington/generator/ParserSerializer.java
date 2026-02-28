@@ -73,7 +73,7 @@ public final class ParserSerializer {
 		final Map<NonTerminal, Set<Terminal>> firstSets = GrammarUtils.computeFirstSets(parserProductions);
 		GrammarUtils.checkFirstSets(firstSets);
 
-		final Map<NonTerminal, Set<Terminal>> followSets = GrammarUtils.computeFollowSets(parserProductions);
+		final Map<NonTerminal, Set<Terminal>> followSets = GrammarUtils.computeFollowSets(parserProductions, firstSets);
 		GrammarUtils.checkFollowSets(followSets);
 
 		generateTypes(parserProductions);

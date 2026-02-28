@@ -17,6 +17,7 @@
  */
 package com.ledmington.generator;
 
+import static com.ledmington.generator.CorrectGrammars.nt;
 import static com.ledmington.generator.CorrectGrammars.p;
 import static com.ledmington.generator.CorrectGrammars.t;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -43,8 +44,10 @@ public final class TestFirstFollowSets {
 			Map<NonTerminal, Set<Terminal>> firstSets,
 			Map<NonTerminal, Set<Terminal>> followSets) {}
 
-	private static final List<TestCase> CORRECT_GRAMMARS =
-			List.of(new TestCase(List.of(p("start", t("a"))), Map.of(), Map.of()));
+	private static final List<TestCase> CORRECT_GRAMMARS = List.of(new TestCase(
+			List.of(p("start", t("a"))),
+			Map.of(nt("start"), Set.of(t("a"))),
+			Map.of(nt("start"), Set.of(GrammarUtils.END_OF_INPUT_TERMINAL))));
 
 	private static Stream<Arguments> justFirstSets() {
 		return CORRECT_GRAMMARS.stream().map(tc -> Arguments.of(tc.input(), tc.firstSets()));
@@ -76,7 +79,8 @@ public final class TestFirstFollowSets {
 	@ParameterizedTest
 	@MethodSource("justFollowSets")
 	void checkFollowSets(final List<Production> input, final Map<NonTerminal, Set<Terminal>> expected) {
-		final Map<NonTerminal, Set<Terminal>> actual = GrammarUtils.computeFollowSets(input);
+		final Map<NonTerminal, Set<Terminal>> firstSets = GrammarUtils.computeFirstSets(input);
+		final Map<NonTerminal, Set<Terminal>> actual = GrammarUtils.computeFollowSets(input, firstSets);
 		assertEquals(
 				expected,
 				actual,
