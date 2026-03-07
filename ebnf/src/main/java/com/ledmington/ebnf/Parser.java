@@ -363,7 +363,8 @@ public final class Parser {
 		int count = 0;
 		int j = i;
 		for (; j < v.size(); j++) {
-			if (v.get(j) instanceof Grammar(final Map<Production, Integer> productions1)) {
+			if (v.get(j) instanceof final Grammar g) {
+				final Map<Production, Integer> productions1 = g.getProductions();
 				for (final Production p : productions1.entrySet().stream()
 						.sorted(Entry.comparingByValue())
 						.map(Entry::getKey)

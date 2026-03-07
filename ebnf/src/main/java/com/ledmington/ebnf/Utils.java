@@ -42,32 +42,33 @@ public final class Utils {
 		return sb.toString();
 	}
 
+	/**
+	 * Returns a String representing the given grammar with the given level of indentation.
+	 *
+	 * @param root The grammar to be serialized.
+	 * @return An indented String representation of the grammar.
+	 */
+	public static String prettyPrint(final Grammar root) {
+		final StringBuilder sb = new StringBuilder();
+		sb.append("grammar\n");
+		if (root.getProductions().isEmpty()) {
+			return sb.toString();
+		}
+		final List<Production> productions = root.getProductions().entrySet().stream()
+				.sorted(Entry.comparingByValue())
+				.map(Entry::getKey)
+				.toList();
+		final int len = productions.size();
+		for (int i = 0; i < len - 1; i++) {
+			prettyPrint(sb, productions.get(i), getJointIndent(""), getLineIndent(""));
+		}
+		prettyPrint(sb, productions.getLast(), getAngleIndent(""), getEmptyIndent(""));
+		return sb.toString();
+	}
+
 	private static void prettyPrint(
 			final StringBuilder sb, final Node n, final String indent, final String continuationIndent) {
 		switch (n) {
-			case Grammar g -> {
-				sb.append("grammar\n");
-				if (g.productions().isEmpty()) {
-					return;
-				}
-				final List<Production> productions = g.productions().entrySet().stream()
-						.sorted(Entry.comparingByValue())
-						.map(Entry::getKey)
-						.toList();
-				final int len = productions.size();
-				for (int i = 0; i < len - 1; i++) {
-					prettyPrint(
-							sb,
-							productions.get(i),
-							getJointIndent(continuationIndent),
-							getLineIndent(continuationIndent));
-				}
-				prettyPrint(
-						sb,
-						productions.getLast(),
-						getAngleIndent(continuationIndent),
-						getEmptyIndent(continuationIndent));
-			}
 			case Production p ->
 				prettyPrintList(sb, "production", List.of(p.start(), p.result()), indent, continuationIndent);
 			case Terminal t ->

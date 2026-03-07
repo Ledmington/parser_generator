@@ -65,9 +65,11 @@ public final class Generator {
 			final boolean generateMainMethod) {
 		NODE_NAMES.clear();
 
-		final String startSymbol = GrammarChecker.check(g);
+		GrammarChecker.check(g);
 
-		final Map<Production, Integer> productions = g.productions();
+		final String startSymbol = g.getStartSymbol();
+
+		final Map<Production, Integer> productions = g.getProductions();
 
 		final List<Production> lexerProductions = new ArrayList<>();
 		final List<Production> parserProductions;

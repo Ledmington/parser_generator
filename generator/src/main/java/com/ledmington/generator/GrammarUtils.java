@@ -87,6 +87,10 @@ public final class GrammarUtils {
 		parserProductions.sort(Comparator.comparing(a -> a.start().name()));
 	}
 
+	/**
+	 * Converts the terminal symbols in the given expression into corresponding fake non-terminal symbols and adding
+	 * them into the lexer productions.
+	 */
 	private static Expression convertExpression(
 			final Supplier<String> name, final List<Production> lexerProductions, final Expression e) {
 		return switch (e) {
@@ -102,7 +106,6 @@ public final class GrammarUtils {
 					final String newName = name.get();
 					final NonTerminal nt = new NonTerminal(newName);
 					lexerProductions.add(new Production(nt, t));
-					// NODE_NAMES.put(nt, newName);
 					yield nt;
 				}
 			}
