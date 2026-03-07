@@ -65,9 +65,9 @@ public final class ParserSerializer {
 	}
 
 	/**
-	 * Generates java code of an LL(*) parser for the given list of productions.
+	 * Generates java code of an LL(*) parser for the given EBNF grammar.
 	 *
-	 * @param parserProductions The productions to be used.
+	 * @param g The grammar to be used.
 	 */
 	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
 	public void generateParser(final Grammar g) {
@@ -75,7 +75,7 @@ public final class ParserSerializer {
 		GrammarUtils.checkFirstSets(firstSets);
 
 		final List<Production> parserProductions = g.getParserProductions();
-		final Map<NonTerminal, Set<Terminal>> followSets = GrammarUtils.computeFollowSets(g, firstSets);
+		final Map<NonTerminal, Set<Terminal>> followSets = GrammarUtils.computeFollowSets(g);
 		GrammarUtils.checkFollowSets(g, followSets);
 
 		generateTypes(parserProductions);
@@ -83,6 +83,7 @@ public final class ParserSerializer {
 		generateProductions(parserProductions);
 	}
 
+	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
 	private void generateTypes(final List<Production> parserProductions) {
 		for (final Production p : parserProductions) {
 			final String newNodeName = p.start().name();

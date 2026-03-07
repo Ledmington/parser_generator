@@ -43,6 +43,11 @@ public final class GrammarUtils {
 
 	private GrammarUtils() {}
 
+	/**
+	 * Checks the given FIRST sets for validity, throwing an AssertionError if they are not.
+	 *
+	 * @param firstSets The FIRST sets to be checked.
+	 */
 	public static void checkFirstSets(final Map<NonTerminal, Set<Terminal>> firstSets) {
 		for (final Map.Entry<NonTerminal, Set<Terminal>> e : firstSets.entrySet()) {
 			if (e.getValue().isEmpty()) {
@@ -57,6 +62,12 @@ public final class GrammarUtils {
 		}
 	}
 
+	/**
+	 * Computes the FIRST sets for all the non-terminal symbols in the given EBNF grammar.
+	 *
+	 * @param g The grammar to be used.
+	 * @return The FIRST sets of all non-terminal symbols.
+	 */
 	public static Map<NonTerminal, Set<Terminal>> computeFirstSets(final Grammar g) {
 		final List<Production> parserProductions = g.getParserProductions();
 		final Map<NonTerminal, Set<Terminal>> result = new HashMap<>();
@@ -102,6 +113,12 @@ public final class GrammarUtils {
 		return firstSet;
 	}
 
+	/**
+	 * Checks that the given FOLLOW sets are valid for the given grammar, throwing an AssertionError if they are not.
+	 *
+	 * @param g The EBNF grammar to be used.
+	 * @param followSets The FOLLOW sets to be checked.
+	 */
 	public static void checkFollowSets(final Grammar g, final Map<NonTerminal, Set<Terminal>> followSets) {
 		if (!followSets.entrySet().stream()
 				.filter(e -> e.getKey().name().equals(g.getStartSymbol()))
@@ -140,8 +157,13 @@ public final class GrammarUtils {
 		return followSets.values().stream().map(Set::size).reduce(0, Integer::sum);
 	}
 
-	public static Map<NonTerminal, Set<Terminal>> computeFollowSets(
-			final Grammar g, final Map<NonTerminal, Set<Terminal>> firstSets) {
+	/**
+	 * Computes the FOLLOW sets for all non-terminal symbols in the given EBNF grammar.
+	 *
+	 * @param g The grammar to be used.
+	 * @return A set of all non-terminal symbol with their corresponding FOLLOW sets.
+	 */
+	public static Map<NonTerminal, Set<Terminal>> computeFollowSets(final Grammar g) {
 		final Map<NonTerminal, Set<Terminal>> followSets = new HashMap<>();
 
 		// Each non-terminal starts with an empty set

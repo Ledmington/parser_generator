@@ -267,6 +267,13 @@ public final class Grammar {
 				.toList();
 	}
 
+	/**
+	 * Checks whether the given expression is 'simple'. An expression is considered simple if it is a terminal symbol, a
+	 * non-terminal symbol or any other composite expression made only of terminal and non-terminal symbols.
+	 *
+	 * @param result The expression to be checked.
+	 * @return {@code true} if it is a 'simple' expression, {@code false} otherwise.
+	 */
 	public static boolean isSimpleProduction(final Expression result) {
 		return switch (result) {
 			case Terminal ignored -> true;
@@ -429,10 +436,20 @@ public final class Grammar {
 		return startSymbol;
 	}
 
+	/**
+	 * Returns the sorted list of productions belonging to the parser.
+	 *
+	 * @return The sorted list of parser productions.
+	 */
 	public List<Production> getParserProductions() {
 		return parserProductions;
 	}
 
+	/**
+	 * Returns the sorted list of productions belonging to the lexer.
+	 *
+	 * @return The sorted list of lexer productions.
+	 */
 	public List<Production> getLexerProductions() {
 		return lexerProductions;
 	}

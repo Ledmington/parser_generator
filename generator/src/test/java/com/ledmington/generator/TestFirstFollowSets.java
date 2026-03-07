@@ -39,6 +39,7 @@ import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.Utils;
 
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public final class TestFirstFollowSets {
 
 	private record TestCase(
@@ -84,8 +85,7 @@ public final class TestFirstFollowSets {
 	@ParameterizedTest
 	@MethodSource("justFollowSets")
 	void checkFollowSets(final Grammar input, final Map<NonTerminal, Set<Terminal>> expected) {
-		final Map<NonTerminal, Set<Terminal>> firstSets = GrammarUtils.computeFirstSets(input);
-		final Map<NonTerminal, Set<Terminal>> actual = GrammarUtils.computeFollowSets(input, firstSets);
+		final Map<NonTerminal, Set<Terminal>> actual = GrammarUtils.computeFollowSets(input);
 		assertDoesNotThrow(() -> GrammarUtils.checkFollowSets(input, actual));
 		assertEquals(
 				expected,
