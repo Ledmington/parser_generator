@@ -128,9 +128,9 @@ public final class Grammar {
 	}
 
 	private static Set<String> bfs(final String start, final Map<String, Set<String>> graph) {
-		/*
-		This is a slightly modified Breadth-First Search. The only modification is that it does not add the starting node at the beginning. So, the search starts from its neighbors and the result will not automatically include the starting node.
-		 */
+		// This is a slightly modified Breadth-First Search. The only modification is that it does not add the starting
+		// node at the beginning. So, the search starts from its neighbors and the result will not automatically include
+		// the starting node.
 
 		final Queue<String> q = new ArrayDeque<>();
 		final Set<String> visited = new HashSet<>();
@@ -165,12 +165,13 @@ public final class Grammar {
 	public int hashCode() {
 		int h = 17;
 		h = 31 * h + productions.hashCode();
+		h = 31 * h + startSymbol.hashCode();
 		return h;
 	}
 
 	@Override
 	public String toString() {
-		return "Grammar(productions=" + productions + ")";
+		return "Grammar(productions=" + productions + ";startSymbol=" + startSymbol + ")";
 	}
 
 	@Override
@@ -184,6 +185,6 @@ public final class Grammar {
 		if (!(other instanceof final Grammar g)) {
 			return false;
 		}
-		return this.productions.equals(g.productions);
+		return this.productions.equals(g.productions) && this.startSymbol.equals(g.startSymbol);
 	}
 }
