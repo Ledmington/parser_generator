@@ -122,6 +122,12 @@ public final class Grammar {
 		return allNonTerminals;
 	}
 
+	/**
+	 * Collects all non-terminal symbols 'mentioned' in the given expression root.
+	 *
+	 * @param root The expression to explore.
+	 * @return A set of the names of all non-terminal symbols which appear in the expression.
+	 */
 	public static Set<String> findAllNonTerminals(final Expression root) {
 		final Set<String> nonTerminalNames = new HashSet<>();
 		final Queue<Node> q = new ArrayDeque<>();
@@ -171,10 +177,20 @@ public final class Grammar {
 		return visited;
 	}
 
+	/**
+	 * Returns the productions, each with its corresponding priority.
+	 *
+	 * @return The productions.
+	 */
 	public Map<Production, Integer> getProductions() {
 		return productions;
 	}
 
+	/**
+	 * Returns the start symbol.
+	 *
+	 * @return The start symbol.
+	 */
 	public String getStartSymbol() {
 		return startSymbol;
 	}
