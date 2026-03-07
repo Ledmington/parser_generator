@@ -33,7 +33,6 @@ import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.ZeroOrMore;
 import com.ledmington.ebnf.ZeroOrOne;
-import com.ledmington.generator.GrammarUtils;
 
 /** A class to convert an EBNF grammar into an epsilon NFA. */
 public final class GrammarToEpsilonNFA {
@@ -72,7 +71,7 @@ public final class GrammarToEpsilonNFA {
 	public NFA convert(final Grammar g) {
 		reset();
 
-		GrammarUtils.splitProductions(g.getProductions(), this.lexerProductions, new ArrayList<>());
+		Grammar.splitProductions(g.getProductions(), this.lexerProductions, new ArrayList<>());
 		g.getProductions()
 				.forEach((key, value) -> this.priorities.put(key.start().name(), value));
 		return convertGrammarToEpsilonNFA();

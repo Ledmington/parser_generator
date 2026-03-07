@@ -27,12 +27,14 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import com.ledmington.ebnf.Expression;
+import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Node;
 import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.OneOrMore;
 import com.ledmington.ebnf.Or;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Sequence;
+import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.ZeroOrMore;
 import com.ledmington.ebnf.ZeroOrOne;
 
@@ -63,12 +65,26 @@ public final class ParserSerializer {
 	}
 
 	/**
-	 * Generates java code of an LL(*) parser for the given list of productions.
+	 * Generates java code of an LL(*) parser for the given EBNF grammar.
 	 *
-	 * @param parserProductions The productions to be used.
+	 * @param g The grammar to be used.
 	 */
 	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
-	public void generateParser(final List<Production> parserProductions) {
+	public void generateParser(final Grammar g) {
+		final Map<NonTerminal, Set<Terminal>> firstSets = GrammarUtils.computeFirstSets(g);
+		GrammarUtils.checkFirstSets(firstSets);
+
+		final List<Production> parserProductions = g.getParserProductions();
+		final Map<NonTerminal, Set<Terminal>> followSets = GrammarUtils.computeFollowSets(g);
+		GrammarUtils.checkFollowSets(g, followSets);
+
+		generateTypes(parserProductions);
+		generateTerminalSymbolParsing();
+		generateProductions(parserProductions);
+	}
+
+	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
+	private void generateTypes(final List<Production> parserProductions) {
 		for (final Production p : parserProductions) {
 			final String newNodeName = p.start().name();
 			switch (p.result()) {
@@ -240,18 +256,9 @@ public final class ParserSerializer {
 				default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'.", p.result()));
 			}
 		}
+	}
 
-		sb.append("private Terminal parseTerminal(final TokenType expected) {\n")
-				.indent()
-				.append("if (pos < v.length && v[pos].type() == expected) {\n")
-				.indent()
-				.append("return new Terminal(v[pos++].content());\n")
-				.deindent()
-				.append("}\n")
-				.append("return null;\n")
-				.deindent()
-				.append("}\n");
-
+	private void generateProductions(final List<Production> parserProductions) {
 		for (final Production p : parserProductions) {
 			final NonTerminal start = p.start();
 			final Expression result = p.result();
@@ -267,6 +274,19 @@ public final class ParserSerializer {
 				default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'", result));
 			}
 		}
+	}
+
+	private void generateTerminalSymbolParsing() {
+		sb.append("private Terminal parseTerminal(final TokenType expected) {\n")
+				.indent()
+				.append("if (pos < v.length && v[pos].type() == expected) {\n")
+				.indent()
+				.append("return new Terminal(v[pos++].content());\n")
+				.deindent()
+				.append("}\n")
+				.append("return null;\n")
+				.deindent()
+				.append("}\n");
 	}
 
 	private String resolveTypeName(final Expression exp) {
@@ -286,14 +306,7 @@ public final class ParserSerializer {
 		for (int i = 0; i < nodes.size(); i++) {
 			final Expression exp = nodes.get(i);
 			final String nodeName = "n_" + i;
-			final String actualName = globalNodeNames.get(exp);
-			final String innerTypeName = resolveTypeName(exp);
-			sb.append("final " + innerTypeName + " " + nodeName + " = ");
-			if (exp instanceof NonTerminal && isToken(actualName)) {
-				sb.append("parseTerminal(TokenType." + actualName + ");\n");
-			} else {
-				sb.append("parse_" + actualName + "();\n");
-			}
+			generateParseCall(exp, nodeName);
 			sb.append("if (" + nodeName + " != null) {\n")
 					.indent()
 					.append("return new ")
@@ -306,21 +319,16 @@ public final class ParserSerializer {
 	}
 
 	private void generateZeroOrMore(final String productionName, final ZeroOrMore zom) {
-		final String actualName = globalNodeNames.get(zom.inner());
-		final String innerTypeName = resolveTypeName(zom.inner());
+		final Expression inner = zom.inner();
+		final String innerTypeName = resolveTypeName(inner);
+
 		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
 				.indent()
 				.append("final List<" + innerTypeName + "> nodes = new ArrayList<>();\n")
 				.append("while (true) {\n")
-				.indent()
-				.append("final " + innerTypeName + " n = ");
-		if (zom.inner() instanceof NonTerminal && isToken(actualName)) {
-			sb.append("parseTerminal(TokenType." + actualName + ")");
-		} else {
-			sb.append("parse_" + actualName + "()");
-		}
-		sb.append(";\n");
-		if (!(zom.inner() instanceof ZeroOrMore) && !(zom.inner() instanceof ZeroOrOne)) {
+				.indent();
+		generateParseCall(inner, "n");
+		if (canBeNull(inner)) {
 			sb.append("if (n == null) {\n")
 					.indent()
 					.append("break;\n")
@@ -338,18 +346,13 @@ public final class ParserSerializer {
 	}
 
 	private void generateOneOrMore(final String productionName, final OneOrMore oom) {
-		final String actualName = globalNodeNames.get(oom.inner());
-		final String innerTypeName = resolveTypeName(oom.inner());
+		final Expression inner = oom.inner();
+		final String innerTypeName = resolveTypeName(inner);
+
 		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
-				.indent()
-				.append("final " + innerTypeName + " n_0 = ");
-		if (oom.inner() instanceof NonTerminal && isToken(actualName)) {
-			sb.append("parseTerminal(TokenType." + actualName + ")");
-		} else {
-			sb.append("parse_" + actualName + "()");
-		}
-		sb.append(";\n");
-		if (!(oom.inner() instanceof ZeroOrMore) && !(oom.inner() instanceof ZeroOrOne)) {
+				.indent();
+		generateParseCall(inner, "n_0");
+		if (canBeNull(inner)) {
 			sb.append("if (n_0 == null) {\n")
 					.indent()
 					.append("return null;\n")
@@ -359,15 +362,9 @@ public final class ParserSerializer {
 		sb.append("final List<" + innerTypeName + "> nodes = new ArrayList<>();\n")
 				.append("nodes.add(n_0);\n")
 				.append("while (true) {\n")
-				.indent()
-				.append("final " + innerTypeName + " n = ");
-		if (oom.inner() instanceof NonTerminal && isToken(actualName)) {
-			sb.append("parseTerminal(TokenType." + actualName + ")");
-		} else {
-			sb.append("parse_" + actualName + "()");
-		}
-		sb.append(";\n");
-		if (!(oom.inner() instanceof ZeroOrMore) && !(oom.inner() instanceof ZeroOrOne)) {
+				.indent();
+		generateParseCall(inner, "n");
+		if (canBeNull(inner)) {
 			sb.append("if (n == null) {\n")
 					.indent()
 					.append("break;\n")
@@ -391,16 +388,9 @@ public final class ParserSerializer {
 		for (int i = 0; i < seq.size(); i++) {
 			final Expression exp = seq.get(i);
 			final String nodeName = "n_" + i;
-			final String actualName = globalNodeNames.get(exp);
-			final String innerTypeName = resolveTypeName(exp);
-			sb.append("final " + innerTypeName + " " + nodeName + " = ");
-			if (exp instanceof NonTerminal && isToken(actualName)) {
-				sb.append("parseTerminal(TokenType." + actualName + ")");
-			} else {
-				sb.append("parse_" + actualName + "()");
-			}
-			sb.append(";\n");
-			if (!(exp instanceof ZeroOrMore) && !(exp instanceof ZeroOrOne)) {
+
+			generateParseCall(exp, nodeName);
+			if (canBeNull(exp)) {
 				sb.append("if (" + nodeName + " == null) {\n")
 						.indent()
 						.append("this.pos = stack.pop();\n")
@@ -420,39 +410,42 @@ public final class ParserSerializer {
 
 	private void generateNonTerminal(final NonTerminal start, final Expression result) {
 		final String typeName = globalNodeNames.get(start);
-		final String innerTypeName = resolveTypeName(result);
-		sb.append("private " + typeName + " parse_" + typeName + "() {\n")
-				.indent()
-				.append("final " + innerTypeName + " inner = ");
-		if (result instanceof NonTerminal(final String tokenName) && isToken(tokenName)) {
-			sb.append("parseTerminal(TokenType." + tokenName + ")");
-		} else {
-			sb.append("parse_" + globalNodeNames.get(result) + "()");
-		}
-		sb.append(";\n");
 
-		if (result instanceof ZeroOrOne || result instanceof ZeroOrMore) {
-			sb.append("return new " + typeName + "(inner);\n");
-		} else {
-			sb.append("return inner == null ? null : new " + typeName + "(inner);\n");
+		sb.append("private " + typeName + " parse_" + typeName + "() {\n").indent();
+		generateParseCall(result, "inner");
+		if (canBeNull(result)) {
+			sb.append("if (inner == null) {\n")
+					.indent()
+					.append("return null;\n")
+					.deindent()
+					.append("}\n");
 		}
-		sb.deindent().append("}\n");
+		sb.append("return new " + typeName + "(inner);\n").deindent().append("}\n");
 	}
 
 	private void generateZeroOrOne(final String productionName, final ZeroOrOne zoo) {
-		final String innerName = globalNodeNames.get(zoo.inner());
-		final String innerTypeName = resolveTypeName(zoo.inner());
+		final Expression inner = zoo.inner();
+
 		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
-				.indent()
-				.append("final " + innerTypeName + " inner = ");
-		if (zoo.inner() instanceof NonTerminal && isToken(innerName)) {
-			sb.append("parseTerminal(TokenType." + innerName + ")");
+				.indent();
+		generateParseCall(inner, "inner");
+		sb.append("return new " + productionName + "(inner);\n").deindent().append("}\n");
+	}
+
+	private boolean canBeNull(final Expression exp) {
+		return !(exp instanceof ZeroOrMore) && !(exp instanceof ZeroOrOne);
+	}
+
+	private void generateParseCall(final Expression n, final String variableName) {
+		final String name = globalNodeNames.get(n);
+		final String typeName = resolveTypeName(n);
+
+		sb.append("final " + typeName + " " + variableName + " = ");
+		if (n instanceof NonTerminal && isToken(name)) {
+			sb.append("parseTerminal(TokenType." + name + ")");
 		} else {
-			sb.append("parse_" + innerName + "()");
+			sb.append("parse_" + name + "()");
 		}
-		sb.append(";\n")
-				.append("return new " + productionName + "(inner);\n")
-				.deindent()
-				.append("}\n");
+		sb.append(";\n");
 	}
 }

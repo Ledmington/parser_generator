@@ -17,24 +17,18 @@
  */
 package com.ledmington.generator;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Queue;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.Set;
 
 import com.ledmington.ebnf.Expression;
-import com.ledmington.ebnf.Node;
+import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.OneOrMore;
 import com.ledmington.ebnf.Or;
-import com.ledmington.ebnf.Pair;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
@@ -44,225 +38,246 @@ import com.ledmington.ebnf.ZeroOrOne;
 /** A collection of common operations to perform on EBNF grammars. */
 public final class GrammarUtils {
 
+	private static final Terminal EMPTY_TERMINAL = new Terminal("ε", true);
+	static final Terminal END_OF_INPUT_TERMINAL = new Terminal("$", true);
+
 	private GrammarUtils() {}
 
 	/**
-	 * Splits the given set of productions into the ones going into a lexer and the ones going into a parser.
+	 * Checks the given FIRST sets for validity, throwing an AssertionError if they are not.
 	 *
-	 * @param productions The set of grammar productions.
-	 * @param lexerProductions The productions belonging to a lexer.
-	 * @param parserProductions The productions belonging to a parser.
+	 * @param firstSets The FIRST sets to be checked.
 	 */
-	public static void splitProductions(
-			final Map<Production, Integer> productions,
-			final List<Production> lexerProductions,
-			final List<Production> parserProductions) {
-		// Divide all trivial lexer productions from the rest
-		productions.entrySet().stream()
-				.filter(e -> Production.isLexerProduction(e.getKey().start().name()))
-				.sorted(Entry.comparingByValue())
-				.forEach(e -> lexerProductions.add(e.getKey()));
-		productions.entrySet().stream()
-				.filter(e -> !Production.isLexerProduction(e.getKey().start().name()))
-				.forEach(e -> parserProductions.add(e.getKey()));
-
-		// Convert all terminal symbols still in the parser into "anonymous" non-terminal ones
-		final Supplier<String> nameSupplier = new Supplier<>() {
-			private int id = 0;
-
-			@Override
-			public String get() {
-				return "terminal_" + (id++);
+	public static void checkFirstSets(final Map<NonTerminal, Set<Terminal>> firstSets) {
+		for (final Map.Entry<NonTerminal, Set<Terminal>> e : firstSets.entrySet()) {
+			if (e.getValue().isEmpty()) {
+				throw new AssertionError(String.format(
+						"FIRST set of symbol '%s' is empty.", e.getKey().name()));
 			}
-		};
-		for (int i = 0; i < parserProductions.size(); i++) {
-			final Production p = parserProductions.get(i);
-			if (containsAtLeastOneTerminal(p.result())) {
-				parserProductions.set(
-						i, new Production(p.start(), convertExpression(nameSupplier, lexerProductions, p.result())));
+			if (e.getValue().contains(END_OF_INPUT_TERMINAL)) {
+				throw new AssertionError(String.format(
+						"FIRST set of symbol '%s' contains END_OF_INPUT terminal.",
+						e.getKey().name()));
 			}
 		}
-
-		// Final sort by name the productions
-		parserProductions.sort(Comparator.comparing(a -> a.start().name()));
 	}
 
 	/**
-	 * Converts the terminal symbols in the given expression into corresponding fake non-terminal symbols and adding
-	 * them into the lexer productions.
+	 * Computes the FIRST sets for all the non-terminal symbols in the given EBNF grammar.
+	 *
+	 * @param g The grammar to be used.
+	 * @return The FIRST sets of all non-terminal symbols.
 	 */
-	private static Expression convertExpression(
-			final Supplier<String> name, final List<Production> lexerProductions, final Expression e) {
-		return switch (e) {
-			case Terminal t -> {
-				final Optional<Production> replacement = lexerProductions.stream()
-						.filter(p -> p.result() instanceof Terminal(final String literal)
-								&& t.literal().equals(literal))
+	public static Map<NonTerminal, Set<Terminal>> computeFirstSets(final Grammar g) {
+		final List<Production> parserProductions = g.getParserProductions();
+		final Map<NonTerminal, Set<Terminal>> result = new HashMap<>();
+		for (final Production production : parserProductions) {
+			result.put(production.start(), computeFirstSet(parserProductions, production.result()));
+		}
+
+		return result;
+	}
+
+	private static Set<Terminal> computeFirstSet(final List<Production> parserProductions, final Expression expr) {
+		final Set<Terminal> firstSet = new HashSet<>();
+
+		switch (expr) {
+			case NonTerminal nt -> {
+				final Optional<Production> otherProd = parserProductions.stream()
+						.filter(p -> p.start().equals(nt))
 						.findFirst();
-				// Avoid generating fake non-terminal nodes for terminals already present in other productions
-				if (replacement.isPresent()) {
-					yield replacement.orElseThrow().start();
+				if (otherProd.isPresent()) {
+					firstSet.addAll(computeFirstSet(
+							parserProductions, otherProd.orElseThrow().result()));
 				} else {
-					final String newName = name.get();
-					final NonTerminal nt = new NonTerminal(newName);
-					lexerProductions.add(new Production(nt, t));
-					yield nt;
+					// if there are no production for this non-terminal, it is a fake one mapping directly to a lexer
+					// production
+					firstSet.add(new Terminal(nt.name()));
 				}
 			}
-			case NonTerminal nt -> nt;
-			case ZeroOrOne zoo -> new ZeroOrOne(convertExpression(name, lexerProductions, zoo.inner()));
-			case OneOrMore oom -> new OneOrMore(convertExpression(name, lexerProductions, oom.inner()));
-			case ZeroOrMore zom -> new ZeroOrMore(convertExpression(name, lexerProductions, zom.inner()));
 			case Sequence s ->
-				new Sequence(s.nodes().stream()
-						.map(n -> convertExpression(name, lexerProductions, n))
-						.toList());
-			case Or a ->
-				new Or(a.nodes().stream()
-						.map(n -> convertExpression(name, lexerProductions, n))
-						.toList());
-			default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", e));
-		};
-	}
+				firstSet.addAll(computeFirstSet(parserProductions, s.nodes().getFirst()));
+			case Or or -> or.nodes().forEach(e -> firstSet.addAll(computeFirstSet(parserProductions, e)));
+			case OneOrMore oom -> firstSet.addAll(computeFirstSet(parserProductions, oom.inner()));
+			case ZeroOrOne zoo -> {
+				firstSet.add(EMPTY_TERMINAL);
+				firstSet.addAll(computeFirstSet(parserProductions, zoo.inner()));
+			}
+			case ZeroOrMore zom -> {
+				firstSet.add(EMPTY_TERMINAL);
+				firstSet.addAll(computeFirstSet(parserProductions, zom.inner()));
+			}
+			default -> throw new AssertionError(String.format("Unknown node: '%s'.", expr));
+		}
 
-	private static boolean containsAtLeastOneTerminal(final Node n) {
-		return switch (n) {
-			case Terminal ignored -> true;
-			case NonTerminal ignored -> false;
-			case ZeroOrOne zoo -> containsAtLeastOneTerminal(zoo.inner());
-			case ZeroOrMore zom -> containsAtLeastOneTerminal(zom.inner());
-			case OneOrMore oom -> containsAtLeastOneTerminal(oom.inner());
-			case Sequence s -> s.nodes().stream().anyMatch(GrammarUtils::containsAtLeastOneTerminal);
-			case Or or -> or.nodes().stream().anyMatch(GrammarUtils::containsAtLeastOneTerminal);
-			default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
-		};
+		return firstSet;
 	}
 
 	/**
-	 * Simplifies the given list of parser productions by returning a new list of productions. A production is defined
-	 * to be simple when its corresponding expression is either a terminal symbol, a non-terminal symbol or any
-	 * composite node containing only terminal or non-terminal symbols. In other words, we can say that a simple
-	 * production has its corresponding expression tree with maximum depth 2.
+	 * Checks that the given FOLLOW sets are valid for the given grammar, throwing an AssertionError if they are not.
 	 *
-	 * @param complexParserProductions The productions to be simplified.
-	 * @return A new list of simplified productions.
+	 * @param g The EBNF grammar to be used.
+	 * @param followSets The FOLLOW sets to be checked.
 	 */
-	public static List<Production> simplifyProductions(final List<Production> complexParserProductions) {
-		final Map<NonTerminal, Expression> productions = new LinkedHashMap<>();
-
-		final Function<Node, NonTerminal> freshNT = new Function<>() {
-
-			int sequenceCounter = 0;
-			int orCounter = 0;
-			int zeroOrOneCounter = 0;
-			int zeroOrMoreCounter = 0;
-			int oneOrMoreCounter = 0;
-
-			@Override
-			public NonTerminal apply(final Node n) {
-				return new NonTerminal(
-						switch (n) {
-							case Sequence ignored -> "sequence_" + (sequenceCounter++);
-							case Or ignored -> "or_" + (orCounter++);
-							case ZeroOrOne ignored -> "zero_or_one_" + (zeroOrOneCounter++);
-							case ZeroOrMore ignored -> "zero_or_more_" + (zeroOrMoreCounter++);
-							case OneOrMore ignored -> "one_or_more_" + (oneOrMoreCounter++);
-							default -> throw new IllegalStateException(String.format("Unknown node: '%s'.", n));
-						});
+	public static void checkFollowSets(final Grammar g, final Map<NonTerminal, Set<Terminal>> followSets) {
+		if (!followSets.entrySet().stream()
+				.filter(e -> e.getKey().name().equals(g.getStartSymbol()))
+				.findFirst()
+				.orElseThrow()
+				.getValue()
+				.contains(END_OF_INPUT_TERMINAL)) {
+			throw new AssertionError(String.format(
+					"FOLLOW set of start symbol '%s' does not contain '%s' (end of input) terminal.",
+					g.getStartSymbol(), END_OF_INPUT_TERMINAL.literal()));
+		}
+		for (final Map.Entry<NonTerminal, Set<Terminal>> e : followSets.entrySet()) {
+			if (e.getValue().isEmpty()) {
+				throw new AssertionError(String.format(
+						"FOLLOW set of symbol '%s' is empty.", e.getKey().name()));
 			}
-		};
-
-		for (final Production prod : complexParserProductions) {
-			if (isSimpleProduction(prod.result())) {
-				productions.put(prod.start(), prod.result());
-				continue;
-			}
-
-			final Queue<Pair<NonTerminal, Expression>> q = new ArrayDeque<>();
-			q.add(new Pair<>(prod.start(), prod.result()));
-
-			while (!q.isEmpty()) {
-				final Pair<NonTerminal, Expression> p = q.remove();
-				final NonTerminal start = p.first();
-				final Expression result = p.second();
-
-				switch (result) {
-					case NonTerminal nt -> productions.put(start, nt);
-					case Sequence seq -> {
-						final List<Expression> newElems = new ArrayList<>();
-						for (final Expression e : seq.nodes()) {
-							if (e instanceof NonTerminal) {
-								newElems.add(e);
-							} else {
-								final NonTerminal tmp = freshNT.apply(e);
-								newElems.add(tmp);
-								q.add(new Pair<>(tmp, e));
-							}
-						}
-						productions.put(start, new Sequence(newElems));
-					}
-					case Or or -> {
-						final List<Expression> newOpts = new ArrayList<>();
-						for (final Expression e : or.nodes()) {
-							if (e instanceof NonTerminal) {
-								newOpts.add(e);
-							} else {
-								final NonTerminal tmp = freshNT.apply(e);
-								newOpts.add(tmp);
-								q.add(new Pair<>(tmp, e));
-							}
-						}
-						productions.put(start, new Or(newOpts));
-					}
-					case ZeroOrOne zoo -> {
-						if (zoo.inner() instanceof NonTerminal) {
-							productions.put(start, zoo);
-						} else {
-							final NonTerminal tmp = freshNT.apply(zoo.inner());
-							productions.put(start, new ZeroOrOne(tmp));
-							q.add(new Pair<>(tmp, zoo.inner()));
-						}
-					}
-					case ZeroOrMore zom -> {
-						if (zom.inner() instanceof NonTerminal) {
-							productions.put(start, zom);
-						} else {
-							final NonTerminal tmp = freshNT.apply(zom.inner());
-							productions.put(start, new ZeroOrMore(tmp));
-							q.add(new Pair<>(tmp, zom.inner()));
-						}
-					}
-					case OneOrMore oom -> {
-						if (oom.inner() instanceof NonTerminal) {
-							productions.put(start, oom);
-						} else {
-							final NonTerminal tmp = freshNT.apply(oom.inner());
-							productions.put(start, new OneOrMore(tmp));
-							q.add(new Pair<>(tmp, oom.inner()));
-						}
-					}
-					default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'.", result));
-				}
+			if (e.getValue().contains(EMPTY_TERMINAL)) {
+				throw new AssertionError(String.format(
+						"FOLLOW set of symbol '%s' contains '%s' (empty terminal).",
+						e.getKey().name(), EMPTY_TERMINAL.literal()));
 			}
 		}
-
-		return productions.entrySet().stream()
-				.map(e -> new Production(e.getKey(), e.getValue()))
-				.toList();
 	}
 
-	static boolean isSimpleProduction(final Expression result) {
-		return switch (result) {
-			case Terminal ignored -> true;
-			case NonTerminal ignored -> true;
-			case ZeroOrOne(final Expression inner) -> inner instanceof NonTerminal || inner instanceof Terminal;
-			case ZeroOrMore(final Expression inner) -> inner instanceof NonTerminal || inner instanceof Terminal;
-			case OneOrMore(final Expression inner) -> inner instanceof NonTerminal || inner instanceof Terminal;
-			case Sequence(final List<Expression> nodes) ->
-				nodes.stream().allMatch(n -> n instanceof NonTerminal || n instanceof Terminal);
-			case Or(final List<Expression> nodes) ->
-				nodes.stream().allMatch(n -> n instanceof NonTerminal || n instanceof Terminal);
-			default -> false;
-		};
+	private static Set<Terminal> withoutEpsilon(final Set<Terminal> s) {
+		final Set<Terminal> r = new HashSet<>(s);
+		r.remove(EMPTY_TERMINAL);
+		return r;
+	}
+
+	private static boolean containsEpsilon(final Set<Terminal> s) {
+		return s.contains(EMPTY_TERMINAL);
+	}
+
+	private static int getFollowSetsSize(Map<NonTerminal, Set<Terminal>> followSets) {
+		return followSets.values().stream().map(Set::size).reduce(0, Integer::sum);
+	}
+
+	/**
+	 * Computes the FOLLOW sets for all non-terminal symbols in the given EBNF grammar.
+	 *
+	 * @param g The grammar to be used.
+	 * @return A set of all non-terminal symbol with their corresponding FOLLOW sets.
+	 */
+	public static Map<NonTerminal, Set<Terminal>> computeFollowSets(final Grammar g) {
+		final Map<NonTerminal, Set<Terminal>> followSets = new HashMap<>();
+
+		// Each non-terminal starts with an empty set
+		for (final Production p : g.getParserProductions()) {
+			followSets.put(p.start(), new HashSet<>());
+		}
+		// The start symbol starts with the '$' symbol.
+		followSets.entrySet().stream()
+				.filter(e -> e.getKey().name().equals(g.getStartSymbol()))
+				.findFirst()
+				.orElseThrow()
+				.getValue()
+				.add(END_OF_INPUT_TERMINAL);
+
+		// Repeating until there is no change
+		int previousSize;
+		do {
+			previousSize = getFollowSetsSize(followSets);
+
+			for (final Production p : g.getParserProductions()) {
+				final NonTerminal start = p.start();
+				final Expression expr = p.result();
+
+				final Set<Terminal> fs = followSets.get(start);
+
+				updateFollowSet(g, followSets, expr, fs);
+			}
+		} while (previousSize != getFollowSetsSize(followSets));
+
+		return followSets;
+	}
+
+	private static void updateFollowSet(
+			final Grammar g,
+			final Map<NonTerminal, Set<Terminal>> followSets,
+			final Expression expr,
+			final Set<Terminal> currentFollowSet) {
+		switch (expr) {
+			case NonTerminal nt -> {
+				// A -> B;
+				if (!followSets.containsKey(nt)) {
+					followSets.put(nt, new HashSet<>());
+				}
+				followSets.get(nt).addAll(currentFollowSet);
+			}
+			case Sequence seq -> {
+				// A -> B C D ;
+				final List<Expression> nodes = seq.nodes();
+				for (int i = 0; i < nodes.size(); i++) {
+					final Expression current = nodes.get(i);
+					if (!(current instanceof final NonTerminal nt)) {
+						continue;
+					}
+					if (!followSets.containsKey(nt)) {
+						followSets.put(nt, new HashSet<>());
+					}
+
+					// If there is a next symbol
+					if (i + 1 < nodes.size()) {
+						final Expression next = nodes.get(i + 1);
+						final Set<Terminal> firstNext = computeFirstSet(g.getParserProductions(), next);
+
+						followSets.get(nt).addAll(withoutEpsilon(firstNext));
+						if (containsEpsilon(firstNext)) {
+							followSets.get(nt).addAll(currentFollowSet);
+						}
+					} else {
+						// last symbol of the sequence
+						followSets.get(nt).addAll(currentFollowSet);
+					}
+				}
+			}
+			case Or or -> {
+				// A -> B | C | D ;
+				final List<Expression> nodes = or.nodes();
+				for (final Expression current : nodes) {
+					if (!(current instanceof final NonTerminal nt)) {
+						continue;
+					}
+					if (!followSets.containsKey(nt)) {
+						followSets.put(nt, new HashSet<>());
+					}
+
+					followSets.get(nt).addAll(currentFollowSet);
+				}
+			}
+			case ZeroOrOne zoo -> {
+				// A -> B? ;
+				if (zoo.inner() instanceof final NonTerminal nt) {
+					if (!followSets.containsKey(nt)) {
+						followSets.put(nt, new HashSet<>());
+					}
+					followSets.get(nt).addAll(currentFollowSet);
+				}
+			}
+			case ZeroOrMore zom -> {
+				// A -> B* ;
+				if (zom.inner() instanceof final NonTerminal nt) {
+					if (!followSets.containsKey(nt)) {
+						followSets.put(nt, new HashSet<>());
+					}
+					followSets.get(nt).addAll(currentFollowSet);
+				}
+			}
+			case OneOrMore oom -> {
+				// A -> B+ ;
+				if (oom.inner() instanceof final NonTerminal nt) {
+					if (!followSets.containsKey(nt)) {
+						followSets.put(nt, new HashSet<>());
+					}
+					followSets.get(nt).addAll(currentFollowSet);
+				}
+			}
+			default -> throw new IllegalArgumentException(String.format("Unknown expression node: '%s'.", expr));
+		}
 	}
 }

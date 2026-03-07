@@ -22,19 +22,26 @@ import java.util.Objects;
 /**
  * An element of the EBNF grammar which represents a symbol which cannot be expanded into other symbols.
  *
- * @param literal The content of the terminal symbol.c
+ * @param literal The content of the terminal symbol.
+ * @param isSynthetic {@code true} if the literal of this terminal symbol does not actually appear in the grammar. Used
+ *     for 'epsilon' and '$'.
  */
-public record Terminal(String literal) implements Expression {
+public record Terminal(String literal, boolean isSynthetic) implements Expression {
 
-	/**
-	 * Creates a new terminal symbol with the given string literal.
-	 *
-	 * @param literal The string literal representing this terminal symbol.
-	 */
+	/** Creates a new Terminal symbol. */
 	public Terminal {
 		Objects.requireNonNull(literal);
 		if (literal.isEmpty()) {
 			throw new IllegalArgumentException("Empty terminal symbol.");
 		}
+	}
+
+	/**
+	 * Creates a new Terminal symbol. Equivalent to {@code new Terminal(literal, false)}.
+	 *
+	 * @param literal The string literal representing this terminal symbol.
+	 */
+	public Terminal(final String literal) {
+		this(literal, false);
 	}
 }
