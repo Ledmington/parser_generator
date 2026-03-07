@@ -38,8 +38,8 @@ import com.ledmington.ebnf.ZeroOrOne;
 /** A collection of common operations to perform on EBNF grammars. */
 public final class GrammarUtils {
 
-	public static final Terminal EMPTY_TERMINAL = new Terminal("ε", true);
-	public static final Terminal END_OF_INPUT_TERMINAL = new Terminal("$", true);
+	static final Terminal EMPTY_TERMINAL = new Terminal("ε", true);
+	static final Terminal END_OF_INPUT_TERMINAL = new Terminal("$", true);
 
 	private GrammarUtils() {}
 
