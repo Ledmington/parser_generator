@@ -25,7 +25,7 @@ import java.util.Objects;
  *
  * @param start The non-terminal symbol which can be substituted with the expression on the right-hand side of this
  *     production.
- * @param result The expression to replace the non-terminal.c
+ * @param result The expression to replace the non-terminal.
  */
 public record Production(NonTerminal start, Expression result) implements Node {
 

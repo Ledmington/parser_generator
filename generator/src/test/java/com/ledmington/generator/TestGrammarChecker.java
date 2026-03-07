@@ -24,9 +24,11 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import com.ledmington.ebnf.Grammar;
+import com.ledmington.ebnf.NoUniqueStartSymbolException;
 import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Terminal;
+import com.ledmington.ebnf.UnknownNonTerminalException;
 
 public final class TestGrammarChecker {
 	@Test

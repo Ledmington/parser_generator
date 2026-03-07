@@ -65,7 +65,9 @@ public final class Generator {
 			final boolean generateMainMethod) {
 		NODE_NAMES.clear();
 
-		final String startSymbol = GrammarChecker.check(g);
+		GrammarChecker.check(g);
+
+		final String startSymbol = g.getStartSymbol();
 
 		final Map<Production, Integer> productions = g.productions();
 
