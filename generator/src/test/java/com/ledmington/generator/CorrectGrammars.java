@@ -125,7 +125,7 @@ public final class CorrectGrammars {
 					List.of("\\n", "\\t"),
 					List.of("", "\\", "\n", "\t", "n", "t")));
 
-	private static Grammar g(final Production... productions) {
+	static Grammar g(final Production... productions) {
 		final Map<Production, Integer> p = new HashMap<>();
 		for (int i = 0; i < productions.length; i++) {
 			p.put(productions[i], i + 1);

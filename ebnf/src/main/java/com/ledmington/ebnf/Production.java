@@ -27,7 +27,7 @@ import java.util.Objects;
  *     production.
  * @param result The expression to replace the non-terminal.
  */
-public record Production(NonTerminal start, Expression result) implements Node {
+public record Production(NonTerminal start, Expression result, boolean isSynthetic) implements Node {
 
 	/**
 	 * Creates a new production with the given non-terminal symbol and the given expression.
@@ -40,11 +40,19 @@ public record Production(NonTerminal start, Expression result) implements Node {
 		Objects.requireNonNull(result);
 	}
 
+	public Production(final NonTerminal start, final Expression result) {
+		this(start, result, false);
+	}
+
+	public static boolean isParserProduction(final String productionName) {
+		return !isLexerProduction(productionName);
+	}
+
 	/**
 	 * Checks where the given production name corresponds to a lexer production.
 	 *
 	 * @param productionName The name of the production to check.
-	 * @return True is the given production belongs to a lexer, false otherwise.
+	 * @return {@code true} is the given production belongs to a lexer, {@code false} otherwise.
 	 */
 	public static boolean isLexerProduction(final String productionName) {
 		return productionName
@@ -56,7 +64,7 @@ public record Production(NonTerminal start, Expression result) implements Node {
 	 * Checks where the given production name corresponds to a skippable production.
 	 *
 	 * @param productionName The name of the production to check.
-	 * @return True is the given production is skippable, false otherwise.
+	 * @return {@code true} is the given production is skippable, {@code false} otherwise.
 	 */
 	public static boolean isSkippable(final String productionName) {
 		return isLexerProduction(productionName) && productionName.charAt(0) == '_';

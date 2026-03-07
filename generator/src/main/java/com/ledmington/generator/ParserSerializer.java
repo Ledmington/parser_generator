@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import com.ledmington.ebnf.Expression;
+import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Node;
 import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.OneOrMore;
@@ -69,11 +70,12 @@ public final class ParserSerializer {
 	 * @param parserProductions The productions to be used.
 	 */
 	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
-	public void generateParser(final List<Production> parserProductions) {
-		final Map<NonTerminal, Set<Terminal>> firstSets = GrammarUtils.computeFirstSets(parserProductions);
+	public void generateParser(final Grammar g, final String startSymbol) {
+		final Map<NonTerminal, Set<Terminal>> firstSets = GrammarUtils.computeFirstSets(g);
 		GrammarUtils.checkFirstSets(firstSets);
 
-		final Map<NonTerminal, Set<Terminal>> followSets = GrammarUtils.computeFollowSets(parserProductions, firstSets);
+		final List<Production> parserProductions = g.getParserProductions();
+		final Map<NonTerminal, Set<Terminal>> followSets = GrammarUtils.computeFollowSets(g, firstSets, startSymbol);
 		GrammarUtils.checkFollowSets(followSets);
 
 		generateTypes(parserProductions);

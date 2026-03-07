@@ -17,6 +17,7 @@
  */
 package com.ledmington.generator;
 
+import static com.ledmington.generator.CorrectGrammars.g;
 import static com.ledmington.generator.CorrectGrammars.nt;
 import static com.ledmington.generator.CorrectGrammars.p;
 import static com.ledmington.generator.CorrectGrammars.t;
@@ -33,19 +34,18 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.NonTerminal;
-import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Terminal;
+import com.ledmington.ebnf.Utils;
 
 public final class TestFirstFollowSets {
 
 	private record TestCase(
-			List<Production> input,
-			Map<NonTerminal, Set<Terminal>> firstSets,
-			Map<NonTerminal, Set<Terminal>> followSets) {}
+			Grammar input, Map<NonTerminal, Set<Terminal>> firstSets, Map<NonTerminal, Set<Terminal>> followSets) {}
 
 	private static final List<TestCase> CORRECT_GRAMMARS = List.of(new TestCase(
-			List.of(p("start", t("a"))),
+			g(p("start", t("a"))),
 			Map.of(nt("start"), Set.of(t("a"))),
 			Map.of(nt("start"), Set.of(GrammarUtils.END_OF_INPUT_TERMINAL))));
 
@@ -55,7 +55,7 @@ public final class TestFirstFollowSets {
 
 	@ParameterizedTest
 	@MethodSource("justFirstSets")
-	void checkFirstSets(final List<Production> input, final Map<NonTerminal, Set<Terminal>> expected) {
+	void checkFirstSets(final Grammar input, final Map<NonTerminal, Set<Terminal>> expected) {
 		final Map<NonTerminal, Set<Terminal>> actual = GrammarUtils.computeFirstSets(input);
 		assertDoesNotThrow(() -> GrammarUtils.checkFirstSets(actual));
 		assertEquals(
@@ -63,7 +63,7 @@ public final class TestFirstFollowSets {
 				actual,
 				() -> String.format(
 						" --- Grammar --- \n%s\n --- Expected FIRST set --- \n%s\n --- Actual FIRST set --- \n%s\n",
-						input.stream().map(p -> p.start() + " -> " + p.result()).collect(Collectors.joining("\n")),
+						Utils.prettyPrint(input),
 						expected.entrySet().stream()
 								.map(e -> String.format("%s -> %s", e.getKey(), e.getValue()))
 								.collect(Collectors.joining("\n")),
@@ -73,21 +73,23 @@ public final class TestFirstFollowSets {
 	}
 
 	private static Stream<Arguments> justFollowSets() {
-		return CORRECT_GRAMMARS.stream().map(tc -> Arguments.of(tc.input(), tc.followSets()));
+		return CORRECT_GRAMMARS.stream()
+				.map(tc -> Arguments.of(tc.input(), tc.followSets(), tc.input().getStartSymbol()));
 	}
 
 	@ParameterizedTest
 	@MethodSource("justFollowSets")
-	void checkFollowSets(final List<Production> input, final Map<NonTerminal, Set<Terminal>> expected) {
+	void checkFollowSets(
+			final Grammar input, final Map<NonTerminal, Set<Terminal>> expected, final String startSymbol) {
 		final Map<NonTerminal, Set<Terminal>> firstSets = GrammarUtils.computeFirstSets(input);
-		final Map<NonTerminal, Set<Terminal>> actual = GrammarUtils.computeFollowSets(input, firstSets);
+		final Map<NonTerminal, Set<Terminal>> actual = GrammarUtils.computeFollowSets(input, firstSets, startSymbol);
 		assertDoesNotThrow(() -> GrammarUtils.checkFollowSets(actual));
 		assertEquals(
 				expected,
 				actual,
 				() -> String.format(
 						" --- Grammar --- \n%s\n --- Expected FOLLOW set --- \n%s\n --- Actual FOLLOW set --- \n%s\n",
-						input.stream().map(p -> p.start() + " -> " + p.result()).collect(Collectors.joining("\n")),
+						Utils.prettyPrint(input),
 						expected.entrySet().stream()
 								.map(e -> String.format("%s -> %s", e.getKey(), e.getValue()))
 								.collect(Collectors.joining("\n")),

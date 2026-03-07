@@ -36,6 +36,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Production;
 
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
@@ -107,10 +108,10 @@ public final class TestSimpleGrammar {
 	void check(final List<Production> input, final List<Production> expected) {
 		for (final Production p : expected) {
 			assertTrue(
-					GrammarUtils.isSimpleProduction(p.result()),
+					Grammar.isSimpleProduction(p.result()),
 					() -> String.format("Expected '%s' to be a simple production but it's not.", p.result()));
 		}
-		final List<Production> actual = GrammarUtils.simplifyProductions(input);
+		final List<Production> actual = Grammar.simplifyProductions(input);
 		assertEquals(
 				expected,
 				actual,

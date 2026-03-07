@@ -18,7 +18,6 @@
 package com.ledmington.generator;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -71,26 +70,20 @@ public final class Generator {
 
 		final Map<Production, Integer> productions = g.getProductions();
 
-		final List<Production> lexerProductions = new ArrayList<>();
-		final List<Production> parserProductions;
-		{
-			// temporary list to hold parser productions
-			final List<Production> tmp = new ArrayList<>();
-			GrammarUtils.splitProductions(productions, lexerProductions, tmp);
-
-			parserProductions = GrammarUtils.simplifyProductions(tmp);
-		}
-
-		generateNames(parserProductions);
+		generateNames(g.getParserProductions());
 
 		final Set<String> tokenNames =
-				lexerProductions.stream().map(p -> p.start().name()).collect(Collectors.toUnmodifiableSet());
+				g.getLexerProductions().stream().map(p -> p.start().name()).collect(Collectors.toUnmodifiableSet());
 
-		final boolean atLeastOneSequence = parserProductions.stream().anyMatch(p -> p.result() instanceof Sequence);
-		final boolean atLeastOneZeroOrOne = parserProductions.stream().anyMatch(p -> p.result() instanceof ZeroOrOne);
-		final boolean atLeastOneZeroOrMore = parserProductions.stream().anyMatch(p -> p.result() instanceof ZeroOrMore);
-		final boolean atLeastOneOneOrMore = parserProductions.stream().anyMatch(p -> p.result() instanceof OneOrMore);
-		final boolean atLeastOneOr = parserProductions.stream().anyMatch(p -> p.result() instanceof Or);
+		final boolean atLeastOneSequence =
+				g.getParserProductions().stream().anyMatch(p -> p.result() instanceof Sequence);
+		final boolean atLeastOneZeroOrOne =
+				g.getParserProductions().stream().anyMatch(p -> p.result() instanceof ZeroOrOne);
+		final boolean atLeastOneZeroOrMore =
+				g.getParserProductions().stream().anyMatch(p -> p.result() instanceof ZeroOrMore);
+		final boolean atLeastOneOneOrMore =
+				g.getParserProductions().stream().anyMatch(p -> p.result() instanceof OneOrMore);
+		final boolean atLeastOneOr = g.getParserProductions().stream().anyMatch(p -> p.result() instanceof Or);
 
 		final IndentedStringBuilder sb = new IndentedStringBuilder(indent);
 		sb.append("/*\n")
@@ -182,10 +175,10 @@ public final class Generator {
 		}
 
 		final ParserSerializer ps = new ParserSerializer(sb, tokenNames, NODE_NAMES);
-		ps.generateParser(parserProductions);
+		ps.generateParser(g, startSymbol);
 
 		final String lexerName = parserName + "_Lexer";
-		DFASerializer.generateLexer(sb, lexerName, lexerProductions);
+		DFASerializer.generateLexer(sb, lexerName, g.getLexerProductions());
 
 		sb.append("public Node parse(final String input) {\n")
 				.indent()
