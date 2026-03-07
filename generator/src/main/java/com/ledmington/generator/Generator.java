@@ -175,7 +175,7 @@ public final class Generator {
 		}
 
 		final ParserSerializer ps = new ParserSerializer(sb, tokenNames, NODE_NAMES);
-		ps.generateParser(g, startSymbol);
+		ps.generateParser(g);
 
 		final String lexerName = parserName + "_Lexer";
 		DFASerializer.generateLexer(sb, lexerName, g.getLexerProductions());

@@ -46,8 +46,12 @@ public final class TestFirstFollowSets {
 
 	private static final List<TestCase> CORRECT_GRAMMARS = List.of(new TestCase(
 			g(p("start", t("a"))),
-			Map.of(nt("start"), Set.of(t("a"))),
-			Map.of(nt("start"), Set.of(GrammarUtils.END_OF_INPUT_TERMINAL))));
+			Map.of(nt("start"), Set.of(t("terminal_0"))),
+			Map.of(
+					nt("start"),
+					Set.of(GrammarUtils.END_OF_INPUT_TERMINAL),
+					nt("terminal_0"),
+					Set.of(GrammarUtils.END_OF_INPUT_TERMINAL))));
 
 	private static Stream<Arguments> justFirstSets() {
 		return CORRECT_GRAMMARS.stream().map(tc -> Arguments.of(tc.input(), tc.firstSets()));
@@ -79,11 +83,10 @@ public final class TestFirstFollowSets {
 
 	@ParameterizedTest
 	@MethodSource("justFollowSets")
-	void checkFollowSets(
-			final Grammar input, final Map<NonTerminal, Set<Terminal>> expected, final String startSymbol) {
+	void checkFollowSets(final Grammar input, final Map<NonTerminal, Set<Terminal>> expected) {
 		final Map<NonTerminal, Set<Terminal>> firstSets = GrammarUtils.computeFirstSets(input);
-		final Map<NonTerminal, Set<Terminal>> actual = GrammarUtils.computeFollowSets(input, firstSets, startSymbol);
-		assertDoesNotThrow(() -> GrammarUtils.checkFollowSets(actual));
+		final Map<NonTerminal, Set<Terminal>> actual = GrammarUtils.computeFollowSets(input, firstSets);
+		assertDoesNotThrow(() -> GrammarUtils.checkFollowSets(input, actual));
 		assertEquals(
 				expected,
 				actual,

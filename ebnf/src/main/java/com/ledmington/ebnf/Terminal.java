@@ -22,7 +22,7 @@ import java.util.Objects;
 /**
  * An element of the EBNF grammar which represents a symbol which cannot be expanded into other symbols.
  *
- * @param literal The content of the terminal symbol.c
+ * @param literal The content of the terminal symbol.
  */
 public record Terminal(String literal, boolean isSynthetic) implements Expression {
 

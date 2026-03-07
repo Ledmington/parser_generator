@@ -71,7 +71,6 @@ public final class GrammarUtils {
 		final Set<Terminal> firstSet = new HashSet<>();
 
 		switch (expr) {
-			case Terminal t -> firstSet.add(t);
 			case NonTerminal nt -> {
 				final Optional<Production> otherProd = parserProductions.stream()
 						.filter(p -> p.start().equals(nt))
@@ -80,8 +79,9 @@ public final class GrammarUtils {
 					firstSet.addAll(computeFirstSet(
 							parserProductions, otherProd.orElseThrow().result()));
 				} else {
-					// TODO: if there are no production for this non-terminal, it is a fake one mapping directly to a
-					// lexer production
+					// if there are no production for this non-terminal, it is a fake one mapping directly to a lexer
+					// production
+					firstSet.add(new Terminal(nt.name()));
 				}
 			}
 			case Sequence s ->
@@ -102,35 +102,147 @@ public final class GrammarUtils {
 		return firstSet;
 	}
 
-	public static void checkFollowSets(final Map<NonTerminal, Set<Terminal>> followSets) {
+	public static void checkFollowSets(final Grammar g, final Map<NonTerminal, Set<Terminal>> followSets) {
+		if (!followSets.entrySet().stream()
+				.filter(e -> e.getKey().name().equals(g.getStartSymbol()))
+				.findFirst()
+				.orElseThrow()
+				.getValue()
+				.contains(END_OF_INPUT_TERMINAL)) {
+			throw new AssertionError(String.format(
+					"FOLLOW set of start symbol '%s' does not contain '%s' (end of input) terminal.",
+					g.getStartSymbol(), END_OF_INPUT_TERMINAL.literal()));
+		}
 		for (final Map.Entry<NonTerminal, Set<Terminal>> e : followSets.entrySet()) {
 			if (e.getValue().isEmpty()) {
 				throw new AssertionError(String.format(
 						"FOLLOW set of symbol '%s' is empty.", e.getKey().name()));
 			}
-		}
-		if (followSets.values().stream().noneMatch(s -> s.contains(END_OF_INPUT_TERMINAL))) {
-			throw new AssertionError(String.format(
-					"No FOLLOW set contains the '%s' (end of input) terminal.", END_OF_INPUT_TERMINAL.literal()));
+			if (e.getValue().contains(EMPTY_TERMINAL)) {
+				throw new AssertionError(String.format(
+						"FOLLOW set of symbol '%s' contains '%s' (empty terminal).",
+						e.getKey().name(), EMPTY_TERMINAL.literal()));
+			}
 		}
 	}
 
+	private static Set<Terminal> withoutEpsilon(final Set<Terminal> s) {
+		final Set<Terminal> r = new HashSet<>(s);
+		r.remove(EMPTY_TERMINAL);
+		return r;
+	}
+
+	private static boolean containsEpsilon(final Set<Terminal> s) {
+		return s.contains(EMPTY_TERMINAL);
+	}
+
 	public static Map<NonTerminal, Set<Terminal>> computeFollowSets(
-			final Grammar g, final Map<NonTerminal, Set<Terminal>> firstSets, final String startSymbol) {
-		final Map<NonTerminal, Set<Terminal>> result = new HashMap<>();
+			final Grammar g, final Map<NonTerminal, Set<Terminal>> firstSets) {
+		final Map<NonTerminal, Set<Terminal>> followSets = new HashMap<>();
 
 		// Each non-terminal starts with an empty set
 		for (final Production p : g.getParserProductions()) {
-			result.put(p.start(), new HashSet<>());
+			followSets.put(p.start(), new HashSet<>());
 		}
 		// The start symbol starts with the '$' symbol.
-		result.entrySet().stream()
-				.filter(e -> e.getKey().name().equals(startSymbol))
+		followSets.entrySet().stream()
+				.filter(e -> e.getKey().name().equals(g.getStartSymbol()))
 				.findFirst()
 				.orElseThrow()
 				.getValue()
 				.add(END_OF_INPUT_TERMINAL);
 
-		return result;
+		// Repeating until there is no change
+		int previousSize;
+		do {
+			previousSize = followSets.values().stream().map(Set::size).reduce(0, Integer::sum);
+
+			for (final Production p : g.getParserProductions()) {
+				final NonTerminal start = p.start();
+				final Expression expr = p.result();
+
+				switch (expr) {
+					case NonTerminal nt -> {
+						// A -> B;
+						if (!followSets.containsKey(nt)) {
+							followSets.put(nt, new HashSet<>());
+						}
+						followSets.get(nt).addAll(followSets.get(start));
+					}
+					case Sequence seq -> {
+						// A -> B C D ;
+						final List<Expression> nodes = seq.nodes();
+						for (int i = 0; i < nodes.size(); i++) {
+							final Expression current = nodes.get(i);
+							if (!(current instanceof final NonTerminal nt)) {
+								continue;
+							}
+							if (!followSets.containsKey(nt)) {
+								followSets.put(nt, new HashSet<>());
+							}
+
+							// If there is a next symbol
+							if (i + 1 < nodes.size()) {
+								final Expression next = nodes.get(i + 1);
+								final Set<Terminal> firstNext = firstSets.getOrDefault(next, Set.of());
+
+								followSets.get(nt).addAll(withoutEpsilon(firstNext));
+								if (containsEpsilon(firstNext)) {
+									followSets.get(nt).addAll(followSets.get(start));
+								}
+							} else {
+								// last symbol
+								followSets.get(nt).addAll(followSets.get(start));
+							}
+						}
+					}
+					case Or or -> {
+						// A -> B | C | D ;
+						final List<Expression> nodes = or.nodes();
+						for (final Expression current : nodes) {
+							if (!(current instanceof final NonTerminal nt)) {
+								continue;
+							}
+							if (!followSets.containsKey(nt)) {
+								followSets.put(nt, new HashSet<>());
+							}
+
+							followSets.get(nt).addAll(followSets.get(start));
+						}
+					}
+					case ZeroOrOne zoo -> {
+						// A -> B? ;
+						if (zoo.inner() instanceof final NonTerminal nt) {
+							if (!followSets.containsKey(nt)) {
+								followSets.put(nt, new HashSet<>());
+							}
+							followSets.get(nt).addAll(followSets.get(start));
+						}
+					}
+					case ZeroOrMore zom -> {
+						// A -> B* ;
+						if (zom.inner() instanceof final NonTerminal nt) {
+							if (!followSets.containsKey(nt)) {
+								followSets.put(nt, new HashSet<>());
+							}
+							followSets.get(nt).addAll(followSets.get(start));
+						}
+					}
+					case OneOrMore oom -> {
+						// A -> B+ ;
+						if (oom.inner() instanceof final NonTerminal nt) {
+							if (!followSets.containsKey(nt)) {
+								followSets.put(nt, new HashSet<>());
+							}
+							followSets.get(nt).addAll(followSets.get(start));
+						}
+					}
+					default ->
+						throw new IllegalArgumentException(String.format("Unknown expression node: '%s'.", expr));
+				}
+			}
+		} while (previousSize != followSets.values().stream().map(Set::size).reduce(0, Integer::sum));
+
+		return followSets;
 	}
 }

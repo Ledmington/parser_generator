@@ -70,13 +70,13 @@ public final class ParserSerializer {
 	 * @param parserProductions The productions to be used.
 	 */
 	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
-	public void generateParser(final Grammar g, final String startSymbol) {
+	public void generateParser(final Grammar g) {
 		final Map<NonTerminal, Set<Terminal>> firstSets = GrammarUtils.computeFirstSets(g);
 		GrammarUtils.checkFirstSets(firstSets);
 
 		final List<Production> parserProductions = g.getParserProductions();
-		final Map<NonTerminal, Set<Terminal>> followSets = GrammarUtils.computeFollowSets(g, firstSets, startSymbol);
-		GrammarUtils.checkFollowSets(followSets);
+		final Map<NonTerminal, Set<Terminal>> followSets = GrammarUtils.computeFollowSets(g, firstSets);
+		GrammarUtils.checkFollowSets(g, followSets);
 
 		generateTypes(parserProductions);
 		generateTerminalSymbolParsing();
