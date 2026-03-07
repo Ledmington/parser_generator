@@ -49,46 +49,12 @@ public final class Grammar {
 	}
 
 	private static String findStartSymbol(final Set<Production> productions) {
-		// Gather all non-terminals
-		final Set<String> allNonTerminals = new HashSet<>();
-		for (final Production p : productions) {
-			allNonTerminals.add(p.start().name());
-			allNonTerminals.addAll(findAllNonTerminals(p.result()));
-		}
+		final Set<String> allNonTerminals = findAllNonTerminals(productions);
+		checkNonTerminals(allNonTerminals, productions);
 
-		for (final String name : allNonTerminals) {
-			if (productions.stream().noneMatch(nt -> nt.start().name().equals(name))) {
-				throw new UnknownNonTerminalException(name);
-			}
-		}
+		final Map<String, Set<String>> graph = getReachabilityGraph(productions);
 
-		// remove all skippable lexer symbols
-		productions.stream()
-				.filter(p -> Production.isSkippable(p.start().name()))
-				.forEach(p -> allNonTerminals.remove(p.start().name()));
-
-		// Building the graph of reachable symbols
-		final Map<String, Set<String>> graph = new HashMap<>();
-		productions.stream()
-				.filter(p -> !Production.isSkippable(p.start().name()))
-				.forEach(p -> {
-					final String s = p.start().name();
-					final Set<String> outEdges = findAllNonTerminals(p.result());
-					graph.put(s, outEdges);
-				});
-
-		final List<String> possibleStartSymbols = new ArrayList<>();
-		for (final Map.Entry<String, Set<String>> e : graph.entrySet()) {
-			final String possibleStartSymbol = e.getKey();
-			final Set<String> visited = bfs(possibleStartSymbol, graph);
-
-			// A possible start symbol is a non-terminal symbol which can reach all other symbols (meaning, except
-			// itself): it does not matter whether it can reach itself.
-			if (visited.size() == graph.size()
-					|| (visited.size() == (graph.size() - 1) && !visited.contains(possibleStartSymbol))) {
-				possibleStartSymbols.add(possibleStartSymbol);
-			}
-		}
+		final List<String> possibleStartSymbols = findPossibleStartSymbols(graph);
 
 		if (possibleStartSymbols.isEmpty()) {
 			throw new NoUniqueStartSymbolException();
@@ -99,7 +65,61 @@ public final class Grammar {
 		}
 		throw new NoUniqueStartSymbolException(String.format(
 				"The following symbols are possible starting symbols: %s.",
-				possibleStartSymbols.stream().sorted().map(s -> "'" + s + "'").collect(Collectors.joining(", "))));
+				possibleStartSymbols.stream().sorted().map("'{}'"::formatted).collect(Collectors.joining(", "))));
+	}
+
+	private static List<String> findPossibleStartSymbols(final Map<String, Set<String>> graph) {
+		final List<String> possibleStartSymbols = new ArrayList<>();
+		for (final Map.Entry<String, Set<String>> e : graph.entrySet()) {
+			final String possibleStartSymbol = e.getKey();
+			final Set<String> visited = bfs(possibleStartSymbol, graph);
+
+			// A possible start symbol is a non-terminal symbol which can reach all other symbols (meaning, except
+			// itself): it does not matter whether it can reach itself.
+			final boolean canReachEverybody = visited.size() == graph.size();
+			final boolean canReacheEverybodyExceptItself =
+					visited.size() == (graph.size() - 1) && !visited.contains(possibleStartSymbol);
+			if (canReachEverybody || canReacheEverybodyExceptItself) {
+				possibleStartSymbols.add(possibleStartSymbol);
+			}
+		}
+		return possibleStartSymbols;
+	}
+
+	private static Map<String, Set<String>> getReachabilityGraph(final Set<Production> productions) {
+		final Map<String, Set<String>> graph = new HashMap<>();
+		productions.stream()
+				.filter(p -> !Production.isSkippable(p.start().name()))
+				.forEach(p -> {
+					final String s = p.start().name();
+					final Set<String> outEdges = findAllNonTerminals(p.result());
+					graph.put(s, outEdges);
+				});
+		return graph;
+	}
+
+	/** Looks for non-terminal symbols which do not have a corresponding production. */
+	private static void checkNonTerminals(final Set<String> allNonTerminals, final Set<Production> productions) {
+		for (final String name : allNonTerminals) {
+			if (productions.stream().noneMatch(nt -> nt.start().name().equals(name))) {
+				throw new UnknownNonTerminalException(name);
+			}
+		}
+	}
+
+	private static Set<String> findAllNonTerminals(final Set<Production> productions) {
+		final Set<String> allNonTerminals = new HashSet<>();
+		for (final Production p : productions) {
+			allNonTerminals.add(p.start().name());
+			allNonTerminals.addAll(findAllNonTerminals(p.result()));
+		}
+
+		// remove all skippable lexer symbols
+		productions.stream()
+				.filter(p -> Production.isSkippable(p.start().name()))
+				.forEach(p -> allNonTerminals.remove(p.start().name()));
+
+		return allNonTerminals;
 	}
 
 	public static Set<String> findAllNonTerminals(final Expression root) {
@@ -109,10 +129,9 @@ public final class Grammar {
 		q.add(root);
 		while (!q.isEmpty()) {
 			final Node n = q.remove();
-			if (visited.contains(n)) {
+			if (!visited.add(n)) {
 				continue;
 			}
-			visited.add(n);
 			switch (n) {
 				case NonTerminal nt -> nonTerminalNames.add(nt.name());
 				case Terminal ignored -> {}
@@ -142,10 +161,9 @@ public final class Grammar {
 
 		while (!q.isEmpty()) {
 			final String s = q.remove();
-			if (visited.contains(s)) {
+			if (!visited.add(s)) {
 				continue;
 			}
-			visited.add(s);
 			if (graph.containsKey(s)) {
 				q.addAll(graph.get(s));
 			}
