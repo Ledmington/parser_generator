@@ -338,6 +338,10 @@ public final class GrammarUtils {
 						"FOLLOW set of symbol '%s' is empty.", e.getKey().name()));
 			}
 		}
+		if (followSets.values().stream().noneMatch(s -> s.contains(END_OF_INPUT_TERMINAL))) {
+			throw new AssertionError(
+					String.format("No FOLLOW set contains the '%s' (end of input) terminal.", END_OF_INPUT_TERMINAL));
+		}
 	}
 
 	public static Map<NonTerminal, Set<Terminal>> computeFollowSets(
@@ -345,23 +349,9 @@ public final class GrammarUtils {
 		final Map<NonTerminal, Set<Terminal>> result = new HashMap<>();
 
 		for (final Production production : parserProductions) {
-			result.put(production.start(), computeFollowSet(parserProductions, production.result(), firstSets));
+			// result.put(production.start(), computeFollowSet(parserProductions, production.result(), firstSets));
 		}
 
 		return result;
-	}
-
-	private static Set<Terminal> computeFollowSet(
-			final List<Production> parserProductions,
-			final Expression expr,
-			final Map<NonTerminal, Set<Terminal>> firstSets) {
-		final Set<Terminal> followSet = new HashSet<>();
-
-		switch (expr) {
-			case null -> {}
-			default -> throw new AssertionError(String.format("Unknown node: '%s'.", expr));
-		}
-
-		return followSet;
 	}
 }

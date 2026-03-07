@@ -57,6 +57,7 @@ public final class TestFirstFollowSets {
 	@MethodSource("justFirstSets")
 	void checkFirstSets(final List<Production> input, final Map<NonTerminal, Set<Terminal>> expected) {
 		final Map<NonTerminal, Set<Terminal>> actual = GrammarUtils.computeFirstSets(input);
+		assertDoesNotThrow(() -> GrammarUtils.checkFirstSets(actual));
 		assertEquals(
 				expected,
 				actual,
@@ -69,7 +70,6 @@ public final class TestFirstFollowSets {
 						actual.entrySet().stream()
 								.map(e -> String.format("%s -> %s", e.getKey(), e.getValue()))
 								.collect(Collectors.joining("\n"))));
-		assertDoesNotThrow(() -> GrammarUtils.checkFirstSets(actual));
 	}
 
 	private static Stream<Arguments> justFollowSets() {
@@ -81,6 +81,7 @@ public final class TestFirstFollowSets {
 	void checkFollowSets(final List<Production> input, final Map<NonTerminal, Set<Terminal>> expected) {
 		final Map<NonTerminal, Set<Terminal>> firstSets = GrammarUtils.computeFirstSets(input);
 		final Map<NonTerminal, Set<Terminal>> actual = GrammarUtils.computeFollowSets(input, firstSets);
+		assertDoesNotThrow(() -> GrammarUtils.checkFollowSets(actual));
 		assertEquals(
 				expected,
 				actual,
@@ -93,6 +94,5 @@ public final class TestFirstFollowSets {
 						actual.entrySet().stream()
 								.map(e -> String.format("%s -> %s", e.getKey(), e.getValue()))
 								.collect(Collectors.joining("\n"))));
-		assertDoesNotThrow(() -> GrammarUtils.checkFollowSets(actual));
 	}
 }
