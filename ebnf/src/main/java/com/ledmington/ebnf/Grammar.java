@@ -81,21 +81,25 @@ public final class Grammar {
 		for (final Map.Entry<String, Set<String>> e : graph.entrySet()) {
 			final String possibleStartSymbol = e.getKey();
 			final Set<String> visited = bfs(possibleStartSymbol, graph);
-			if (visited.equals(allNonTerminals)) {
+
+			// A possible start symbol is a non-terminal symbol which can reach all other symbols (meaning, except
+			// itself): it does not matter whether it can reach itself.
+			if (visited.size() == graph.size()
+					|| (visited.size() == (graph.size() - 1) && !visited.contains(possibleStartSymbol))) {
 				possibleStartSymbols.add(possibleStartSymbol);
 			}
 		}
 
-		final int expectedStartSymbols = 1;
 		if (possibleStartSymbols.isEmpty()) {
 			throw new NoUniqueStartSymbolException();
 		}
+		final int expectedStartSymbols = 1;
 		if (possibleStartSymbols.size() == expectedStartSymbols) {
 			return possibleStartSymbols.getFirst();
 		}
 		throw new NoUniqueStartSymbolException(String.format(
 				"The following symbols are possible starting symbols: %s.",
-				possibleStartSymbols.stream().map(s -> "'" + s + "'").collect(Collectors.joining(", "))));
+				possibleStartSymbols.stream().sorted().map(s -> "'" + s + "'").collect(Collectors.joining(", "))));
 	}
 
 	public static Set<String> findAllNonTerminals(final Expression root) {
@@ -124,9 +128,18 @@ public final class Grammar {
 	}
 
 	private static Set<String> bfs(final String start, final Map<String, Set<String>> graph) {
+		/*
+		This is a slightly modified Breadth-First Search. The only modification is that it does not add the starting node at the beginning. So, the search starts from its neighbors and the result will not automatically include the starting node.
+		 */
+
 		final Queue<String> q = new ArrayDeque<>();
 		final Set<String> visited = new HashSet<>();
-		q.add(start);
+
+		// Here, instead of directly adding the starting node, we skip it and add its neighbors
+		if (graph.containsKey(start)) {
+			q.addAll(graph.get(start));
+		}
+
 		while (!q.isEmpty()) {
 			final String s = q.remove();
 			if (visited.contains(s)) {

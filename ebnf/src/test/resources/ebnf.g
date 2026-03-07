@@ -21,7 +21,6 @@ lexer_expression = lexer_expression QUESTION_MARK
 
 SEMICOLON = ";" ;
 EQUALS = "=" ;
-UNDERSCORE = "_" ;
 QUESTION_MARK = "?" ;
 PLUS = "+" ;
 ASTERISK = "*" ;
