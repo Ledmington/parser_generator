@@ -136,6 +136,10 @@ public final class GrammarUtils {
 		return s.contains(EMPTY_TERMINAL);
 	}
 
+	private static int getFollowSetsSize(Map<NonTerminal, Set<Terminal>> followSets) {
+		return followSets.values().stream().map(Set::size).reduce(0, Integer::sum);
+	}
+
 	public static Map<NonTerminal, Set<Terminal>> computeFollowSets(
 			final Grammar g, final Map<NonTerminal, Set<Terminal>> firstSets) {
 		final Map<NonTerminal, Set<Terminal>> followSets = new HashMap<>();
@@ -155,94 +159,103 @@ public final class GrammarUtils {
 		// Repeating until there is no change
 		int previousSize;
 		do {
-			previousSize = followSets.values().stream().map(Set::size).reduce(0, Integer::sum);
+			previousSize = getFollowSetsSize(followSets);
 
 			for (final Production p : g.getParserProductions()) {
 				final NonTerminal start = p.start();
 				final Expression expr = p.result();
 
-				switch (expr) {
-					case NonTerminal nt -> {
-						// A -> B;
-						if (!followSets.containsKey(nt)) {
-							followSets.put(nt, new HashSet<>());
-						}
-						followSets.get(nt).addAll(followSets.get(start));
-					}
-					case Sequence seq -> {
-						// A -> B C D ;
-						final List<Expression> nodes = seq.nodes();
-						for (int i = 0; i < nodes.size(); i++) {
-							final Expression current = nodes.get(i);
-							if (!(current instanceof final NonTerminal nt)) {
-								continue;
-							}
-							if (!followSets.containsKey(nt)) {
-								followSets.put(nt, new HashSet<>());
-							}
+				final Set<Terminal> fs = followSets.get(start);
 
-							// If there is a next symbol
-							if (i + 1 < nodes.size()) {
-								final Expression next = nodes.get(i + 1);
-								final Set<Terminal> firstNext = firstSets.getOrDefault(next, Set.of());
-
-								followSets.get(nt).addAll(withoutEpsilon(firstNext));
-								if (containsEpsilon(firstNext)) {
-									followSets.get(nt).addAll(followSets.get(start));
-								}
-							} else {
-								// last symbol
-								followSets.get(nt).addAll(followSets.get(start));
-							}
-						}
-					}
-					case Or or -> {
-						// A -> B | C | D ;
-						final List<Expression> nodes = or.nodes();
-						for (final Expression current : nodes) {
-							if (!(current instanceof final NonTerminal nt)) {
-								continue;
-							}
-							if (!followSets.containsKey(nt)) {
-								followSets.put(nt, new HashSet<>());
-							}
-
-							followSets.get(nt).addAll(followSets.get(start));
-						}
-					}
-					case ZeroOrOne zoo -> {
-						// A -> B? ;
-						if (zoo.inner() instanceof final NonTerminal nt) {
-							if (!followSets.containsKey(nt)) {
-								followSets.put(nt, new HashSet<>());
-							}
-							followSets.get(nt).addAll(followSets.get(start));
-						}
-					}
-					case ZeroOrMore zom -> {
-						// A -> B* ;
-						if (zom.inner() instanceof final NonTerminal nt) {
-							if (!followSets.containsKey(nt)) {
-								followSets.put(nt, new HashSet<>());
-							}
-							followSets.get(nt).addAll(followSets.get(start));
-						}
-					}
-					case OneOrMore oom -> {
-						// A -> B+ ;
-						if (oom.inner() instanceof final NonTerminal nt) {
-							if (!followSets.containsKey(nt)) {
-								followSets.put(nt, new HashSet<>());
-							}
-							followSets.get(nt).addAll(followSets.get(start));
-						}
-					}
-					default ->
-						throw new IllegalArgumentException(String.format("Unknown expression node: '%s'.", expr));
-				}
+				updateFollowSet(g, followSets, expr, fs);
 			}
-		} while (previousSize != followSets.values().stream().map(Set::size).reduce(0, Integer::sum));
+		} while (previousSize != getFollowSetsSize(followSets));
 
 		return followSets;
+	}
+
+	private static void updateFollowSet(
+			final Grammar g,
+			final Map<NonTerminal, Set<Terminal>> followSets,
+			final Expression expr,
+			final Set<Terminal> currentFollowSet) {
+		switch (expr) {
+			case NonTerminal nt -> {
+				// A -> B;
+				if (!followSets.containsKey(nt)) {
+					followSets.put(nt, new HashSet<>());
+				}
+				followSets.get(nt).addAll(currentFollowSet);
+			}
+			case Sequence seq -> {
+				// A -> B C D ;
+				final List<Expression> nodes = seq.nodes();
+				for (int i = 0; i < nodes.size(); i++) {
+					final Expression current = nodes.get(i);
+					if (!(current instanceof final NonTerminal nt)) {
+						continue;
+					}
+					if (!followSets.containsKey(nt)) {
+						followSets.put(nt, new HashSet<>());
+					}
+
+					// If there is a next symbol
+					if (i + 1 < nodes.size()) {
+						final Expression next = nodes.get(i + 1);
+						final Set<Terminal> firstNext = computeFirstSet(g.getParserProductions(), next);
+
+						followSets.get(nt).addAll(withoutEpsilon(firstNext));
+						if (containsEpsilon(firstNext)) {
+							followSets.get(nt).addAll(currentFollowSet);
+						}
+					} else {
+						// last symbol of the sequence
+						followSets.get(nt).addAll(currentFollowSet);
+					}
+				}
+			}
+			case Or or -> {
+				// A -> B | C | D ;
+				final List<Expression> nodes = or.nodes();
+				for (final Expression current : nodes) {
+					if (!(current instanceof final NonTerminal nt)) {
+						continue;
+					}
+					if (!followSets.containsKey(nt)) {
+						followSets.put(nt, new HashSet<>());
+					}
+
+					followSets.get(nt).addAll(currentFollowSet);
+				}
+			}
+			case ZeroOrOne zoo -> {
+				// A -> B? ;
+				if (zoo.inner() instanceof final NonTerminal nt) {
+					if (!followSets.containsKey(nt)) {
+						followSets.put(nt, new HashSet<>());
+					}
+					followSets.get(nt).addAll(currentFollowSet);
+				}
+			}
+			case ZeroOrMore zom -> {
+				// A -> B* ;
+				if (zom.inner() instanceof final NonTerminal nt) {
+					if (!followSets.containsKey(nt)) {
+						followSets.put(nt, new HashSet<>());
+					}
+					followSets.get(nt).addAll(currentFollowSet);
+				}
+			}
+			case OneOrMore oom -> {
+				// A -> B+ ;
+				if (oom.inner() instanceof final NonTerminal nt) {
+					if (!followSets.containsKey(nt)) {
+						followSets.put(nt, new HashSet<>());
+					}
+					followSets.get(nt).addAll(currentFollowSet);
+				}
+			}
+			default -> throw new IllegalArgumentException(String.format("Unknown expression node: '%s'.", expr));
+		}
 	}
 }
