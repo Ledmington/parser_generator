@@ -69,7 +69,7 @@ public final class Generator {
 
 		final String startSymbol = g.getStartSymbol();
 
-		final Map<Production, Integer> productions = g.productions();
+		final Map<Production, Integer> productions = g.getProductions();
 
 		final List<Production> lexerProductions = new ArrayList<>();
 		final List<Production> parserProductions;

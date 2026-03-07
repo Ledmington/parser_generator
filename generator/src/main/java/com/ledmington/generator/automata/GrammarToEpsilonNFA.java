@@ -72,8 +72,9 @@ public final class GrammarToEpsilonNFA {
 	public NFA convert(final Grammar g) {
 		reset();
 
-		GrammarUtils.splitProductions(g.productions(), this.lexerProductions, new ArrayList<>());
-		g.productions().forEach((key, value) -> this.priorities.put(key.start().name(), value));
+		GrammarUtils.splitProductions(g.getProductions(), this.lexerProductions, new ArrayList<>());
+		g.getProductions()
+				.forEach((key, value) -> this.priorities.put(key.start().name(), value));
 		return convertGrammarToEpsilonNFA();
 	}
 

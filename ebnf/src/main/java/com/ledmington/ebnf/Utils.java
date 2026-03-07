@@ -51,10 +51,10 @@ public final class Utils {
 	public static String prettyPrint(final Grammar root) {
 		final StringBuilder sb = new StringBuilder();
 		sb.append("grammar\n");
-		if (root.productions().isEmpty()) {
+		if (root.getProductions().isEmpty()) {
 			return sb.toString();
 		}
-		final List<Production> productions = root.productions().entrySet().stream()
+		final List<Production> productions = root.getProductions().entrySet().stream()
 				.sorted(Entry.comparingByValue())
 				.map(Entry::getKey)
 				.toList();

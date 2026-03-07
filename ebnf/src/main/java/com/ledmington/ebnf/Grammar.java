@@ -153,7 +153,7 @@ public final class Grammar {
 		return visited;
 	}
 
-	public Map<Production, Integer> productions() {
+	public Map<Production, Integer> getProductions() {
 		return productions;
 	}
 

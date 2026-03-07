@@ -41,20 +41,20 @@ public final class GrammarChecker {
 
 		// Gather all non-terminals
 		final Set<String> allNonTerminals = new HashSet<>();
-		for (final Map.Entry<Production, Integer> e : g.productions().entrySet()) {
+		for (final Map.Entry<Production, Integer> e : g.getProductions().entrySet()) {
 			allNonTerminals.add(e.getKey().start().name());
 			allNonTerminals.addAll(Grammar.findAllNonTerminals(e.getKey().result()));
 		}
 
 		for (final String name : allNonTerminals) {
-			if (g.productions().keySet().stream()
+			if (g.getProductions().keySet().stream()
 					.noneMatch(nt -> nt.start().name().equals(name))) {
 				throw new UnknownNonTerminalException(name);
 			}
 		}
 
 		// remove all skippable lexer symbols
-		g.productions().entrySet().stream()
+		g.getProductions().entrySet().stream()
 				.filter(e -> Production.isSkippable(e.getKey().start().name()))
 				.forEach(e -> allNonTerminals.remove(e.getKey().start().name()));
 	}
