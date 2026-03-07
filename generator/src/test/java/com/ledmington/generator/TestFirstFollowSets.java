@@ -19,8 +19,15 @@ package com.ledmington.generator;
 
 import static com.ledmington.generator.CorrectGrammars.g;
 import static com.ledmington.generator.CorrectGrammars.nt;
+import static com.ledmington.generator.CorrectGrammars.one_or_more;
+import static com.ledmington.generator.CorrectGrammars.or;
 import static com.ledmington.generator.CorrectGrammars.p;
+import static com.ledmington.generator.CorrectGrammars.seq;
 import static com.ledmington.generator.CorrectGrammars.t;
+import static com.ledmington.generator.CorrectGrammars.zero_or_more;
+import static com.ledmington.generator.CorrectGrammars.zero_or_one;
+import static com.ledmington.generator.GrammarUtils.EMPTY_TERMINAL;
+import static com.ledmington.generator.GrammarUtils.END_OF_INPUT_TERMINAL;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -45,14 +52,64 @@ public final class TestFirstFollowSets {
 	private record TestCase(
 			Grammar input, Map<NonTerminal, Set<Terminal>> firstSets, Map<NonTerminal, Set<Terminal>> followSets) {}
 
-	private static final List<TestCase> CORRECT_GRAMMARS = List.of(new TestCase(
-			g(p("start", t("a"))),
-			Map.of(nt("start"), Set.of(t("terminal_0"))),
-			Map.of(
-					nt("start"),
-					Set.of(GrammarUtils.END_OF_INPUT_TERMINAL),
-					nt("terminal_0"),
-					Set.of(GrammarUtils.END_OF_INPUT_TERMINAL))));
+	private static final List<TestCase> CORRECT_GRAMMARS = List.of(
+			new TestCase(
+					g(p("start", t("a"))),
+					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0")))),
+					Map.ofEntries(
+							Map.entry(nt("start"), Set.of(END_OF_INPUT_TERMINAL)),
+							Map.entry(nt("terminal_0"), Set.of(END_OF_INPUT_TERMINAL)))),
+			new TestCase(
+					g(p("start", seq(t("a"), t("b")))),
+					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0")))),
+					Map.ofEntries(
+							Map.entry(nt("start"), Set.of(END_OF_INPUT_TERMINAL)),
+							Map.entry(nt("terminal_0"), Set.of(t("terminal_1"))),
+							Map.entry(nt("terminal_1"), Set.of(END_OF_INPUT_TERMINAL)))),
+			new TestCase(
+					g(p("start", or(t("a"), t("b")))),
+					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0"), t("terminal_1")))),
+					Map.ofEntries(
+							Map.entry(nt("start"), Set.of(END_OF_INPUT_TERMINAL)),
+							Map.entry(nt("terminal_0"), Set.of(END_OF_INPUT_TERMINAL)),
+							Map.entry(nt("terminal_1"), Set.of(END_OF_INPUT_TERMINAL)))),
+			new TestCase(
+					g(p("start", zero_or_one(t("a")))),
+					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0"), EMPTY_TERMINAL))),
+					Map.ofEntries(
+							Map.entry(nt("start"), Set.of(END_OF_INPUT_TERMINAL)),
+							Map.entry(nt("terminal_0"), Set.of(END_OF_INPUT_TERMINAL)))),
+			new TestCase(
+					g(p("start", one_or_more(t("a")))),
+					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0")))),
+					Map.ofEntries(
+							Map.entry(nt("start"), Set.of(END_OF_INPUT_TERMINAL)),
+							Map.entry(nt("terminal_0"), Set.of(END_OF_INPUT_TERMINAL)))),
+			new TestCase(
+					g(p("start", zero_or_more(t("a")))),
+					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0"), EMPTY_TERMINAL))),
+					Map.ofEntries(
+							Map.entry(nt("start"), Set.of(END_OF_INPUT_TERMINAL)),
+							Map.entry(nt("terminal_0"), Set.of(END_OF_INPUT_TERMINAL)))),
+			new TestCase(
+					g(p("start", seq(nt("A"), nt("B"))), p("A", t("a")), p("B", t("b"))),
+					Map.ofEntries(Map.entry(nt("start"), Set.of(t("A")))),
+					Map.ofEntries(
+							Map.entry(nt("start"), Set.of(END_OF_INPUT_TERMINAL)),
+							Map.entry(nt("A"), Set.of(t("B"))),
+							Map.entry(nt("B"), Set.of(END_OF_INPUT_TERMINAL)))),
+			new TestCase(
+					g(p("start", seq(t("A"), or(t("B"), t("C")), t("D")))),
+					Map.ofEntries(
+							Map.entry(nt("start"), Set.of(t("terminal_0"))),
+							Map.entry(nt("or_0"), Set.of(t("terminal_2"), t("terminal_1")))),
+					Map.ofEntries(
+							Map.entry(nt("start"), Set.of(END_OF_INPUT_TERMINAL)),
+							Map.entry(nt("or_0"), Set.of(t("terminal_3"))),
+							Map.entry(nt("terminal_0"), Set.of(t("terminal_1"), t("terminal_2"))),
+							Map.entry(nt("terminal_1"), Set.of(t("terminal_3"))),
+							Map.entry(nt("terminal_2"), Set.of(t("terminal_3"))),
+							Map.entry(nt("terminal_3"), Set.of(END_OF_INPUT_TERMINAL)))));
 
 	private static Stream<Arguments> justFirstSets() {
 		return CORRECT_GRAMMARS.stream().map(tc -> Arguments.of(tc.input(), tc.firstSets()));
