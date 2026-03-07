@@ -44,7 +44,7 @@ public final class Grammar {
 		if (productions.isEmpty()) {
 			throw new IllegalArgumentException("Empty productions.");
 		}
-		this.productions = productions;
+		this.productions = Map.copyOf(productions);
 		this.startSymbol = findStartSymbol(productions.keySet());
 	}
 
