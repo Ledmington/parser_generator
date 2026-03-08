@@ -68,8 +68,6 @@ public final class Generator {
 
 		final String startSymbol = g.getStartSymbol();
 
-		final Map<Production, Integer> productions = g.getProductions();
-
 		generateNames(g.getParserProductions());
 
 		final Set<String> tokenNames =
@@ -174,8 +172,10 @@ public final class Generator {
 					.append("}\n");
 		}
 
-		final ParserSerializer ps = new ParserSerializer(sb, tokenNames, NODE_NAMES);
-		ps.generateParser(g);
+		{
+			final ParserSerializer ps = new ParserSerializer(sb, tokenNames, NODE_NAMES);
+			ps.generateParser(g);
+		}
 
 		final String lexerName = parserName + "_Lexer";
 		DFASerializer.generateLexer(sb, lexerName, g.getLexerProductions());

@@ -18,6 +18,7 @@
 package com.ledmington.generator;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +81,7 @@ public final class ParserSerializer {
 
 		generateTypes(parserProductions);
 		generateTerminalSymbolParsing();
-		generateProductions(parserProductions);
+		generateProductions(parserProductions, firstSets, followSets);
 	}
 
 	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
@@ -258,7 +259,10 @@ public final class ParserSerializer {
 		}
 	}
 
-	private void generateProductions(final List<Production> parserProductions) {
+	private void generateProductions(
+			final List<Production> parserProductions,
+			final Map<NonTerminal, Set<Terminal>> firstSets,
+			final Map<NonTerminal, Set<Terminal>> followSets) {
 		for (final Production p : parserProductions) {
 			final NonTerminal start = p.start();
 			final Expression result = p.result();
@@ -266,8 +270,8 @@ public final class ParserSerializer {
 
 			switch (result) {
 				case NonTerminal nt -> generateNonTerminal(start, nt);
-				case Sequence s -> generateSequence(productionName, s);
-				case Or or -> generateOr(productionName, or);
+				case Sequence s -> generateSequence(start, s, firstSets, followSets);
+				case Or or -> generateOr(start, or, firstSets, followSets);
 				case ZeroOrOne zoo -> generateZeroOrOne(productionName, zoo);
 				case ZeroOrMore zom -> generateZeroOrMore(productionName, zom);
 				case OneOrMore oom -> generateOneOrMore(productionName, oom);
@@ -299,13 +303,40 @@ public final class ParserSerializer {
 		};
 	}
 
-	private void generateOr(final String productionName, final Or or) {
+	private void generateOr(
+			final NonTerminal root,
+			final Or or,
+			final Map<NonTerminal, Set<Terminal>> firstSets,
+			final Map<NonTerminal, Set<Terminal>> followSets) {
+		final String productionName = root.name();
 		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
 				.indent();
 		final List<Expression> nodes = or.nodes();
 		for (int i = 0; i < nodes.size(); i++) {
 			final Expression exp = nodes.get(i);
 			final String nodeName = "n_" + i;
+
+			System.out.println("---");
+			System.out.printf("FIRST(%s) = %s%n", exp, firstSets.get(exp));
+			System.out.println("---");
+			firstSets.entrySet().stream()
+					.sorted(Comparator.comparing(a -> a.getKey().name()))
+					.forEach(e -> System.out.printf(
+							"FIRST(%s) = %s%n",
+							e.getKey(),
+							e.getValue().stream()
+									.sorted(Comparator.comparing(Terminal::literal))
+									.toList()));
+			System.out.println("---");
+
+			// generate lookahead guard based on FIRST set
+			sb.append("if (pos < v.length && (");
+			final Set<Terminal> first = firstSets.get(root);
+			sb.append(first.stream()
+					.map(t -> "v[pos].type() == TokenType." + t.literal())
+					.collect(Collectors.joining(" || ")));
+			sb.append(")) {\n").indent();
+
 			generateParseCall(exp, nodeName);
 			sb.append("if (" + nodeName + " != null) {\n")
 					.indent()
@@ -314,6 +345,8 @@ public final class ParserSerializer {
 					.append("(" + nodeName + ");\n")
 					.deindent()
 					.append("}\n");
+
+			sb.deindent().append("}\n");
 		}
 		sb.append("return null;\n").deindent().append("}\n");
 	}
@@ -379,12 +412,58 @@ public final class ParserSerializer {
 				.append("}\n");
 	}
 
-	private void generateSequence(final String productionName, final Sequence s) {
+	private void generateSequence(
+			final NonTerminal root,
+			final Sequence s,
+			final Map<NonTerminal, Set<Terminal>> firstSets,
+			final Map<NonTerminal, Set<Terminal>> followSets) {
+
+		final String productionName = root.name();
+
 		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
-				.indent()
-				.append("stack.push(this.pos);\n");
+				.indent();
+
+		final Set<Terminal> first = firstSets.get(root);
+		final boolean hasEpsilon = first.contains(GrammarUtils.EMPTY_TERMINAL);
+		final Set<Terminal> firstNoEps = first.stream()
+				.filter(t -> !t.equals(GrammarUtils.EMPTY_TERMINAL))
+				.collect(Collectors.toSet());
+
+		// FIRST - {ε}
+		final List<String> conditions = new ArrayList<>(firstNoEps.stream()
+				.map(t -> "v[pos].type() == TokenType." + t.literal())
+				.toList());
+
+		// use FOLLOW if ε present
+		if (hasEpsilon) {
+			final Set<Terminal> follow = followSets.get(root);
+
+			for (final Terminal t : follow) {
+				if (t.equals(GrammarUtils.END_OF_INPUT_TERMINAL)) {
+					conditions.add("pos >= v.length");
+				} else {
+					conditions.add("v[pos].type() == TokenType." + t.literal());
+				}
+			}
+		}
+
+		if (conditions.isEmpty()) {
+			sb.append("return null;\n");
+		} else {
+			// lookahed guard
+			sb.append("if (!(pos < v.length && (")
+					.append(String.join(" || ", conditions))
+					.append("))) {\n")
+					.indent()
+					.append("return null;\n")
+					.deindent()
+					.append("}\n");
+		}
+
+		sb.append("stack.push(this.pos);\n");
 
 		final List<Expression> seq = s.nodes();
+
 		for (int i = 0; i < seq.size(); i++) {
 			final Expression exp = seq.get(i);
 			final String nodeName = "n_" + i;
