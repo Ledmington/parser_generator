@@ -31,10 +31,10 @@ import static com.ledmington.generator.GrammarUtils.END_OF_INPUT_TERMINAL;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.params.ParameterizedTest;
@@ -109,7 +109,42 @@ public final class TestFirstFollowSets {
 							Map.entry(nt("terminal_0"), Set.of(t("terminal_1"), t("terminal_2"))),
 							Map.entry(nt("terminal_1"), Set.of(t("terminal_3"))),
 							Map.entry(nt("terminal_2"), Set.of(t("terminal_3"))),
-							Map.entry(nt("terminal_3"), Set.of(END_OF_INPUT_TERMINAL)))));
+							Map.entry(nt("terminal_3"), Set.of(END_OF_INPUT_TERMINAL)))),
+			new TestCase(
+					g(p("start", seq(zero_or_one(t("a")), zero_or_one(t("b")), zero_or_one(t("c"))))),
+					Map.ofEntries(
+							Map.entry(
+									nt("start"),
+									Set.of(t("terminal_0"), t("terminal_1"), t("terminal_2"), EMPTY_TERMINAL)),
+							Map.entry(nt("zero_or_one_0"), Set.of(t("terminal_0"), EMPTY_TERMINAL)),
+							Map.entry(nt("zero_or_one_1"), Set.of(t("terminal_1"), EMPTY_TERMINAL)),
+							Map.entry(nt("zero_or_one_2"), Set.of(t("terminal_2"), EMPTY_TERMINAL))),
+					Map.ofEntries(
+							Map.entry(nt("start"), Set.of(END_OF_INPUT_TERMINAL)),
+							Map.entry(
+									nt("zero_or_one_0"),
+									Set.of(END_OF_INPUT_TERMINAL, t("terminal_1"), t("terminal_2"))),
+							Map.entry(nt("zero_or_one_1"), Set.of(END_OF_INPUT_TERMINAL, t("terminal_2"))),
+							Map.entry(nt("zero_or_one_2"), Set.of(END_OF_INPUT_TERMINAL)),
+							Map.entry(
+									nt("terminal_0"), Set.of(END_OF_INPUT_TERMINAL, t("terminal_1"), t("terminal_2"))),
+							Map.entry(nt("terminal_1"), Set.of(END_OF_INPUT_TERMINAL, t("terminal_2"))),
+							Map.entry(nt("terminal_2"), Set.of(END_OF_INPUT_TERMINAL)))));
+
+	private static String printSets(final Map<NonTerminal, Set<Terminal>> sets) {
+		final StringBuilder sb = new StringBuilder();
+		sets.entrySet().stream()
+				.sorted(Comparator.comparing(e -> e.getKey().name()))
+				.forEach(e -> sb.append(e.getKey())
+						.append(" -> ")
+						.append(e.getValue().stream()
+								// synthetic terminals first
+								.sorted(Comparator.comparing(t -> !((Terminal) t).isSynthetic())
+										.thenComparing(t -> ((Terminal) t).literal()))
+								.toList())
+						.append('\n'));
+		return sb.toString();
+	}
 
 	private static Stream<Arguments> justFirstSets() {
 		return CORRECT_GRAMMARS.stream().map(tc -> Arguments.of(tc.input(), tc.firstSets()));
@@ -125,13 +160,7 @@ public final class TestFirstFollowSets {
 				actual,
 				() -> String.format(
 						" --- Grammar --- \n%s\n --- Expected FIRST set --- \n%s\n --- Actual FIRST set --- \n%s\n",
-						Utils.prettyPrint(input),
-						expected.entrySet().stream()
-								.map(e -> String.format("%s -> %s", e.getKey(), e.getValue()))
-								.collect(Collectors.joining("\n")),
-						actual.entrySet().stream()
-								.map(e -> String.format("%s -> %s", e.getKey(), e.getValue()))
-								.collect(Collectors.joining("\n"))));
+						Utils.prettyPrint(input), printSets(expected), printSets(actual)));
 	}
 
 	private static Stream<Arguments> justFollowSets() {
@@ -149,12 +178,6 @@ public final class TestFirstFollowSets {
 				actual,
 				() -> String.format(
 						" --- Grammar --- \n%s\n --- Expected FOLLOW set --- \n%s\n --- Actual FOLLOW set --- \n%s\n",
-						Utils.prettyPrint(input),
-						expected.entrySet().stream()
-								.map(e -> String.format("%s -> %s", e.getKey(), e.getValue()))
-								.collect(Collectors.joining("\n")),
-						actual.entrySet().stream()
-								.map(e -> String.format("%s -> %s", e.getKey(), e.getValue()))
-								.collect(Collectors.joining("\n"))));
+						Utils.prettyPrint(input), printSets(expected), printSets(actual)));
 	}
 }

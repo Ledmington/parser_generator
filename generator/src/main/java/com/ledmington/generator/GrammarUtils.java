@@ -94,8 +94,15 @@ public final class GrammarUtils {
 					firstSet.add(new Terminal(nt.name()));
 				}
 			}
-			case Sequence s ->
-				firstSet.addAll(computeFirstSet(parserProductions, s.nodes().getFirst()));
+			case Sequence s -> {
+				int i = 0;
+				Set<Terminal> firstNext;
+				do {
+					firstNext = computeFirstSet(parserProductions, s.nodes().get(i));
+					firstSet.addAll(firstNext);
+					i++;
+				} while (i < s.nodes().size() && firstNext.contains(EMPTY_TERMINAL));
+			}
 			case Or or -> or.nodes().forEach(e -> firstSet.addAll(computeFirstSet(parserProductions, e)));
 			case OneOrMore oom -> firstSet.addAll(computeFirstSet(parserProductions, oom.inner()));
 			case ZeroOrOne zoo -> {
