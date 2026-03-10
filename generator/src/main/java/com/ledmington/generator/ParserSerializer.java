@@ -18,7 +18,6 @@
 package com.ledmington.generator;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,7 +75,7 @@ public final class ParserSerializer {
 		GrammarUtils.checkFirstSets(firstSets);
 
 		final List<Production> parserProductions = g.getParserProductions();
-		final Map<NonTerminal, Set<Terminal>> followSets = GrammarUtils.computeFollowSets(g);
+		final Map<NonTerminal, Set<Terminal>> followSets = GrammarUtils.computeFollowSets(g, firstSets);
 		GrammarUtils.checkFollowSets(g, followSets);
 
 		generateTypes(parserProductions);
@@ -271,7 +270,7 @@ public final class ParserSerializer {
 			switch (result) {
 				case NonTerminal nt -> generateNonTerminal(start, nt);
 				case Sequence s -> generateSequence(start, s, firstSets, followSets);
-				case Or or -> generateOr(start, or, firstSets, followSets);
+				case Or or -> generateOr(start, or, firstSets);
 				case ZeroOrOne zoo -> generateZeroOrOne(productionName, zoo);
 				case ZeroOrMore zom -> generateZeroOrMore(productionName, zom);
 				case OneOrMore oom -> generateOneOrMore(productionName, oom);
@@ -303,11 +302,7 @@ public final class ParserSerializer {
 		};
 	}
 
-	private void generateOr(
-			final NonTerminal root,
-			final Or or,
-			final Map<NonTerminal, Set<Terminal>> firstSets,
-			final Map<NonTerminal, Set<Terminal>> followSets) {
+	private void generateOr(final NonTerminal root, final Or or, final Map<NonTerminal, Set<Terminal>> firstSets) {
 		final String productionName = root.name();
 		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
 				.indent();
@@ -315,19 +310,6 @@ public final class ParserSerializer {
 		for (int i = 0; i < nodes.size(); i++) {
 			final Expression exp = nodes.get(i);
 			final String nodeName = "n_" + i;
-
-			System.out.println("---");
-			System.out.printf("FIRST(%s) = %s%n", exp, firstSets.get(exp));
-			System.out.println("---");
-			firstSets.entrySet().stream()
-					.sorted(Comparator.comparing(a -> a.getKey().name()))
-					.forEach(e -> System.out.printf(
-							"FIRST(%s) = %s%n",
-							e.getKey(),
-							e.getValue().stream()
-									.sorted(Comparator.comparing(Terminal::literal))
-									.toList()));
-			System.out.println("---");
 
 			// generate lookahead guard based on FIRST set
 			sb.append("if (pos < v.length && (");

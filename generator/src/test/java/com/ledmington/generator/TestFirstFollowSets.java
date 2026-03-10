@@ -123,11 +123,7 @@ public final class TestFirstFollowSets {
 									nt("zero_or_one_0"),
 									Set.of(Terminal.END_OF_INPUT, t("terminal_1"), t("terminal_2"))),
 							Map.entry(nt("zero_or_one_1"), Set.of(Terminal.END_OF_INPUT, t("terminal_2"))),
-							Map.entry(nt("zero_or_one_2"), Set.of(Terminal.END_OF_INPUT)),
-							Map.entry(
-									nt("terminal_0"), Set.of(Terminal.END_OF_INPUT, t("terminal_1"), t("terminal_2"))),
-							Map.entry(nt("terminal_1"), Set.of(Terminal.END_OF_INPUT, t("terminal_2"))),
-							Map.entry(nt("terminal_2"), Set.of(Terminal.END_OF_INPUT)))));
+							Map.entry(nt("zero_or_one_2"), Set.of(Terminal.END_OF_INPUT)))));
 
 	private static String printSets(final Map<NonTerminal, Set<Terminal>> sets) {
 		final StringBuilder sb = new StringBuilder();
@@ -169,7 +165,8 @@ public final class TestFirstFollowSets {
 	@ParameterizedTest
 	@MethodSource("justFollowSets")
 	void checkFollowSets(final Grammar input, final Map<NonTerminal, Set<Terminal>> expected) {
-		final Map<NonTerminal, Set<Terminal>> actual = GrammarUtils.computeFollowSets(input);
+		final Map<NonTerminal, Set<Terminal>> firstSets = GrammarUtils.computeFirstSets(input);
+		final Map<NonTerminal, Set<Terminal>> actual = GrammarUtils.computeFollowSets(input, firstSets);
 		assertDoesNotThrow(() -> GrammarUtils.checkFollowSets(input, actual));
 		assertEquals(
 				expected,
