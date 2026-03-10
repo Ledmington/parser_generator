@@ -26,8 +26,6 @@ import static com.ledmington.generator.CorrectGrammars.seq;
 import static com.ledmington.generator.CorrectGrammars.t;
 import static com.ledmington.generator.CorrectGrammars.zero_or_more;
 import static com.ledmington.generator.CorrectGrammars.zero_or_one;
-import static com.ledmington.generator.GrammarUtils.EMPTY_TERMINAL;
-import static com.ledmington.generator.GrammarUtils.END_OF_INPUT_TERMINAL;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -57,79 +55,79 @@ public final class TestFirstFollowSets {
 					g(p("start", t("a"))),
 					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0")))),
 					Map.ofEntries(
-							Map.entry(nt("start"), Set.of(END_OF_INPUT_TERMINAL)),
-							Map.entry(nt("terminal_0"), Set.of(END_OF_INPUT_TERMINAL)))),
+							Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)),
+							Map.entry(nt("terminal_0"), Set.of(Terminal.END_OF_INPUT)))),
 			new TestCase(
 					g(p("start", seq(t("a"), t("b")))),
 					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0")))),
 					Map.ofEntries(
-							Map.entry(nt("start"), Set.of(END_OF_INPUT_TERMINAL)),
+							Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)),
 							Map.entry(nt("terminal_0"), Set.of(t("terminal_1"))),
-							Map.entry(nt("terminal_1"), Set.of(END_OF_INPUT_TERMINAL)))),
+							Map.entry(nt("terminal_1"), Set.of(Terminal.END_OF_INPUT)))),
 			new TestCase(
 					g(p("start", or(t("a"), t("b")))),
 					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0"), t("terminal_1")))),
 					Map.ofEntries(
-							Map.entry(nt("start"), Set.of(END_OF_INPUT_TERMINAL)),
-							Map.entry(nt("terminal_0"), Set.of(END_OF_INPUT_TERMINAL)),
-							Map.entry(nt("terminal_1"), Set.of(END_OF_INPUT_TERMINAL)))),
+							Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)),
+							Map.entry(nt("terminal_0"), Set.of(Terminal.END_OF_INPUT)),
+							Map.entry(nt("terminal_1"), Set.of(Terminal.END_OF_INPUT)))),
 			new TestCase(
 					g(p("start", zero_or_one(t("a")))),
-					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0"), EMPTY_TERMINAL))),
+					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0"), Terminal.EPSILON))),
 					Map.ofEntries(
-							Map.entry(nt("start"), Set.of(END_OF_INPUT_TERMINAL)),
-							Map.entry(nt("terminal_0"), Set.of(END_OF_INPUT_TERMINAL)))),
+							Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)),
+							Map.entry(nt("terminal_0"), Set.of(Terminal.END_OF_INPUT)))),
 			new TestCase(
 					g(p("start", one_or_more(t("a")))),
 					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0")))),
 					Map.ofEntries(
-							Map.entry(nt("start"), Set.of(END_OF_INPUT_TERMINAL)),
-							Map.entry(nt("terminal_0"), Set.of(END_OF_INPUT_TERMINAL)))),
+							Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)),
+							Map.entry(nt("terminal_0"), Set.of(Terminal.END_OF_INPUT)))),
 			new TestCase(
 					g(p("start", zero_or_more(t("a")))),
-					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0"), EMPTY_TERMINAL))),
+					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0"), Terminal.EPSILON))),
 					Map.ofEntries(
-							Map.entry(nt("start"), Set.of(END_OF_INPUT_TERMINAL)),
-							Map.entry(nt("terminal_0"), Set.of(END_OF_INPUT_TERMINAL)))),
+							Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)),
+							Map.entry(nt("terminal_0"), Set.of(Terminal.END_OF_INPUT)))),
 			new TestCase(
 					g(p("start", seq(nt("A"), nt("B"))), p("A", t("a")), p("B", t("b"))),
 					Map.ofEntries(Map.entry(nt("start"), Set.of(t("A")))),
 					Map.ofEntries(
-							Map.entry(nt("start"), Set.of(END_OF_INPUT_TERMINAL)),
+							Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)),
 							Map.entry(nt("A"), Set.of(t("B"))),
-							Map.entry(nt("B"), Set.of(END_OF_INPUT_TERMINAL)))),
+							Map.entry(nt("B"), Set.of(Terminal.END_OF_INPUT)))),
 			new TestCase(
 					g(p("start", seq(t("A"), or(t("B"), t("C")), t("D")))),
 					Map.ofEntries(
 							Map.entry(nt("start"), Set.of(t("terminal_0"))),
 							Map.entry(nt("or_0"), Set.of(t("terminal_2"), t("terminal_1")))),
 					Map.ofEntries(
-							Map.entry(nt("start"), Set.of(END_OF_INPUT_TERMINAL)),
+							Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)),
 							Map.entry(nt("or_0"), Set.of(t("terminal_3"))),
 							Map.entry(nt("terminal_0"), Set.of(t("terminal_1"), t("terminal_2"))),
 							Map.entry(nt("terminal_1"), Set.of(t("terminal_3"))),
 							Map.entry(nt("terminal_2"), Set.of(t("terminal_3"))),
-							Map.entry(nt("terminal_3"), Set.of(END_OF_INPUT_TERMINAL)))),
+							Map.entry(nt("terminal_3"), Set.of(Terminal.END_OF_INPUT)))),
 			new TestCase(
 					g(p("start", seq(zero_or_one(t("a")), zero_or_one(t("b")), zero_or_one(t("c"))))),
 					Map.ofEntries(
 							Map.entry(
 									nt("start"),
-									Set.of(t("terminal_0"), t("terminal_1"), t("terminal_2"), EMPTY_TERMINAL)),
-							Map.entry(nt("zero_or_one_0"), Set.of(t("terminal_0"), EMPTY_TERMINAL)),
-							Map.entry(nt("zero_or_one_1"), Set.of(t("terminal_1"), EMPTY_TERMINAL)),
-							Map.entry(nt("zero_or_one_2"), Set.of(t("terminal_2"), EMPTY_TERMINAL))),
+									Set.of(t("terminal_0"), t("terminal_1"), t("terminal_2"), Terminal.EPSILON)),
+							Map.entry(nt("zero_or_one_0"), Set.of(t("terminal_0"), Terminal.EPSILON)),
+							Map.entry(nt("zero_or_one_1"), Set.of(t("terminal_1"), Terminal.EPSILON)),
+							Map.entry(nt("zero_or_one_2"), Set.of(t("terminal_2"), Terminal.EPSILON))),
 					Map.ofEntries(
-							Map.entry(nt("start"), Set.of(END_OF_INPUT_TERMINAL)),
+							Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)),
 							Map.entry(
 									nt("zero_or_one_0"),
-									Set.of(END_OF_INPUT_TERMINAL, t("terminal_1"), t("terminal_2"))),
-							Map.entry(nt("zero_or_one_1"), Set.of(END_OF_INPUT_TERMINAL, t("terminal_2"))),
-							Map.entry(nt("zero_or_one_2"), Set.of(END_OF_INPUT_TERMINAL)),
+									Set.of(Terminal.END_OF_INPUT, t("terminal_1"), t("terminal_2"))),
+							Map.entry(nt("zero_or_one_1"), Set.of(Terminal.END_OF_INPUT, t("terminal_2"))),
+							Map.entry(nt("zero_or_one_2"), Set.of(Terminal.END_OF_INPUT)),
 							Map.entry(
-									nt("terminal_0"), Set.of(END_OF_INPUT_TERMINAL, t("terminal_1"), t("terminal_2"))),
-							Map.entry(nt("terminal_1"), Set.of(END_OF_INPUT_TERMINAL, t("terminal_2"))),
-							Map.entry(nt("terminal_2"), Set.of(END_OF_INPUT_TERMINAL)))));
+									nt("terminal_0"), Set.of(Terminal.END_OF_INPUT, t("terminal_1"), t("terminal_2"))),
+							Map.entry(nt("terminal_1"), Set.of(Terminal.END_OF_INPUT, t("terminal_2"))),
+							Map.entry(nt("terminal_2"), Set.of(Terminal.END_OF_INPUT)))));
 
 	private static String printSets(final Map<NonTerminal, Set<Terminal>> sets) {
 		final StringBuilder sb = new StringBuilder();

@@ -38,9 +38,6 @@ import com.ledmington.ebnf.ZeroOrOne;
 /** A collection of common operations to perform on EBNF grammars. */
 public final class GrammarUtils {
 
-	static final Terminal EMPTY_TERMINAL = new Terminal("ε", true);
-	static final Terminal END_OF_INPUT_TERMINAL = new Terminal("$", true);
-
 	private GrammarUtils() {}
 
 	/**
@@ -54,7 +51,7 @@ public final class GrammarUtils {
 				throw new AssertionError(String.format(
 						"FIRST set of symbol '%s' is empty.", e.getKey().name()));
 			}
-			if (e.getValue().contains(END_OF_INPUT_TERMINAL)) {
+			if (e.getValue().contains(Terminal.END_OF_INPUT)) {
 				throw new AssertionError(String.format(
 						"FIRST set of symbol '%s' contains END_OF_INPUT terminal.",
 						e.getKey().name()));
@@ -101,16 +98,16 @@ public final class GrammarUtils {
 					firstNext = computeFirstSet(parserProductions, s.nodes().get(i));
 					firstSet.addAll(firstNext);
 					i++;
-				} while (i < s.nodes().size() && firstNext.contains(EMPTY_TERMINAL));
+				} while (i < s.nodes().size() && firstNext.contains(Terminal.EPSILON));
 			}
 			case Or or -> or.nodes().forEach(e -> firstSet.addAll(computeFirstSet(parserProductions, e)));
 			case OneOrMore oom -> firstSet.addAll(computeFirstSet(parserProductions, oom.inner()));
 			case ZeroOrOne zoo -> {
-				firstSet.add(EMPTY_TERMINAL);
+				firstSet.add(Terminal.EPSILON);
 				firstSet.addAll(computeFirstSet(parserProductions, zoo.inner()));
 			}
 			case ZeroOrMore zom -> {
-				firstSet.add(EMPTY_TERMINAL);
+				firstSet.add(Terminal.EPSILON);
 				firstSet.addAll(computeFirstSet(parserProductions, zom.inner()));
 			}
 			default -> throw new AssertionError(String.format("Unknown node: '%s'.", expr));
@@ -131,32 +128,32 @@ public final class GrammarUtils {
 				.findFirst()
 				.orElseThrow()
 				.getValue()
-				.contains(END_OF_INPUT_TERMINAL)) {
+				.contains(Terminal.END_OF_INPUT)) {
 			throw new AssertionError(String.format(
 					"FOLLOW set of start symbol '%s' does not contain '%s' (end of input) terminal.",
-					g.getStartSymbol(), END_OF_INPUT_TERMINAL.literal()));
+					g.getStartSymbol(), Terminal.END_OF_INPUT.literal()));
 		}
 		for (final Map.Entry<NonTerminal, Set<Terminal>> e : followSets.entrySet()) {
 			if (e.getValue().isEmpty()) {
 				throw new AssertionError(String.format(
 						"FOLLOW set of symbol '%s' is empty.", e.getKey().name()));
 			}
-			if (e.getValue().contains(EMPTY_TERMINAL)) {
+			if (e.getValue().contains(Terminal.EPSILON)) {
 				throw new AssertionError(String.format(
 						"FOLLOW set of symbol '%s' contains '%s' (empty terminal).",
-						e.getKey().name(), EMPTY_TERMINAL.literal()));
+						e.getKey().name(), Terminal.EPSILON.literal()));
 			}
 		}
 	}
 
 	private static Set<Terminal> withoutEpsilon(final Set<Terminal> s) {
 		final Set<Terminal> r = new HashSet<>(s);
-		r.remove(EMPTY_TERMINAL);
+		r.remove(Terminal.EPSILON);
 		return r;
 	}
 
 	private static boolean containsEpsilon(final Set<Terminal> s) {
-		return s.contains(EMPTY_TERMINAL);
+		return s.contains(Terminal.EPSILON);
 	}
 
 	private static int getFollowSetsSize(Map<NonTerminal, Set<Terminal>> followSets) {
@@ -182,7 +179,7 @@ public final class GrammarUtils {
 				.findFirst()
 				.orElseThrow()
 				.getValue()
-				.add(END_OF_INPUT_TERMINAL);
+				.add(Terminal.END_OF_INPUT);
 
 		// Repeating until there is no change
 		int previousSize;

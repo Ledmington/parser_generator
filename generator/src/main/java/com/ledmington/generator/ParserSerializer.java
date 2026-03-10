@@ -424,10 +424,9 @@ public final class ParserSerializer {
 				.indent();
 
 		final Set<Terminal> first = firstSets.get(root);
-		final boolean hasEpsilon = first.contains(GrammarUtils.EMPTY_TERMINAL);
-		final Set<Terminal> firstNoEps = first.stream()
-				.filter(t -> !t.equals(GrammarUtils.EMPTY_TERMINAL))
-				.collect(Collectors.toSet());
+		final boolean hasEpsilon = first.contains(Terminal.EPSILON);
+		final Set<Terminal> firstNoEps =
+				first.stream().filter(t -> !t.equals(Terminal.EPSILON)).collect(Collectors.toSet());
 
 		// FIRST - {ε}
 		final List<String> conditions = new ArrayList<>(firstNoEps.stream()
@@ -439,7 +438,7 @@ public final class ParserSerializer {
 			final Set<Terminal> follow = followSets.get(root);
 
 			for (final Terminal t : follow) {
-				if (t.equals(GrammarUtils.END_OF_INPUT_TERMINAL)) {
+				if (t.equals(Terminal.END_OF_INPUT)) {
 					conditions.add("pos >= v.length");
 				} else {
 					conditions.add("v[pos].type() == TokenType." + t.literal());
