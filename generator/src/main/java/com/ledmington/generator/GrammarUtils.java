@@ -126,6 +126,12 @@ public final class GrammarUtils {
 	 * @param followSets The FOLLOW sets to be checked.
 	 */
 	public static void checkFollowSets(final Grammar g, final Map<NonTerminal, Set<Terminal>> followSets) {
+		for (final NonTerminal symbol : followSets.keySet()) {
+			if (g.getLexerProductions().stream().anyMatch(p -> p.start().name().equals(symbol.name()))) {
+				throw new AssertionError(
+						String.format("FOLLOW set of terminal symbol '%s' is present.", symbol.name()));
+			}
+		}
 		if (!followSets.entrySet().stream()
 				.filter(e -> e.getKey().name().equals(g.getStartSymbol()))
 				.findFirst()
@@ -197,6 +203,14 @@ public final class GrammarUtils {
 			final NonTerminal a = p.start();
 			final Expression expr = p.result();
 			switch (expr) {
+				case NonTerminal nt -> {
+					// We do NOT compute FOLLOW sets of lexer symbols
+					final boolean isParserSymbol = g.getLexerProductions().stream()
+							.noneMatch(x -> x.start().name().equals(nt.name()));
+					if (isParserSymbol) {
+						graph.get(a).add(nt);
+					}
+				}
 				case ZeroOrOne zoo -> graph.get(a).add((NonTerminal) zoo.inner());
 				case ZeroOrMore zom -> graph.get(a).add((NonTerminal) zom.inner());
 				case OneOrMore oom -> graph.get(a).add((NonTerminal) oom.inner());
@@ -211,6 +225,9 @@ public final class GrammarUtils {
 						// We know that every expression is a composite node made only of NonTerminals
 						final NonTerminal current = (NonTerminal) s.nodes().get(i);
 						graph.get(a).add(current);
+						if (!firstSets.containsKey(current)) {
+							firstSets.put(current, new HashSet<>());
+						}
 						final Set<Terminal> fs = firstSets.get(current);
 						if (!fs.contains(Terminal.EPSILON)) {
 							break;
@@ -245,6 +262,13 @@ public final class GrammarUtils {
 			for (int i = 0; i < nodes.size() - 1; i++) {
 				// We know that every expression is a composite node made only of NonTerminals
 				final NonTerminal current = (NonTerminal) nodes.get(i);
+
+				// We do NOT compute FOLLOW sets of lexer symbols
+				final boolean isLexerSymbol = g.getLexerProductions().stream()
+						.anyMatch(x -> x.start().name().equals(current.name()));
+				if (isLexerSymbol) {
+					continue;
+				}
 
 				// TODO: are these needed?
 				// final NonTerminal next = (NonTerminal) nodes.get(i + 1);
