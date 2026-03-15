@@ -54,48 +54,31 @@ public final class TestFirstFollowSets {
 			new TestCase(
 					g(p("start", t("a"))),
 					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0")))),
-					Map.ofEntries(
-							Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)),
-							Map.entry(nt("terminal_0"), Set.of(Terminal.END_OF_INPUT)))),
+					Map.ofEntries(Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)))),
 			new TestCase(
 					g(p("start", seq(t("a"), t("b")))),
 					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0")))),
-					Map.ofEntries(
-							Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)),
-							Map.entry(nt("terminal_0"), Set.of(t("terminal_1"))),
-							Map.entry(nt("terminal_1"), Set.of(Terminal.END_OF_INPUT)))),
+					Map.ofEntries(Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)))),
 			new TestCase(
 					g(p("start", or(t("a"), t("b")))),
 					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0"), t("terminal_1")))),
-					Map.ofEntries(
-							Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)),
-							Map.entry(nt("terminal_0"), Set.of(Terminal.END_OF_INPUT)),
-							Map.entry(nt("terminal_1"), Set.of(Terminal.END_OF_INPUT)))),
+					Map.ofEntries(Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)))),
 			new TestCase(
 					g(p("start", zero_or_one(t("a")))),
 					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0"), Terminal.EPSILON))),
-					Map.ofEntries(
-							Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)),
-							Map.entry(nt("terminal_0"), Set.of(Terminal.END_OF_INPUT)))),
+					Map.ofEntries(Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)))),
 			new TestCase(
 					g(p("start", one_or_more(t("a")))),
 					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0")))),
-					Map.ofEntries(
-							Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)),
-							Map.entry(nt("terminal_0"), Set.of(Terminal.END_OF_INPUT)))),
+					Map.ofEntries(Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)))),
 			new TestCase(
 					g(p("start", zero_or_more(t("a")))),
 					Map.ofEntries(Map.entry(nt("start"), Set.of(t("terminal_0"), Terminal.EPSILON))),
-					Map.ofEntries(
-							Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)),
-							Map.entry(nt("terminal_0"), Set.of(Terminal.END_OF_INPUT)))),
+					Map.ofEntries(Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)))),
 			new TestCase(
 					g(p("start", seq(nt("A"), nt("B"))), p("A", t("a")), p("B", t("b"))),
 					Map.ofEntries(Map.entry(nt("start"), Set.of(t("A")))),
-					Map.ofEntries(
-							Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)),
-							Map.entry(nt("A"), Set.of(t("B"))),
-							Map.entry(nt("B"), Set.of(Terminal.END_OF_INPUT)))),
+					Map.ofEntries(Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)))),
 			new TestCase(
 					g(p("start", seq(t("A"), or(t("B"), t("C")), t("D")))),
 					Map.ofEntries(
@@ -103,11 +86,7 @@ public final class TestFirstFollowSets {
 							Map.entry(nt("or_0"), Set.of(t("terminal_2"), t("terminal_1")))),
 					Map.ofEntries(
 							Map.entry(nt("start"), Set.of(Terminal.END_OF_INPUT)),
-							Map.entry(nt("or_0"), Set.of(t("terminal_3"))),
-							Map.entry(nt("terminal_0"), Set.of(t("terminal_1"), t("terminal_2"))),
-							Map.entry(nt("terminal_1"), Set.of(t("terminal_3"))),
-							Map.entry(nt("terminal_2"), Set.of(t("terminal_3"))),
-							Map.entry(nt("terminal_3"), Set.of(Terminal.END_OF_INPUT)))),
+							Map.entry(nt("or_0"), Set.of(t("terminal_3"))))),
 			new TestCase(
 					g(p("start", seq(zero_or_one(t("a")), zero_or_one(t("b")), zero_or_one(t("c"))))),
 					Map.ofEntries(
