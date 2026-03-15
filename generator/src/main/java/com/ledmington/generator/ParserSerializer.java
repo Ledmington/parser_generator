@@ -268,12 +268,12 @@ public final class ParserSerializer {
 			final String productionName = start.name();
 
 			switch (result) {
-				case NonTerminal nt -> generateNonTerminal(start, nt);
+				case NonTerminal nt -> generateNonTerminal(start, nt, firstSets);
 				case Sequence s -> generateSequence(start, s, firstSets, followSets);
 				case Or or -> generateOr(start, or, firstSets);
-				case ZeroOrOne zoo -> generateZeroOrOne(productionName, zoo);
-				case ZeroOrMore zom -> generateZeroOrMore(productionName, zom);
-				case OneOrMore oom -> generateOneOrMore(productionName, oom);
+				case ZeroOrOne zoo -> generateZeroOrOne(productionName, zoo, firstSets, followSets);
+				case ZeroOrMore zom -> generateZeroOrMore(productionName, zom, firstSets);
+				case OneOrMore oom -> generateOneOrMore(productionName, oom, firstSets);
 				default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'", result));
 			}
 		}
@@ -333,7 +333,8 @@ public final class ParserSerializer {
 		sb.append("return null;\n").deindent().append("}\n");
 	}
 
-	private void generateZeroOrMore(final String productionName, final ZeroOrMore zom) {
+	private void generateZeroOrMore(
+			final String productionName, final ZeroOrMore zom, final Map<NonTerminal, Set<Terminal>> firstSets) {
 		final Expression inner = zom.inner();
 		final String innerTypeName = resolveTypeName(inner);
 
@@ -343,7 +344,7 @@ public final class ParserSerializer {
 				.append("while (true) {\n")
 				.indent();
 		generateParseCall(inner, "n");
-		if (canBeNull(inner)) {
+		if (!isNullable(inner, firstSets)) {
 			sb.append("if (n == null) {\n")
 					.indent()
 					.append("break;\n")
@@ -360,14 +361,15 @@ public final class ParserSerializer {
 				.append("}\n");
 	}
 
-	private void generateOneOrMore(final String productionName, final OneOrMore oom) {
+	private void generateOneOrMore(
+			final String productionName, final OneOrMore oom, final Map<NonTerminal, Set<Terminal>> firstSets) {
 		final Expression inner = oom.inner();
 		final String innerTypeName = resolveTypeName(inner);
 
 		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
 				.indent();
 		generateParseCall(inner, "n_0");
-		if (canBeNull(inner)) {
+		if (!isNullable(inner, firstSets)) {
 			sb.append("if (n_0 == null) {\n")
 					.indent()
 					.append("return null;\n")
@@ -468,12 +470,13 @@ public final class ParserSerializer {
 				.append("}\n");
 	}
 
-	private void generateNonTerminal(final NonTerminal start, final Expression result) {
+	private void generateNonTerminal(
+			final NonTerminal start, final Expression result, final Map<NonTerminal, Set<Terminal>> firstSets) {
 		final String typeName = globalNodeNames.get(start);
 
 		sb.append("private " + typeName + " parse_" + typeName + "() {\n").indent();
 		generateParseCall(result, "inner");
-		if (canBeNull(result)) {
+		if (!isNullable(result, firstSets)) {
 			sb.append("if (inner == null) {\n")
 					.indent()
 					.append("return null;\n")
@@ -483,13 +486,51 @@ public final class ParserSerializer {
 		sb.append("return new " + typeName + "(inner);\n").deindent().append("}\n");
 	}
 
-	private void generateZeroOrOne(final String productionName, final ZeroOrOne zoo) {
+	private void generateZeroOrOne(
+			final String productionName,
+			final ZeroOrOne zoo,
+			final Map<NonTerminal, Set<Terminal>> firstSets,
+			final Map<NonTerminal, Set<Terminal>> followSets) {
+
 		final Expression inner = zoo.inner();
 
-		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
+		sb.append("private ")
+				.append(productionName)
+				.append(" parse_")
+				.append(productionName)
+				.append("() {\n")
 				.indent();
-		generateParseCall(inner, "inner");
-		sb.append("return new " + productionName + "(inner);\n").deindent().append("}\n");
+
+		final List<String> conditions = new ArrayList<>();
+
+		if (inner instanceof NonTerminal nt && firstSets.containsKey(nt)) {
+			final Set<Terminal> first = firstSets.get(nt);
+
+			for (final Terminal t : first) {
+				if (!t.equals(Terminal.EPSILON)) {
+					conditions.add("v[pos].type() == TokenType." + t.literal());
+				}
+			}
+		}
+
+		sb.append(resolveTypeName(inner)).append(" inner = null;\n");
+
+		if (!conditions.isEmpty()) {
+			sb.append("if (pos < v.length && (")
+					.append(String.join(" || ", conditions))
+					.append(")) {\n")
+					.indent();
+
+			generateParseCall(inner, "tmp");
+			sb.append("inner = tmp;\n");
+			sb.deindent().append("}\n");
+		}
+
+		sb.append("return new ")
+				.append(productionName)
+				.append("(inner);\n")
+				.deindent()
+				.append("}\n");
 	}
 
 	private boolean canBeNull(final Expression exp) {
@@ -507,5 +548,39 @@ public final class ParserSerializer {
 			sb.append("parse_" + name + "()");
 		}
 		sb.append(";\n");
+	}
+
+	private boolean isNullable(final Expression exp, final Map<NonTerminal, Set<Terminal>> firstSets) {
+		switch (exp) {
+			case ZeroOrOne _, ZeroOrMore _ -> {
+				return true;
+			}
+			case OneOrMore oom -> {
+				return isNullable(oom.inner(), firstSets);
+			}
+			case NonTerminal nt -> {
+				final Set<Terminal> first = firstSets.get(nt);
+				return first != null && first.contains(Terminal.EPSILON);
+			}
+			case Sequence s -> {
+				for (final Expression e : s.nodes()) {
+					if (!isNullable(e, firstSets)) {
+						return false;
+					}
+				}
+				return true;
+			}
+			case Or or -> {
+				for (final Expression e : or.nodes()) {
+					if (isNullable(e, firstSets)) {
+						return true;
+					}
+				}
+				return false;
+			}
+			default -> {
+				return false;
+			}
+		}
 	}
 }
