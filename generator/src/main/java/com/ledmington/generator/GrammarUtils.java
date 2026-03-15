@@ -162,6 +162,29 @@ public final class GrammarUtils {
 		return r;
 	}
 
+	private static Set<NonTerminal> collectNonTerminals(final Expression e) {
+		final Set<NonTerminal> result = new HashSet<>();
+		switch (e) {
+			case NonTerminal nt -> result.add(nt);
+			case Sequence s -> {
+				for (final Expression x : s.nodes()) {
+					result.addAll(collectNonTerminals(x));
+				}
+			}
+			case Or or -> {
+				for (final Expression x : or.nodes()) {
+					result.addAll(collectNonTerminals(x));
+				}
+			}
+			case ZeroOrOne zoo -> result.addAll(collectNonTerminals(zoo.inner()));
+			case ZeroOrMore zom -> result.addAll(collectNonTerminals(zom.inner()));
+			case OneOrMore oom -> result.addAll(collectNonTerminals(oom.inner()));
+			case Terminal _ -> {}
+			default -> throw new IllegalArgumentException(String.format("Unknown expression: '%s'.", e));
+		}
+		return result;
+	}
+
 	/**
 	 * Computes the FOLLOW sets for all non-terminal symbols in the given EBNF grammar.
 	 *
@@ -261,38 +284,36 @@ public final class GrammarUtils {
 			}
 			for (int i = 0; i < nodes.size() - 1; i++) {
 				// We know that every expression is a composite node made only of NonTerminals
-				final NonTerminal current = (NonTerminal) nodes.get(i);
+				final Expression currentExpr = nodes.get(i);
+				final Set<NonTerminal> currents = collectNonTerminals(currentExpr);
 
-				// We do NOT compute FOLLOW sets of lexer symbols
-				final boolean isLexerSymbol = g.getLexerProductions().stream()
-						.anyMatch(x -> x.start().name().equals(current.name()));
-				if (isLexerSymbol) {
-					continue;
-				}
-
-				// TODO: are these needed?
-				// final NonTerminal next = (NonTerminal) nodes.get(i + 1);
-				// followSets.get(current).addAll(withoutEpsilon(firstSets.get(next)));
-
-				final Set<Terminal> firstSuffix = new HashSet<>();
-				boolean nullable = true;
-
-				for (int j = i + 1; j < nodes.size(); j++) {
-					NonTerminal sym = (NonTerminal) nodes.get(j);
-					Set<Terminal> f = firstSets.get(sym);
-
-					firstSuffix.addAll(withoutEpsilon(f));
-
-					if (!f.contains(Terminal.EPSILON)) {
-						nullable = false;
-						break;
+				for (final NonTerminal current : currents) {
+					final boolean isLexerSymbol = g.getLexerProductions().stream()
+							.anyMatch(x -> x.start().name().equals(current.name()));
+					if (isLexerSymbol) {
+						continue;
 					}
-				}
 
-				followSets.get(current).addAll(firstSuffix);
+					final Set<Terminal> firstSuffix = new HashSet<>();
+					boolean nullable = true;
 
-				if (nullable) {
-					graph.get(p.start()).add(current);
+					for (int j = i + 1; j < nodes.size(); j++) {
+						final Expression sym = nodes.get(j);
+						final Set<Terminal> f = computeFirstSet(g.getParserProductions(), sym);
+
+						firstSuffix.addAll(withoutEpsilon(f));
+
+						if (!f.contains(Terminal.EPSILON)) {
+							nullable = false;
+							break;
+						}
+					}
+
+					followSets.get(current).addAll(firstSuffix);
+
+					if (nullable) {
+						graph.get(p.start()).add(current);
+					}
 				}
 			}
 		}
