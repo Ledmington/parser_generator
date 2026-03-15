@@ -272,8 +272,8 @@ public final class ParserSerializer {
 				case Sequence s -> generateSequence(start, s, firstSets, followSets);
 				case Or or -> generateOr(start, or, firstSets, followSets);
 				case ZeroOrOne zoo -> generateZeroOrOne(productionName, zoo, firstSets, followSets);
-				case ZeroOrMore zom -> generateZeroOrMore(productionName, zom, firstSets);
-				case OneOrMore oom -> generateOneOrMore(productionName, oom, firstSets);
+				case ZeroOrMore zom -> generateZeroOrMore(productionName, zom, firstSets, followSets, start);
+				case OneOrMore oom -> generateOneOrMore(productionName, oom, firstSets, followSets, start);
 				default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'", result));
 			}
 		}
@@ -341,84 +341,81 @@ public final class ParserSerializer {
 	}
 
 	private void generateZeroOrMore(
-			final String productionName, final ZeroOrMore zom, final Map<NonTerminal, Set<Terminal>> firstSets) {
+			final String productionName,
+			final ZeroOrMore zom,
+			final Map<NonTerminal, Set<Terminal>> firstSets,
+			final Map<NonTerminal, Set<Terminal>> followSets,
+			final NonTerminal parent) {
+
 		final Expression inner = zom.inner();
 		final String innerTypeName = resolveTypeName(inner);
 
 		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
 				.indent()
-				.append("final List<" + innerTypeName + "> nodes = new ArrayList<>();\n")
-				.append("while (true) {\n")
-				.indent();
-		generateParseCall(inner, "n");
-		if (!isNullable(inner, firstSets)) {
-			sb.append("if (n == null) {\n")
-					.indent()
-					.append("break;\n")
-					.deindent()
-					.append("}\n");
-		}
-		sb.append("nodes.add(n);\n")
-				.deindent()
-				.append("}\n")
-				.append("return new ")
-				.append(productionName)
-				.append("(nodes);\n")
+				.append("final List<" + innerTypeName + "> nodes = new ArrayList<>();\n");
+
+		sb.append("while (true) {\n").indent();
+
+		// Build lookahead to stop the repetition
+		final String lookahead = buildLookaheadCondition(inner, firstSets, followSets, parent);
+		sb.append("if (!(")
+				.append(lookahead.isEmpty() ? "true" : lookahead)
+				.append(")) {\n")
+				.indent()
+				.append("break;\n")
 				.deindent()
 				.append("}\n");
+
+		generateParseCall(inner, "n");
+		sb.append("if (n == null) {\n").indent().append("break;\n").deindent().append("}\n");
+		sb.append("nodes.add(n);\n");
+
+		sb.deindent().append("}\n");
+		sb.append("return new " + productionName + "(nodes);\n").deindent().append("}\n");
 	}
 
 	private void generateOneOrMore(
-			final String productionName, final OneOrMore oom, final Map<NonTerminal, Set<Terminal>> firstSets) {
+			final String productionName,
+			final OneOrMore oom,
+			final Map<NonTerminal, Set<Terminal>> firstSets,
+			final Map<NonTerminal, Set<Terminal>> followSets,
+			final NonTerminal parent) {
+
 		final Expression inner = oom.inner();
 		final String innerTypeName = resolveTypeName(inner);
 
 		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
-				.indent();
+				.indent()
+				.append("final List<" + innerTypeName + "> nodes = new ArrayList<>();\n");
+
+		// Parse first occurrence
 		generateParseCall(inner, "n_0");
-		if (!isNullable(inner, firstSets)) {
-			sb.append("if (n_0 == null) {\n")
-					.indent()
-					.append("return null;\n")
-					.deindent()
-					.append("}\n");
-		}
-		sb.append("final List<" + innerTypeName + "> nodes = new ArrayList<>();\n")
-				.append("nodes.add(n_0);\n")
-				.append("while (true) {\n")
-				.indent();
-		generateParseCall(inner, "n");
-		if (!isNullable(inner, firstSets)) {
-			sb.append("if (n == null) {\n")
-					.indent()
-					.append("break;\n")
-					.deindent()
-					.append("}\n");
-		}
-		sb.append("nodes.add(n);\n")
-				.deindent()
-				.append("}\n")
-				.append("return new " + productionName + "(nodes);\n")
+		sb.append("if (n_0 == null) {\n")
+				.indent()
+				.append("return null;\n")
 				.deindent()
 				.append("}\n");
-	}
+		sb.append("nodes.add(n_0);\n");
 
-	private String tokenCondition(final Terminal t) {
-		if (t.equals(Terminal.END_OF_INPUT)) {
-			return "pos >= v.length";
-		}
-		return "(pos < v.length && v[pos].type() == TokenType." + t.literal() + ")";
-	}
+		// Loop for additional occurrences
+		sb.append("while (true) {\n").indent();
 
-	private List<String> firstConditions(final Set<Terminal> first) {
-		return first.stream()
-				.filter(t -> !t.equals(Terminal.EPSILON))
-				.map(this::tokenCondition)
-				.toList();
-	}
+		// Build lookahead: first(inner) or (nullable(inner) && follow(parent))
+		final String lookahead = buildLookaheadCondition(inner, firstSets, followSets, parent);
+		sb.append("if (!(")
+				.append(lookahead.isEmpty() ? "true" : lookahead)
+				.append(")) {\n")
+				.indent()
+				.append("break;\n")
+				.deindent()
+				.append("}\n");
 
-	private List<String> followConditions(final Set<Terminal> follow) {
-		return follow.stream().map(this::tokenCondition).toList();
+		generateParseCall(inner, "n");
+		sb.append("if (n == null) {\n").indent().append("break;\n").deindent().append("}\n");
+		sb.append("nodes.add(n);\n");
+
+		sb.deindent().append("}\n");
+		sb.append("return new " + productionName + "(nodes);\n").deindent().append("}\n");
 	}
 
 	private String buildLookaheadCondition(
@@ -426,15 +423,13 @@ public final class ParserSerializer {
 			final Map<NonTerminal, Set<Terminal>> firstSets,
 			final Map<NonTerminal, Set<Terminal>> followSets,
 			final NonTerminal parent) {
-
-		List<String> conditions = new ArrayList<>();
-
+		final List<String> conditions = new ArrayList<>();
 		if (exp instanceof Terminal t) {
 			conditions.add("pos < v.length && v[pos].type() == TokenType." + t.literal());
-		} else if (exp instanceof NonTerminal nt) {
+		} else if (exp instanceof final NonTerminal nt) {
 			final Set<Terminal> first = firstSets.get(nt);
 			if (first != null) {
-				for (Terminal f : first) {
+				for (final Terminal f : first) {
 					if (!f.equals(Terminal.EPSILON)) {
 						conditions.add("pos < v.length && v[pos].type() == TokenType." + f.literal());
 					}
@@ -443,7 +438,7 @@ public final class ParserSerializer {
 			if (isNullable(exp, firstSets) && parent != null) {
 				final Set<Terminal> follow = followSets.get(parent);
 				if (follow != null) {
-					for (Terminal f : follow) {
+					for (final Terminal f : follow) {
 						if (f.equals(Terminal.END_OF_INPUT)) {
 							conditions.add("pos >= v.length");
 						} else {
@@ -452,19 +447,19 @@ public final class ParserSerializer {
 					}
 				}
 			}
-		} else if (exp instanceof ZeroOrOne zoo) {
-			conditions.add(buildLookaheadCondition(zoo.inner(), firstSets, followSets, parent));
-		} else if (exp instanceof ZeroOrMore zom) {
-			conditions.add(buildLookaheadCondition(zom.inner(), firstSets, followSets, parent));
-		} else if (exp instanceof OneOrMore oom) {
-			conditions.add(buildLookaheadCondition(oom.inner(), firstSets, followSets, parent));
-		} else if (exp instanceof Sequence seq) {
-			if (!seq.nodes().isEmpty()) {
-				conditions.add(buildLookaheadCondition(seq.nodes().get(0), firstSets, followSets, parent));
+		} else if (exp instanceof ZeroOrOne(final Expression inner)) {
+			conditions.add(buildLookaheadCondition(inner, firstSets, followSets, parent));
+		} else if (exp instanceof ZeroOrMore(final Expression inner)) {
+			conditions.add(buildLookaheadCondition(inner, firstSets, followSets, parent));
+		} else if (exp instanceof OneOrMore(final Expression inner)) {
+			conditions.add(buildLookaheadCondition(inner, firstSets, followSets, parent));
+		} else if (exp instanceof Sequence(final List<Expression> nodes)) {
+			if (!nodes.isEmpty()) {
+				conditions.add(buildLookaheadCondition(nodes.getFirst(), firstSets, followSets, parent));
 			}
-		} else if (exp instanceof Or or) {
-			List<String> branchConds = new ArrayList<>();
-			for (Expression branch : or.nodes()) {
+		} else if (exp instanceof Or(final List<Expression> nodes)) {
+			final List<String> branchConds = new ArrayList<>();
+			for (final Expression branch : nodes) {
 				branchConds.add(buildLookaheadCondition(branch, firstSets, followSets, parent));
 			}
 			conditions.add(String.join(" || ", branchConds));
