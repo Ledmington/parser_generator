@@ -17,12 +17,15 @@
  */
 package com.ledmington.generator;
 
+import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
@@ -38,9 +41,6 @@ import com.ledmington.ebnf.ZeroOrOne;
 /** A collection of common operations to perform on EBNF grammars. */
 public final class GrammarUtils {
 
-	static final Terminal EMPTY_TERMINAL = new Terminal("ε", true);
-	static final Terminal END_OF_INPUT_TERMINAL = new Terminal("$", true);
-
 	private GrammarUtils() {}
 
 	/**
@@ -54,7 +54,7 @@ public final class GrammarUtils {
 				throw new AssertionError(String.format(
 						"FIRST set of symbol '%s' is empty.", e.getKey().name()));
 			}
-			if (e.getValue().contains(END_OF_INPUT_TERMINAL)) {
+			if (e.getValue().contains(Terminal.END_OF_INPUT)) {
 				throw new AssertionError(String.format(
 						"FIRST set of symbol '%s' contains END_OF_INPUT terminal.",
 						e.getKey().name()));
@@ -94,16 +94,23 @@ public final class GrammarUtils {
 					firstSet.add(new Terminal(nt.name()));
 				}
 			}
-			case Sequence s ->
-				firstSet.addAll(computeFirstSet(parserProductions, s.nodes().getFirst()));
+			case Sequence s -> {
+				int i = 0;
+				Set<Terminal> firstNext;
+				do {
+					firstNext = computeFirstSet(parserProductions, s.nodes().get(i));
+					firstSet.addAll(firstNext);
+					i++;
+				} while (i < s.nodes().size() && firstNext.contains(Terminal.EPSILON));
+			}
 			case Or or -> or.nodes().forEach(e -> firstSet.addAll(computeFirstSet(parserProductions, e)));
 			case OneOrMore oom -> firstSet.addAll(computeFirstSet(parserProductions, oom.inner()));
 			case ZeroOrOne zoo -> {
-				firstSet.add(EMPTY_TERMINAL);
+				firstSet.add(Terminal.EPSILON);
 				firstSet.addAll(computeFirstSet(parserProductions, zoo.inner()));
 			}
 			case ZeroOrMore zom -> {
-				firstSet.add(EMPTY_TERMINAL);
+				firstSet.add(Terminal.EPSILON);
 				firstSet.addAll(computeFirstSet(parserProductions, zom.inner()));
 			}
 			default -> throw new AssertionError(String.format("Unknown node: '%s'.", expr));
@@ -119,41 +126,63 @@ public final class GrammarUtils {
 	 * @param followSets The FOLLOW sets to be checked.
 	 */
 	public static void checkFollowSets(final Grammar g, final Map<NonTerminal, Set<Terminal>> followSets) {
+		for (final NonTerminal symbol : followSets.keySet()) {
+			if (g.getLexerProductions().stream().anyMatch(p -> p.start().name().equals(symbol.name()))) {
+				throw new AssertionError(
+						String.format("FOLLOW set of terminal symbol '%s' is present.", symbol.name()));
+			}
+		}
 		if (!followSets.entrySet().stream()
 				.filter(e -> e.getKey().name().equals(g.getStartSymbol()))
 				.findFirst()
 				.orElseThrow()
 				.getValue()
-				.contains(END_OF_INPUT_TERMINAL)) {
+				.contains(Terminal.END_OF_INPUT)) {
 			throw new AssertionError(String.format(
 					"FOLLOW set of start symbol '%s' does not contain '%s' (end of input) terminal.",
-					g.getStartSymbol(), END_OF_INPUT_TERMINAL.literal()));
+					g.getStartSymbol(), Terminal.END_OF_INPUT.literal()));
 		}
 		for (final Map.Entry<NonTerminal, Set<Terminal>> e : followSets.entrySet()) {
 			if (e.getValue().isEmpty()) {
 				throw new AssertionError(String.format(
 						"FOLLOW set of symbol '%s' is empty.", e.getKey().name()));
 			}
-			if (e.getValue().contains(EMPTY_TERMINAL)) {
+			if (e.getValue().contains(Terminal.EPSILON)) {
 				throw new AssertionError(String.format(
 						"FOLLOW set of symbol '%s' contains '%s' (empty terminal).",
-						e.getKey().name(), EMPTY_TERMINAL.literal()));
+						e.getKey().name(), Terminal.EPSILON.literal()));
 			}
 		}
 	}
 
+	/** Creates a copy of the given set and removes the EPSILON terminal, if it is present. */
 	private static Set<Terminal> withoutEpsilon(final Set<Terminal> s) {
 		final Set<Terminal> r = new HashSet<>(s);
-		r.remove(EMPTY_TERMINAL);
+		r.remove(Terminal.EPSILON);
 		return r;
 	}
 
-	private static boolean containsEpsilon(final Set<Terminal> s) {
-		return s.contains(EMPTY_TERMINAL);
-	}
-
-	private static int getFollowSetsSize(Map<NonTerminal, Set<Terminal>> followSets) {
-		return followSets.values().stream().map(Set::size).reduce(0, Integer::sum);
+	private static Set<NonTerminal> collectNonTerminals(final Expression e) {
+		final Set<NonTerminal> result = new HashSet<>();
+		switch (e) {
+			case NonTerminal nt -> result.add(nt);
+			case Sequence s -> {
+				for (final Expression x : s.nodes()) {
+					result.addAll(collectNonTerminals(x));
+				}
+			}
+			case Or or -> {
+				for (final Expression x : or.nodes()) {
+					result.addAll(collectNonTerminals(x));
+				}
+			}
+			case ZeroOrOne zoo -> result.addAll(collectNonTerminals(zoo.inner()));
+			case ZeroOrMore zom -> result.addAll(collectNonTerminals(zom.inner()));
+			case OneOrMore oom -> result.addAll(collectNonTerminals(oom.inner()));
+			case Terminal _ -> {}
+			default -> throw new IllegalArgumentException(String.format("Unknown expression: '%s'.", e));
+		}
+		return result;
 	}
 
 	/**
@@ -162,121 +191,166 @@ public final class GrammarUtils {
 	 * @param g The grammar to be used.
 	 * @return A set of all non-terminal symbol with their corresponding FOLLOW sets.
 	 */
-	public static Map<NonTerminal, Set<Terminal>> computeFollowSets(final Grammar g) {
+	public static Map<NonTerminal, Set<Terminal>> computeFollowSets(
+			final Grammar g, final Map<NonTerminal, Set<Terminal>> firstSets) {
+		// TODO: refactor this algorithm into different phases
+
+		/*
+		New algorithm idea:
+		1. Create a graph with a node for each non-terminal in the grammar.
+		2. Create edges with the following properties:
+		2.1 if the production is a sequence, create an edge from the start of the production to the last non-terminal of the production; if the FIRST set of the last non-terminal in the sequence contains epsilon, then also create an edge to the second-to-last non-terminal in the sequence. Repeat until the sequence is over or you find a non-terminal whose FIRST set does not contain epsilon.
+		2.2 if the production is an or (alternation), create an edge for each non-terminal in the alternation
+		2.3 if the production is "A -> B? ;", create the edge A->B
+		2.4 if the production is "A -> B+ ;", create the edge A->B
+		2.5 if the production is "A -> B* ;", create the edge A->B
+		3. Apply transitive property on edges (this may be skipped, since does not really simplify step 7 but uses more memory)
+		4. Check the correctness of the graph: it must not have any cycle.
+		5. Use topological sorting to find the "root" nodes: nodes which do not have any incoming edges.
+		6. Initialize FOLLOW sets of each node as the empty set, except the starting symbol of the grammar which starts with '$'.
+		6.1 Also, for each non-terminal X for which exists a production like "A -> ... X Y ... ;", add FIRST(Y) (without epsilon) to FOLLOW(X)
+		7. For each "root" node identified in step 5, propagate its FOLLOW set to neighbors using BFS. This means that, for each edge A->B, add FOLLOW(A) to FOLLOW(B).
+
+		This is an improvement over the old iterative one, since it avoids exploring the same productions over and over. It just builds a graph of relations, then uses it to propagate the FOLLOW sets.
+		 */
+
+		// FOLLOW sets dependency graph
+		final Map<NonTerminal, Set<NonTerminal>> graph = new HashMap<>();
+
+		// Create a node for each non-terminal
+		for (final Production p : g.getParserProductions()) {
+			graph.put(p.start(), new HashSet<>());
+		}
+
+		for (final Production p : g.getParserProductions()) {
+			final NonTerminal a = p.start();
+			final Expression expr = p.result();
+			switch (expr) {
+				case NonTerminal nt -> {
+					// We do NOT compute FOLLOW sets of lexer symbols
+					final boolean isParserSymbol = g.getLexerProductions().stream()
+							.noneMatch(x -> x.start().name().equals(nt.name()));
+					if (isParserSymbol) {
+						graph.get(a).add(nt);
+					}
+				}
+				case ZeroOrOne zoo -> graph.get(a).add((NonTerminal) zoo.inner());
+				case ZeroOrMore zom -> graph.get(a).add((NonTerminal) zom.inner());
+				case OneOrMore oom -> graph.get(a).add((NonTerminal) oom.inner());
+				case Or or -> {
+					for (final Expression b : or.nodes()) {
+						// We know that every expression is a composite node made only of NonTerminals
+						graph.get(a).add((NonTerminal) b);
+					}
+				}
+				case Sequence s -> {
+					for (int i = s.nodes().size() - 1; i >= 0; i--) {
+						// We know that every expression is a composite node made only of NonTerminals
+						final NonTerminal current = (NonTerminal) s.nodes().get(i);
+						graph.get(a).add(current);
+						if (!firstSets.containsKey(current)) {
+							firstSets.put(current, new HashSet<>());
+						}
+						final Set<Terminal> fs = firstSets.get(current);
+						if (!fs.contains(Terminal.EPSILON)) {
+							break;
+						}
+					}
+				}
+				default -> throw new IllegalArgumentException(String.format("Unknown expression node: '%s'.", expr));
+			}
+		}
+
 		final Map<NonTerminal, Set<Terminal>> followSets = new HashMap<>();
 
-		// Each non-terminal starts with an empty set
+		// Each FOLLOW sets starts empty
 		for (final Production p : g.getParserProductions()) {
 			followSets.put(p.start(), new HashSet<>());
 		}
-		// The start symbol starts with the '$' symbol.
+
+		// The FOLLOW set of the starting symbol starts with '$'
 		followSets.entrySet().stream()
 				.filter(e -> e.getKey().name().equals(g.getStartSymbol()))
 				.findFirst()
 				.orElseThrow()
 				.getValue()
-				.add(END_OF_INPUT_TERMINAL);
+				.add(Terminal.END_OF_INPUT);
 
-		// Repeating until there is no change
-		int previousSize;
-		do {
-			previousSize = getFollowSetsSize(followSets);
-
-			for (final Production p : g.getParserProductions()) {
-				final NonTerminal start = p.start();
-				final Expression expr = p.result();
-
-				final Set<Terminal> fs = followSets.get(start);
-
-				updateFollowSet(g, followSets, expr, fs);
+		// For each symbol X for which exists a production like "A -> ... X Y ... ;", we add FIRST(Y) (without epsilon)
+		// to FOLLOW(X)
+		for (final Production p : g.getParserProductions()) {
+			if (!(p.result() instanceof Sequence(final List<Expression> nodes))) {
+				continue;
 			}
-		} while (previousSize != getFollowSetsSize(followSets));
+			for (int i = 0; i < nodes.size() - 1; i++) {
+				// We know that every expression is a composite node made only of NonTerminals
+				final Expression currentExpr = nodes.get(i);
+				final Set<NonTerminal> currents = collectNonTerminals(currentExpr);
+
+				for (final NonTerminal current : currents) {
+					final boolean isLexerSymbol = g.getLexerProductions().stream()
+							.anyMatch(x -> x.start().name().equals(current.name()));
+					if (isLexerSymbol) {
+						continue;
+					}
+
+					final Set<Terminal> firstSuffix = new HashSet<>();
+					boolean nullable = true;
+
+					for (int j = i + 1; j < nodes.size(); j++) {
+						final Expression sym = nodes.get(j);
+						final Set<Terminal> f = computeFirstSet(g.getParserProductions(), sym);
+
+						firstSuffix.addAll(withoutEpsilon(f));
+
+						if (!f.contains(Terminal.EPSILON)) {
+							nullable = false;
+							break;
+						}
+					}
+
+					followSets.get(current).addAll(firstSuffix);
+
+					if (nullable) {
+						graph.get(p.start()).add(current);
+					}
+				}
+			}
+		}
+
+		// BFS (FOLLOW sets propagation)
+		{
+			// "topological sorting"
+			final Queue<NonTerminal> q = graph.keySet().stream()
+					.filter(n -> graph.values().stream().noneMatch(v -> v.contains(n)))
+					.distinct()
+					.collect(Collectors.toCollection(ArrayDeque::new));
+
+			final Set<NonTerminal> visited = new HashSet<>();
+			while (!q.isEmpty()) {
+				final NonTerminal current = q.remove();
+				if (visited.contains(current)) {
+					continue;
+				}
+				visited.add(current);
+
+				if (!graph.containsKey(current)) {
+					continue;
+				}
+
+				final Set<NonTerminal> neighbors = graph.get(current);
+
+				for (final NonTerminal b : neighbors) {
+					if (!followSets.containsKey(b)) {
+						continue;
+					}
+					followSets.get(b).addAll(followSets.get(current));
+				}
+
+				q.addAll(neighbors);
+			}
+		}
 
 		return followSets;
-	}
-
-	private static void updateFollowSet(
-			final Grammar g,
-			final Map<NonTerminal, Set<Terminal>> followSets,
-			final Expression expr,
-			final Set<Terminal> currentFollowSet) {
-		switch (expr) {
-			case NonTerminal nt -> {
-				// A -> B;
-				if (!followSets.containsKey(nt)) {
-					followSets.put(nt, new HashSet<>());
-				}
-				followSets.get(nt).addAll(currentFollowSet);
-			}
-			case Sequence seq -> {
-				// A -> B C D ;
-				final List<Expression> nodes = seq.nodes();
-				for (int i = 0; i < nodes.size(); i++) {
-					final Expression current = nodes.get(i);
-					if (!(current instanceof final NonTerminal nt)) {
-						continue;
-					}
-					if (!followSets.containsKey(nt)) {
-						followSets.put(nt, new HashSet<>());
-					}
-
-					// If there is a next symbol
-					if (i + 1 < nodes.size()) {
-						final Expression next = nodes.get(i + 1);
-						final Set<Terminal> firstNext = computeFirstSet(g.getParserProductions(), next);
-
-						followSets.get(nt).addAll(withoutEpsilon(firstNext));
-						if (containsEpsilon(firstNext)) {
-							followSets.get(nt).addAll(currentFollowSet);
-						}
-					} else {
-						// last symbol of the sequence
-						followSets.get(nt).addAll(currentFollowSet);
-					}
-				}
-			}
-			case Or or -> {
-				// A -> B | C | D ;
-				final List<Expression> nodes = or.nodes();
-				for (final Expression current : nodes) {
-					if (!(current instanceof final NonTerminal nt)) {
-						continue;
-					}
-					if (!followSets.containsKey(nt)) {
-						followSets.put(nt, new HashSet<>());
-					}
-
-					followSets.get(nt).addAll(currentFollowSet);
-				}
-			}
-			case ZeroOrOne zoo -> {
-				// A -> B? ;
-				if (zoo.inner() instanceof final NonTerminal nt) {
-					if (!followSets.containsKey(nt)) {
-						followSets.put(nt, new HashSet<>());
-					}
-					followSets.get(nt).addAll(currentFollowSet);
-				}
-			}
-			case ZeroOrMore zom -> {
-				// A -> B* ;
-				if (zom.inner() instanceof final NonTerminal nt) {
-					if (!followSets.containsKey(nt)) {
-						followSets.put(nt, new HashSet<>());
-					}
-					followSets.get(nt).addAll(currentFollowSet);
-				}
-			}
-			case OneOrMore oom -> {
-				// A -> B+ ;
-				if (oom.inner() instanceof final NonTerminal nt) {
-					if (!followSets.containsKey(nt)) {
-						followSets.put(nt, new HashSet<>());
-					}
-					followSets.get(nt).addAll(currentFollowSet);
-				}
-			}
-			default -> throw new IllegalArgumentException(String.format("Unknown expression node: '%s'.", expr));
-		}
 	}
 }

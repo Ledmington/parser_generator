@@ -80,6 +80,7 @@ public final class Grammar {
 				.forEach(e -> lexerProductions.add(e.getKey()));
 		productions.entrySet().stream()
 				.filter(e -> !Production.isLexerProduction(e.getKey().start().name()))
+				.sorted(Entry.comparingByValue())
 				.forEach(e -> parserProductions.add(e.getKey()));
 
 		// Convert all terminal symbols still in the parser into "anonymous" non-terminal ones

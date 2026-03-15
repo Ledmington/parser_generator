@@ -28,6 +28,9 @@ import java.util.Objects;
  */
 public record Terminal(String literal, boolean isSynthetic) implements Expression {
 
+	public static final Terminal EPSILON = new Terminal("ε", true);
+	public static final Terminal END_OF_INPUT = new Terminal("$", true);
+
 	/** Creates a new Terminal symbol. */
 	public Terminal {
 		Objects.requireNonNull(literal);

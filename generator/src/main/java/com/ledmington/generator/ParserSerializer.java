@@ -75,12 +75,12 @@ public final class ParserSerializer {
 		GrammarUtils.checkFirstSets(firstSets);
 
 		final List<Production> parserProductions = g.getParserProductions();
-		final Map<NonTerminal, Set<Terminal>> followSets = GrammarUtils.computeFollowSets(g);
+		final Map<NonTerminal, Set<Terminal>> followSets = GrammarUtils.computeFollowSets(g, firstSets);
 		GrammarUtils.checkFollowSets(g, followSets);
 
 		generateTypes(parserProductions);
 		generateTerminalSymbolParsing();
-		generateProductions(parserProductions);
+		generateProductions(parserProductions, firstSets, followSets);
 	}
 
 	@SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
@@ -258,19 +258,22 @@ public final class ParserSerializer {
 		}
 	}
 
-	private void generateProductions(final List<Production> parserProductions) {
+	private void generateProductions(
+			final List<Production> parserProductions,
+			final Map<NonTerminal, Set<Terminal>> firstSets,
+			final Map<NonTerminal, Set<Terminal>> followSets) {
 		for (final Production p : parserProductions) {
 			final NonTerminal start = p.start();
 			final Expression result = p.result();
 			final String productionName = start.name();
 
 			switch (result) {
-				case NonTerminal nt -> generateNonTerminal(start, nt);
-				case Sequence s -> generateSequence(productionName, s);
-				case Or or -> generateOr(productionName, or);
-				case ZeroOrOne zoo -> generateZeroOrOne(productionName, zoo);
-				case ZeroOrMore zom -> generateZeroOrMore(productionName, zom);
-				case OneOrMore oom -> generateOneOrMore(productionName, oom);
+				case NonTerminal nt -> generateNonTerminal(start, nt, firstSets);
+				case Sequence s -> generateSequence(start, s, firstSets, followSets);
+				case Or or -> generateOr(start, or, firstSets, followSets);
+				case ZeroOrOne zoo -> generateZeroOrOne(productionName, zoo, firstSets, followSets);
+				case ZeroOrMore zom -> generateZeroOrMore(productionName, zom, firstSets, followSets, start);
+				case OneOrMore oom -> generateOneOrMore(productionName, oom, firstSets, followSets, start);
 				default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'", result));
 			}
 		}
@@ -299,14 +302,30 @@ public final class ParserSerializer {
 		};
 	}
 
-	private void generateOr(final String productionName, final Or or) {
+	private void generateOr(
+			final NonTerminal root,
+			final Or or,
+			final Map<NonTerminal, Set<Terminal>> firstSets,
+			final Map<NonTerminal, Set<Terminal>> followSets) {
+		final String productionName = root.name();
 		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
 				.indent();
+
 		final List<Expression> nodes = or.nodes();
 		for (int i = 0; i < nodes.size(); i++) {
 			final Expression exp = nodes.get(i);
 			final String nodeName = "n_" + i;
+
+			// Use the helper to build correct lookahead for this branch
+			final String lookahead = buildLookaheadCondition(exp, firstSets, followSets, root);
+
+			sb.append("if (")
+					.append(lookahead.isEmpty() ? "true" : lookahead)
+					.append(") {\n")
+					.indent();
+
 			generateParseCall(exp, nodeName);
+
 			sb.append("if (" + nodeName + " != null) {\n")
 					.indent()
 					.append("return new ")
@@ -314,83 +333,172 @@ public final class ParserSerializer {
 					.append("(" + nodeName + ");\n")
 					.deindent()
 					.append("}\n");
+
+			sb.deindent().append("}\n");
 		}
+
 		sb.append("return null;\n").deindent().append("}\n");
 	}
 
-	private void generateZeroOrMore(final String productionName, final ZeroOrMore zom) {
+	private void generateZeroOrMore(
+			final String productionName,
+			final ZeroOrMore zom,
+			final Map<NonTerminal, Set<Terminal>> firstSets,
+			final Map<NonTerminal, Set<Terminal>> followSets,
+			final NonTerminal parent) {
+
 		final Expression inner = zom.inner();
 		final String innerTypeName = resolveTypeName(inner);
 
 		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
 				.indent()
-				.append("final List<" + innerTypeName + "> nodes = new ArrayList<>();\n")
-				.append("while (true) {\n")
-				.indent();
-		generateParseCall(inner, "n");
-		if (canBeNull(inner)) {
-			sb.append("if (n == null) {\n")
-					.indent()
-					.append("break;\n")
-					.deindent()
-					.append("}\n");
-		}
-		sb.append("nodes.add(n);\n")
-				.deindent()
-				.append("}\n")
-				.append("return new ")
-				.append(productionName)
-				.append("(nodes);\n")
+				.append("final List<" + innerTypeName + "> nodes = new ArrayList<>();\n");
+
+		sb.append("while (true) {\n").indent();
+
+		// Build lookahead to stop the repetition
+		final String lookahead = buildLookaheadCondition(inner, firstSets, followSets, parent);
+		sb.append("if (!(")
+				.append(lookahead.isEmpty() ? "true" : lookahead)
+				.append(")) {\n")
+				.indent()
+				.append("break;\n")
 				.deindent()
 				.append("}\n");
+
+		generateParseCall(inner, "n");
+		sb.append("if (n == null) {\n").indent().append("break;\n").deindent().append("}\n");
+		sb.append("nodes.add(n);\n");
+
+		sb.deindent().append("}\n");
+		sb.append("return new " + productionName + "(nodes);\n").deindent().append("}\n");
 	}
 
-	private void generateOneOrMore(final String productionName, final OneOrMore oom) {
+	private void generateOneOrMore(
+			final String productionName,
+			final OneOrMore oom,
+			final Map<NonTerminal, Set<Terminal>> firstSets,
+			final Map<NonTerminal, Set<Terminal>> followSets,
+			final NonTerminal parent) {
+
 		final Expression inner = oom.inner();
 		final String innerTypeName = resolveTypeName(inner);
 
 		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
-				.indent();
+				.indent()
+				.append("final List<" + innerTypeName + "> nodes = new ArrayList<>();\n");
+
+		// Parse first occurrence
 		generateParseCall(inner, "n_0");
-		if (canBeNull(inner)) {
-			sb.append("if (n_0 == null) {\n")
-					.indent()
-					.append("return null;\n")
-					.deindent()
-					.append("}\n");
-		}
-		sb.append("final List<" + innerTypeName + "> nodes = new ArrayList<>();\n")
-				.append("nodes.add(n_0);\n")
-				.append("while (true) {\n")
-				.indent();
-		generateParseCall(inner, "n");
-		if (canBeNull(inner)) {
-			sb.append("if (n == null) {\n")
-					.indent()
-					.append("break;\n")
-					.deindent()
-					.append("}\n");
-		}
-		sb.append("nodes.add(n);\n")
-				.deindent()
-				.append("}\n")
-				.append("return new " + productionName + "(nodes);\n")
+		sb.append("if (n_0 == null) {\n")
+				.indent()
+				.append("return null;\n")
 				.deindent()
 				.append("}\n");
+		sb.append("nodes.add(n_0);\n");
+
+		// Loop for additional occurrences
+		sb.append("while (true) {\n").indent();
+
+		// Build lookahead: first(inner) or (nullable(inner) && follow(parent))
+		final String lookahead = buildLookaheadCondition(inner, firstSets, followSets, parent);
+		sb.append("if (!(")
+				.append(lookahead.isEmpty() ? "true" : lookahead)
+				.append(")) {\n")
+				.indent()
+				.append("break;\n")
+				.deindent()
+				.append("}\n");
+
+		generateParseCall(inner, "n");
+		sb.append("if (n == null) {\n").indent().append("break;\n").deindent().append("}\n");
+		sb.append("nodes.add(n);\n");
+
+		sb.deindent().append("}\n");
+		sb.append("return new " + productionName + "(nodes);\n").deindent().append("}\n");
 	}
 
-	private void generateSequence(final String productionName, final Sequence s) {
+	private String buildLookaheadCondition(
+			final Expression exp,
+			final Map<NonTerminal, Set<Terminal>> firstSets,
+			final Map<NonTerminal, Set<Terminal>> followSets,
+			final NonTerminal parent) {
+		final List<String> conditions = new ArrayList<>();
+		if (exp instanceof Terminal t) {
+			conditions.add("pos < v.length && v[pos].type() == TokenType." + t.literal());
+		} else if (exp instanceof final NonTerminal nt) {
+			final Set<Terminal> first = firstSets.get(nt);
+			if (first != null) {
+				for (final Terminal f : first) {
+					if (!f.equals(Terminal.EPSILON)) {
+						conditions.add("pos < v.length && v[pos].type() == TokenType." + f.literal());
+					}
+				}
+			}
+			if (isNullable(exp, firstSets) && parent != null) {
+				final Set<Terminal> follow = followSets.get(parent);
+				if (follow != null) {
+					for (final Terminal f : follow) {
+						if (f.equals(Terminal.END_OF_INPUT)) {
+							conditions.add("pos >= v.length");
+						} else {
+							conditions.add("pos < v.length && v[pos].type() == TokenType." + f.literal());
+						}
+					}
+				}
+			}
+		} else if (exp instanceof ZeroOrOne(final Expression inner)) {
+			conditions.add(buildLookaheadCondition(inner, firstSets, followSets, parent));
+		} else if (exp instanceof ZeroOrMore(final Expression inner)) {
+			conditions.add(buildLookaheadCondition(inner, firstSets, followSets, parent));
+		} else if (exp instanceof OneOrMore(final Expression inner)) {
+			conditions.add(buildLookaheadCondition(inner, firstSets, followSets, parent));
+		} else if (exp instanceof Sequence(final List<Expression> nodes)) {
+			if (!nodes.isEmpty()) {
+				conditions.add(buildLookaheadCondition(nodes.getFirst(), firstSets, followSets, parent));
+			}
+		} else if (exp instanceof Or(final List<Expression> nodes)) {
+			final List<String> branchConds = new ArrayList<>();
+			for (final Expression branch : nodes) {
+				branchConds.add(buildLookaheadCondition(branch, firstSets, followSets, parent));
+			}
+			conditions.add(String.join(" || ", branchConds));
+		}
+
+		return String.join(" || ", conditions);
+	}
+
+	private void generateSequence(
+			final NonTerminal root,
+			final Sequence s,
+			final Map<NonTerminal, Set<Terminal>> firstSets,
+			final Map<NonTerminal, Set<Terminal>> followSets) {
+
+		final String productionName = root.name();
+
 		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
+				.indent();
+
+		final String lookahead = buildLookaheadCondition(root, firstSets, followSets, root);
+
+		sb.append("if (!(")
+				.append(lookahead.isEmpty() ? "true" : lookahead)
+				.append(")) {\n")
 				.indent()
-				.append("stack.push(this.pos);\n");
+				.append("return null;\n")
+				.deindent()
+				.append("}\n");
+
+		sb.append("stack.push(this.pos);\n");
 
 		final List<Expression> seq = s.nodes();
+
 		for (int i = 0; i < seq.size(); i++) {
 			final Expression exp = seq.get(i);
 			final String nodeName = "n_" + i;
 
 			generateParseCall(exp, nodeName);
-			if (canBeNull(exp)) {
+			if (!isNullable(exp, firstSets)) {
 				sb.append("if (" + nodeName + " == null) {\n")
 						.indent()
 						.append("this.pos = stack.pop();\n")
@@ -408,12 +516,13 @@ public final class ParserSerializer {
 				.append("}\n");
 	}
 
-	private void generateNonTerminal(final NonTerminal start, final Expression result) {
+	private void generateNonTerminal(
+			final NonTerminal start, final Expression result, final Map<NonTerminal, Set<Terminal>> firstSets) {
 		final String typeName = globalNodeNames.get(start);
 
 		sb.append("private " + typeName + " parse_" + typeName + "() {\n").indent();
 		generateParseCall(result, "inner");
-		if (canBeNull(result)) {
+		if (!isNullable(result, firstSets)) {
 			sb.append("if (inner == null) {\n")
 					.indent()
 					.append("return null;\n")
@@ -423,17 +532,64 @@ public final class ParserSerializer {
 		sb.append("return new " + typeName + "(inner);\n").deindent().append("}\n");
 	}
 
-	private void generateZeroOrOne(final String productionName, final ZeroOrOne zoo) {
+	private void generateZeroOrOne(
+			final String productionName,
+			final ZeroOrOne zoo,
+			final Map<NonTerminal, Set<Terminal>> firstSets,
+			final Map<NonTerminal, Set<Terminal>> followSets) {
+
 		final Expression inner = zoo.inner();
 
-		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
+		sb.append("private ")
+				.append(productionName)
+				.append(" parse_")
+				.append(productionName)
+				.append("() {\n")
 				.indent();
-		generateParseCall(inner, "inner");
-		sb.append("return new " + productionName + "(inner);\n").deindent().append("}\n");
-	}
 
-	private boolean canBeNull(final Expression exp) {
-		return !(exp instanceof ZeroOrMore) && !(exp instanceof ZeroOrOne);
+		final List<String> conditions = new ArrayList<>();
+
+		if (inner instanceof NonTerminal nt) {
+			final String name = nt.name();
+			if (isToken(name)) {
+				conditions.add("v[pos].type() == TokenType." + name);
+			} else if (firstSets.containsKey(nt)) {
+				final Set<Terminal> first = firstSets.get(nt);
+				for (final Terminal t : first) {
+					if (!t.equals(Terminal.EPSILON)) {
+						conditions.add("v[pos].type() == TokenType." + t.literal());
+					}
+				}
+			}
+		}
+
+		final Set<Terminal> follow = followSets.get(new NonTerminal(productionName));
+		for (final Terminal t : follow) {
+			if (t.equals(Terminal.END_OF_INPUT)) {
+				conditions.add("pos >= v.length");
+			} else {
+				conditions.add("v[pos].type() == TokenType." + t.literal());
+			}
+		}
+
+		sb.append(resolveTypeName(inner)).append(" inner = null;\n");
+
+		if (!conditions.isEmpty()) {
+			sb.append("if (pos < v.length && (")
+					.append(String.join(" || ", conditions))
+					.append(")) {\n")
+					.indent();
+
+			generateParseCall(inner, "tmp");
+			sb.append("inner = tmp;\n");
+			sb.deindent().append("}\n");
+		}
+
+		sb.append("return new ")
+				.append(productionName)
+				.append("(inner);\n")
+				.deindent()
+				.append("}\n");
 	}
 
 	private void generateParseCall(final Expression n, final String variableName) {
@@ -447,5 +603,39 @@ public final class ParserSerializer {
 			sb.append("parse_" + name + "()");
 		}
 		sb.append(";\n");
+	}
+
+	private boolean isNullable(final Expression exp, final Map<NonTerminal, Set<Terminal>> firstSets) {
+		switch (exp) {
+			case ZeroOrOne _, ZeroOrMore _ -> {
+				return true;
+			}
+			case OneOrMore oom -> {
+				return isNullable(oom.inner(), firstSets);
+			}
+			case NonTerminal nt -> {
+				final Set<Terminal> first = firstSets.get(nt);
+				return first != null && first.contains(Terminal.EPSILON);
+			}
+			case Sequence s -> {
+				for (final Expression e : s.nodes()) {
+					if (!isNullable(e, firstSets)) {
+						return false;
+					}
+				}
+				return true;
+			}
+			case Or or -> {
+				for (final Expression e : or.nodes()) {
+					if (isNullable(e, firstSets)) {
+						return true;
+					}
+				}
+				return false;
+			}
+			default -> {
+				return false;
+			}
+		}
 	}
 }
