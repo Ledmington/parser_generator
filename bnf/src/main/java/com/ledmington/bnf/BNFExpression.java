@@ -15,24 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.ebnf;
+package com.ledmington.bnf;
 
-import java.util.Objects;
-
-/**
- * An element of an EBNF grammar which represents the ability to repeat a given expression as many times as needed (even
- * zero).
- *
- * @param inner The repeated Expression.
- */
-public record ZeroOrMore(Expression inner) implements Container {
-
-	/**
-	 * Creates a new ZeroOrMore object with the given inner expression.
-	 *
-	 * @param inner The repeated expression.
-	 */
-	public ZeroOrMore {
-		Objects.requireNonNull(inner);
-	}
-}
+/** A common type for all elements which can be found only on the right-hand side of a BNF grammar production. */
+public interface BNFExpression {}

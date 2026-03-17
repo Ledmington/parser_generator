@@ -1,0 +1,21 @@
+plugins {
+    id 'java-library'
+    id 'info.solidsoft.pitest' version '1.19.0-rc.1'
+}
+
+dependencies {
+    implementation project(':utils')
+    implementation project(':ebnf')
+}
+
+pitest {
+    targetClasses.set(['com.ledmington.bnf.*'])
+    targetTests.set(['com.ledmington.bnf.*'])
+    pitestVersion = '1.19.5'
+    junit5PluginVersion = '1.2.2'
+    threads = 4
+    outputFormats.set(['XML', 'HTML'])
+    useClasspathFile = true     // useful with bigger projects on Windows
+    verbose = true
+    timestampedReports = false
+}

@@ -15,24 +15,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.ebnf;
+package com.ledmington.bnf;
 
 import java.util.Objects;
 
 /**
- * An element of an EBNF grammar which represents the ability to repeat a given expression as many times as needed (even
- * zero).
+ * An element of the BNF grammar which represents a symbol which cannot be expanded into other symbols.
  *
- * @param inner The repeated Expression.
+ * @param literal The content of the terminal symbol.
  */
-public record ZeroOrMore(Expression inner) implements Container {
+public record BNFTerminal(String literal) implements BNFExpression {
 
-	/**
-	 * Creates a new ZeroOrMore object with the given inner expression.
-	 *
-	 * @param inner The repeated expression.
-	 */
-	public ZeroOrMore {
-		Objects.requireNonNull(inner);
+	public static BNFTerminal EPSILON = new BNFTerminal("ε");
+
+	/** Creates a new BNF Terminal symbol. */
+	public BNFTerminal {
+		Objects.requireNonNull(literal);
+		if (literal.isEmpty()) {
+			throw new IllegalArgumentException("Empty terminal symbol.");
+		}
 	}
 }

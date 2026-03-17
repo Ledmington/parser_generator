@@ -40,7 +40,7 @@ public final class Grammar {
 	private final List<Production> lexerProductions; // pre-computed
 
 	/**
-	 * Creates a new Grammar with the given List of productions.
+	 * Creates a new EBNF Grammar with the given List of productions.
 	 *
 	 * @param productions The productions ordered by priority.
 	 */
