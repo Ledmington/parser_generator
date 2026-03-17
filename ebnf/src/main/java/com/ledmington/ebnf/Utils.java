@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map.Entry;
 
 /** A collection of various utilities. */
+// TODO: move to an external module
 public final class Utils {
 
 	private static final char VERTICAL_LINE = '│';

@@ -17,7 +17,7 @@
  */
 package com.ledmington.bnf;
 
-import com.ledmington.ebnf.EBNFGrammar;
+import com.ledmington.ebnf.Grammar;
 
 /** A class to convert and EBNF grammar into a BNF grammar. */
 public final class Converter {
@@ -30,7 +30,7 @@ public final class Converter {
 	 * @param g The EBNF grammar to be converted.
 	 * @return The converted BNF grammar.
 	 */
-	public static BNFGrammar convertToBnf(final EBNFGrammar g) {
+	public static BNFGrammar convertToBnf(final Grammar g) {
 		throw new Error("Not implemented.");
 	}
 }
