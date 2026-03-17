@@ -35,11 +35,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.ledmington.ebnf.Grammar;
-import com.ledmington.ebnf.NonTerminal;
-import com.ledmington.ebnf.OneOrMore;
-import com.ledmington.ebnf.Or;
 import com.ledmington.ebnf.Production;
-import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.Utils;
 
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
@@ -188,11 +184,8 @@ public final class TestAutomata {
 
 	@Test
 	void checkDFAMatchesSubTokens() {
-		final List<Production> productions = List.of(
-				p("AN", t("an")),
-				p(
-						"ID",
-						one_or_more(or(t("a"), t("b"), t("n")))));
+		final List<Production> productions =
+				List.of(p("AN", t("an")), p("ID", one_or_more(or(t("a"), t("b"), t("n")))));
 		final DFA dfa = AutomataConversions.convertGrammarToDFA(productions);
 		final List<Match> tokens = tryMatch(dfa, "banana");
 		assertEquals(List.of(new Match("ID", "banana")), tokens);
@@ -200,11 +193,8 @@ public final class TestAutomata {
 
 	@Test
 	void checkMinimizedDFAMatchesSubTokens() {
-		final List<Production> productions = List.of(
-				p("AN", t("an")),
-				p(
-						"ID",
-						one_or_more(or(t("a"), t("b"), t("n")))));
+		final List<Production> productions =
+				List.of(p("AN", t("an")), p("ID", one_or_more(or(t("a"), t("b"), t("n")))));
 		final DFA dfa = AutomataConversions.convertGrammarToMinimizedDFA(productions);
 		final List<Match> tokens = tryMatch(dfa, "banana");
 		assertEquals(List.of(new Match("ID", "banana")), tokens);

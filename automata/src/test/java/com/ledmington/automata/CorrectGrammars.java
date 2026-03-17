@@ -17,6 +17,12 @@
  */
 package com.ledmington.automata;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.junit.jupiter.params.provider.Arguments;
+
 import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.NonTerminal;
@@ -27,11 +33,6 @@ import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.ZeroOrMore;
 import com.ledmington.ebnf.ZeroOrOne;
-import org.junit.jupiter.params.provider.Arguments;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 // FIXME: remove duplication of this class from generator's tests
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
