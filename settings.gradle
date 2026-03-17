@@ -4,6 +4,7 @@ plugins {
 
 rootProject.name = 'parser_gen'
 include('ebnf')
+include('automata')
 include('generator')
 include('cli')
 include('bench')

@@ -18,6 +18,7 @@ String mainClassName = "${basePackage}.bench.Main"
 
 dependencies {
     implementation project(':ebnf')
+    implementation project(':automata')
     implementation project(':generator')
 }
 

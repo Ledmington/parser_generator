@@ -15,35 +15,28 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.generator.automata;
+package com.ledmington.automata;
 
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-/** Implementation of a non-deterministic finite-state automaton. */
-@SuppressWarnings("PMD.AvoidFieldNameMatchingMethodName")
-public final class NFAImpl implements NFA {
+/** Implementation of a deterministic finite-state automaton. */
+public final class DFAImpl implements DFA {
 
 	private final State start;
-	private final Map<State, Map<Character, Set<State>>> transitions;
-	private final Map<String, Integer> priorities;
+	private final Map<State, Map<Character, State>> transitions;
 
 	/**
-	 * Creates a new NFA with the given starting state and the given transitions.
+	 * Creates a new DFA with the given starting state and the given transitions.
 	 *
 	 * @param startingState The starting state.
 	 * @param transitions The map of transitions of the automaton.
-	 * @param priorities The Map of priorities of each accepting state.
 	 */
-	public NFAImpl(
-			final State startingState,
-			final Map<State, Map<Character, Set<State>>> transitions,
-			final Map<String, Integer> priorities) {
+	public DFAImpl(final State startingState, final Map<State, Map<Character, State>> transitions) {
 		this.start = Objects.requireNonNull(startingState);
 		this.transitions = Objects.requireNonNull(transitions);
-		this.priorities = Objects.requireNonNull(priorities);
 	}
 
 	@Override
@@ -54,28 +47,21 @@ public final class NFAImpl implements NFA {
 	@Override
 	public Set<State> states() {
 		final Set<State> allStates = new HashSet<>();
-		for (final Map.Entry<State, Map<Character, Set<State>>> e : transitions.entrySet()) {
+		for (final Map.Entry<State, Map<Character, State>> e : transitions.entrySet()) {
 			allStates.add(e.getKey());
-			for (final Map.Entry<Character, Set<State>> e2 : e.getValue().entrySet()) {
-				allStates.addAll(e2.getValue());
-			}
+			allStates.addAll(e.getValue().values());
 		}
 		return allStates;
 	}
 
 	@Override
-	public Map<Character, Set<State>> neighbors(final State s) {
-		return transitions.get(s);
-	}
-
-	@Override
-	public Map<String, Integer> priorities() {
-		return priorities;
+	public Map<Character, State> neighbors(final State s) {
+		return transitions.containsKey(s) ? transitions.get(s) : Map.of();
 	}
 
 	@Override
 	public String toString() {
-		return "NFA[start=" + start + ";transitions=" + transitions + ";priorities=" + priorities + "]";
+		return "DFA[start=" + start + ";transitions=" + transitions + "]";
 	}
 
 	@Override
@@ -83,7 +69,6 @@ public final class NFAImpl implements NFA {
 		int h = 17;
 		h = 31 * h + start.hashCode();
 		h = 31 * h + transitions.hashCode();
-		h = 31 * h + priorities.hashCode();
 		return h;
 	}
 
@@ -95,11 +80,9 @@ public final class NFAImpl implements NFA {
 		if (this == other) {
 			return true;
 		}
-		if (!(other instanceof final NFAImpl nfa)) {
+		if (!(other instanceof final DFAImpl dfa)) {
 			return false;
 		}
-		return this.start.equals(nfa.start)
-				&& this.transitions.equals(nfa.transitions)
-				&& this.priorities.equals(nfa.priorities);
+		return this.start.equals(dfa.start) && this.transitions.equals(dfa.transitions);
 	}
 }

@@ -15,9 +15,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.generator;
+package com.ledmington.automata;
 
-import static com.ledmington.generator.CorrectGrammars.TEST_CASES;
+import static com.ledmington.automata.CorrectGrammars.TEST_CASES;
+import static com.ledmington.automata.CorrectGrammars.one_or_more;
+import static com.ledmington.automata.CorrectGrammars.or;
+import static com.ledmington.automata.CorrectGrammars.p;
+import static com.ledmington.automata.CorrectGrammars.t;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -37,12 +41,6 @@ import com.ledmington.ebnf.Or;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.Utils;
-import com.ledmington.generator.automata.AcceptingState;
-import com.ledmington.generator.automata.AutomataConversions;
-import com.ledmington.generator.automata.AutomataUtils;
-import com.ledmington.generator.automata.DFA;
-import com.ledmington.generator.automata.NFA;
-import com.ledmington.generator.automata.State;
 
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public final class TestAutomata {
@@ -191,10 +189,10 @@ public final class TestAutomata {
 	@Test
 	void checkDFAMatchesSubTokens() {
 		final List<Production> productions = List.of(
-				new Production(new NonTerminal("AN"), new Terminal("an")),
-				new Production(
-						new NonTerminal("ID"),
-						new OneOrMore(new Or(new Terminal("a"), new Terminal("b"), new Terminal("n")))));
+				p("AN", t("an")),
+				p(
+						"ID",
+						one_or_more(or(t("a"), t("b"), t("n")))));
 		final DFA dfa = AutomataConversions.convertGrammarToDFA(productions);
 		final List<Match> tokens = tryMatch(dfa, "banana");
 		assertEquals(List.of(new Match("ID", "banana")), tokens);
@@ -203,10 +201,10 @@ public final class TestAutomata {
 	@Test
 	void checkMinimizedDFAMatchesSubTokens() {
 		final List<Production> productions = List.of(
-				new Production(new NonTerminal("AN"), new Terminal("an")),
-				new Production(
-						new NonTerminal("ID"),
-						new OneOrMore(new Or(new Terminal("a"), new Terminal("b"), new Terminal("n")))));
+				p("AN", t("an")),
+				p(
+						"ID",
+						one_or_more(or(t("a"), t("b"), t("n")))));
 		final DFA dfa = AutomataConversions.convertGrammarToMinimizedDFA(productions);
 		final List<Match> tokens = tryMatch(dfa, "banana");
 		assertEquals(List.of(new Match("ID", "banana")), tokens);

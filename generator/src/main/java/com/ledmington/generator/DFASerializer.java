@@ -26,17 +26,17 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import com.ledmington.automata.AcceptingState;
+import com.ledmington.automata.AutomataUtils;
+import com.ledmington.automata.DFA;
+import com.ledmington.automata.DFAMinimizer;
+import com.ledmington.automata.EpsilonNFAToNFA;
+import com.ledmington.automata.GrammarToEpsilonNFA;
+import com.ledmington.automata.NFA;
+import com.ledmington.automata.NFAToDFA;
+import com.ledmington.automata.State;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Utils;
-import com.ledmington.generator.automata.AcceptingState;
-import com.ledmington.generator.automata.AutomataUtils;
-import com.ledmington.generator.automata.DFA;
-import com.ledmington.generator.automata.DFAMinimizer;
-import com.ledmington.generator.automata.EpsilonNFAToNFA;
-import com.ledmington.generator.automata.GrammarToEpsilonNFA;
-import com.ledmington.generator.automata.NFA;
-import com.ledmington.generator.automata.NFAToDFA;
-import com.ledmington.generator.automata.State;
 
 /** Helper class to generate java code for a DFA parsing a given list of productions. */
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")

@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.generator.automata;
+package com.ledmington.automata;
 
 import java.util.List;
 
@@ -51,20 +51,6 @@ public final class AutomataConversions {
 		final GrammarToEpsilonNFA g2enfa = new GrammarToEpsilonNFA(stateFactory);
 		final EpsilonNFAToNFA enfa2nfa = new EpsilonNFAToNFA(stateFactory);
 		return enfa2nfa.convert(g2enfa.convert(g));
-	}
-
-	/**
-	 * Converts a list of productions to a standard NFA by first converting it to an epsilon NFA and then removing
-	 * epsilon transitions.
-	 *
-	 * @param productions the list of productions to be converted
-	 * @return the corresponding NFA
-	 */
-	public static NFA convertGrammarToNFA(final List<Production> productions) {
-		final StateFactory stateFactory = new StateFactory();
-		final GrammarToEpsilonNFA g2enfa = new GrammarToEpsilonNFA(stateFactory);
-		final EpsilonNFAToNFA enfa2nfa = new EpsilonNFAToNFA(stateFactory);
-		return enfa2nfa.convert(g2enfa.convert(productions));
 	}
 
 	/**
