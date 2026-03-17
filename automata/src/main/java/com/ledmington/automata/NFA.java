@@ -15,22 +15,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.generator.automata;
+package com.ledmington.automata;
 
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
-/** Common interface for deterministc finite-state automata. */
-public interface DFA extends Automaton {
+/** Common interface for non-deterministic finite-state automata. */
+public interface NFA extends Automaton {
+
+	/** The symbol of an epsilon transition. */
+	char EPSILON = (char) -1;
 
 	/**
-	 * Returns a new DFABuilder.
+	 * Returns a new NFABuilder.
 	 *
-	 * @return A new DFABuilder.
+	 * @return A new NcFABuilder.
 	 */
-	static DFABuilder builder() {
-		return new DFABuilder();
+	static NFABuilder builder() {
+		return new NFABuilder();
 	}
 
 	/**
@@ -39,7 +42,7 @@ public interface DFA extends Automaton {
 	 * @param s The state the transitions start from.
 	 * @return The "set" of neighbors.
 	 */
-	Map<Character, State> neighbors(final State s);
+	Map<Character, Set<State>> neighbors(final State s);
 
 	default String toGraphviz() {
 		final Set<State> allStates = states();
@@ -70,24 +73,32 @@ public interface DFA extends Automaton {
 		};
 
 		for (final State src : allStates) {
-			final Map<Character, State> neighbors = neighbors(src);
+			final Map<Character, Set<State>> neighbors = neighbors(src);
 			if (neighbors == null) {
 				continue;
 			}
-			for (final Map.Entry<Character, State> e : neighbors.entrySet()) {
+			for (final Map.Entry<Character, Set<State>> e : neighbors.entrySet()) {
 				final char symbol = e.getKey();
-				final State dst = e.getValue();
-				sb.append("    ")
-						.append(src.name())
-						.append(" -> ")
-						.append(dst.name())
-						.append(" [label=\"")
-						.append(escape.apply(symbol))
-						.append("\"];\n");
+				for (final State dst : e.getValue()) {
+					sb.append("    ")
+							.append(src.name())
+							.append(" -> ")
+							.append(dst.name())
+							.append(" [label=\"")
+							.append(escape.apply(symbol))
+							.append("\"];\n");
+				}
 			}
 		}
 
 		sb.append("}\n");
 		return sb.toString();
 	}
+
+	/**
+	 * Returns the map of token priorities of this automaton.
+	 *
+	 * @return The map of token priorities of this automaton.
+	 */
+	Map<String, Integer> priorities();
 }

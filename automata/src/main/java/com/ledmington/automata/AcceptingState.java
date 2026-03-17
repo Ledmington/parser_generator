@@ -15,57 +15,55 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.generator.automata;
+package com.ledmington.automata;
 
 import java.util.Objects;
 
-/** A state of a finite-state automaton. */
+/** A finite-automaton which is accepting. */
 @SuppressWarnings("PMD.AvoidFieldNameMatchingMethodName")
-public sealed class State permits AcceptingState {
+public final class AcceptingState extends State {
 
-	/** The name of this state. */
-	protected final String name;
+	private final String tokenName;
 
 	/**
-	 * Creates a new state with the given name.
+	 * Creates a new AcceptingState with the given name and the token it represents.
 	 *
-	 * @param name The name of this state.
+	 * @param stateName The name of this state.
+	 * @param tokenName The name of the represented token.
 	 */
-	public State(final String name) {
-		Objects.requireNonNull(name);
-		if (name.isBlank()) {
-			throw new IllegalArgumentException("Empty name.");
+	public AcceptingState(final String stateName, final String tokenName) {
+		super(stateName);
+		Objects.requireNonNull(tokenName);
+		if (tokenName.isBlank()) {
+			throw new IllegalArgumentException("Empty token stateName.");
 		}
-		this.name = name;
+		this.tokenName = tokenName;
 	}
 
-	/**
-	 * Returns the name of this state.
-	 *
-	 * @return The name of this state.
-	 */
-	public String name() {
-		return name;
-	}
-
-	/**
-	 * Tells whether this State is accepting or not.
-	 *
-	 * @return True if this state is accepting, false otherwise.
-	 */
+	@Override
 	public boolean isAccepting() {
-		return false;
+		return true;
+	}
+
+	/**
+	 * Retusn the name of the token this accepting state refers to.
+	 *
+	 * @return The name of the token this accepting state refers to.
+	 */
+	public String tokenName() {
+		return tokenName;
 	}
 
 	@Override
 	public String toString() {
-		return "State[name=" + name + "]";
+		return "AcceptingState[name=" + name + ";tokenName=" + tokenName + "]";
 	}
 
 	@Override
 	public int hashCode() {
 		int h = 17;
-		h = 31 * h + name.hashCode();
+		h = 31 * h + super.hashCode();
+		h = 31 * h + tokenName.hashCode();
 		return h;
 	}
 
@@ -77,9 +75,9 @@ public sealed class State permits AcceptingState {
 		if (this == other) {
 			return true;
 		}
-		if (!(other instanceof State s)) {
+		if (!(other instanceof AcceptingState as)) {
 			return false;
 		}
-		return this.name.equals(s.name);
+		return this.name.equals(as.name) && this.tokenName.equals(as.tokenName);
 	}
 }

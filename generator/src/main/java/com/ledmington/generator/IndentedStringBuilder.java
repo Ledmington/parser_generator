@@ -77,17 +77,6 @@ public final class IndentedStringBuilder {
 	}
 
 	/**
-	 * Appends the given integer and adds the proper indentation where needed.
-	 *
-	 * @param x The integer to be appended.
-	 * @return This instance of IndentedStringBuilder.
-	 */
-	public IndentedStringBuilder append(final int x) {
-		add(String.valueOf(x));
-		return this;
-	}
-
-	/**
 	 * Adds a single level of indentation.
 	 *
 	 * @return This instance of IndentedStringBuilder.c

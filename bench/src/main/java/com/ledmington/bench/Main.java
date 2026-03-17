@@ -17,16 +17,16 @@
  */
 package com.ledmington.bench;
 
+import com.ledmington.automata.AutomataUtils;
+import com.ledmington.automata.DFA;
+import com.ledmington.automata.DFAMinimizer;
+import com.ledmington.automata.EpsilonNFAToNFA;
+import com.ledmington.automata.GrammarToEpsilonNFA;
+import com.ledmington.automata.NFA;
+import com.ledmington.automata.NFAToDFA;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Parser;
 import com.ledmington.generator.GrammarChecker;
-import com.ledmington.generator.automata.AutomataUtils;
-import com.ledmington.generator.automata.DFA;
-import com.ledmington.generator.automata.DFAMinimizer;
-import com.ledmington.generator.automata.EpsilonNFAToNFA;
-import com.ledmington.generator.automata.GrammarToEpsilonNFA;
-import com.ledmington.generator.automata.NFA;
-import com.ledmington.generator.automata.NFAToDFA;
 
 public class Main {
 
