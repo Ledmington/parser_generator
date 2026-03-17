@@ -23,8 +23,13 @@ import java.util.Map;
 import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.NonTerminal;
+import com.ledmington.ebnf.OneOrMore;
+import com.ledmington.ebnf.Or;
 import com.ledmington.ebnf.Production;
+import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
+import com.ledmington.ebnf.ZeroOrMore;
+import com.ledmington.ebnf.ZeroOrOne;
 
 public final class TestingUtilities {
 
@@ -40,12 +45,38 @@ public final class TestingUtilities {
 	}
 
 	public static BNFGrammar bnf(final Map<String, BNFExpression> productions) {
-		return new BNFGrammar(productions.entrySet().stream()
-				.map(e -> new BNFProduction(new BNFNonTerminal(e.getKey()), e.getValue()))
-				.toList());
+		final Map<BNFNonTerminal, BNFExpression> prod = new HashMap<>();
+		for (final Map.Entry<String, BNFExpression> p : productions.entrySet()) {
+			prod.put(new BNFNonTerminal(p.getKey()), p.getValue());
+		}
+		return new BNFGrammar(prod);
+	}
+
+	public static NonTerminal nt(final String literal) {
+		return new NonTerminal(literal);
 	}
 
 	public static Terminal t(final String literal) {
 		return new Terminal(literal);
+	}
+
+	public static ZeroOrOne zero_or_one(final Expression inner) {
+		return new ZeroOrOne(inner);
+	}
+
+	public static ZeroOrMore zero_or_more(final Expression inner) {
+		return new ZeroOrMore(inner);
+	}
+
+	public static OneOrMore one_or_more(final Expression inner) {
+		return new OneOrMore(inner);
+	}
+
+	public static Sequence seq(final Expression... expressions) {
+		return new Sequence(expressions);
+	}
+
+	public static Or or(final Expression... expressions) {
+		return new Or(expressions);
 	}
 }

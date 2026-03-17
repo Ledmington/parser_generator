@@ -17,12 +17,19 @@
  */
 package com.ledmington.bnf;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
+import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
+import com.ledmington.ebnf.NonTerminal;
+import com.ledmington.ebnf.OneOrMore;
+import com.ledmington.ebnf.Or;
 import com.ledmington.ebnf.Production;
+import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
+import com.ledmington.ebnf.ZeroOrMore;
+import com.ledmington.ebnf.ZeroOrOne;
 
 /** A class to convert and EBNF grammar into a BNF grammar. */
 public final class Converter {
@@ -36,16 +43,37 @@ public final class Converter {
 	 * @return The converted BNF grammar.
 	 */
 	public static BNFGrammar convertToBnf(final Grammar g) {
-		final List<BNFProduction> productions = new ArrayList<>();
+		final Map<BNFNonTerminal, BNFExpression> productions = new HashMap<>();
 		for (final Production p : g.getProductions().keySet()) {
-			final BNFExpression exp =
-					switch (p.result()) {
-						case Terminal t -> new BNFTerminal(t.literal());
-						default ->
-							throw new IllegalArgumentException(String.format("Unknown EBNF node '%s'.", p.result()));
-					};
-			productions.add(new BNFProduction(new BNFNonTerminal(p.start().name()), exp));
+			final BNFNonTerminal start = new BNFNonTerminal(p.start().name());
+			final BNFExpression exp = convertToBnfExpression(start, p.result());
+			productions.put(start, exp);
 		}
 		return new BNFGrammar(productions);
+	}
+
+	private static BNFExpression convertToBnfExpression(final BNFNonTerminal start, final Expression exp) {
+		return switch (exp) {
+			case Terminal t -> new BNFTerminal(t.literal());
+			case NonTerminal nt -> new BNFNonTerminal(nt.name());
+			case Sequence s ->
+				new BNFSequence(s.nodes().stream()
+						.map(n -> convertToBnfExpression(start, n))
+						.toList());
+			case Or or ->
+				new BNFAlternation(or.nodes().stream()
+						.map(n -> convertToBnfExpression(start, n))
+						.toList());
+			case ZeroOrOne zoo -> new BNFAlternation(convertToBnfExpression(start, zoo.inner()), BNFTerminal.EPSILON);
+			case ZeroOrMore zom -> {
+				final BNFExpression e = convertToBnfExpression(start, zom.inner());
+				yield new BNFAlternation(e, start, BNFTerminal.EPSILON);
+			}
+			case OneOrMore oom -> {
+				final BNFExpression e = convertToBnfExpression(start, oom.inner());
+				yield new BNFAlternation(e, start);
+			}
+			default -> throw new IllegalArgumentException(String.format("Unknown EBNF node '%s'.", exp));
+		};
 	}
 }

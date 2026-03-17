@@ -21,6 +21,8 @@ import java.util.Objects;
 
 public record BNFTerminal(String literal) implements BNFExpression {
 
+	public static BNFTerminal EPSILON = new BNFTerminal("ε");
+
 	public BNFTerminal {
 		Objects.requireNonNull(literal);
 		if (literal.isEmpty()) {

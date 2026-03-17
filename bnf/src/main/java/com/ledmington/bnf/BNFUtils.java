@@ -17,7 +17,9 @@
  */
 package com.ledmington.bnf;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 /** A collection of various utilities. */
 // TODO: move to an external module or merge with com.ledmington.ebnf.Utils
@@ -39,31 +41,40 @@ public final class BNFUtils {
 	public static String prettyPrint(final BNFGrammar root) {
 		final StringBuilder sb = new StringBuilder();
 		sb.append("grammar\n");
-		final List<BNFProduction> productions = root.productions();
+		final Map<BNFNonTerminal, BNFExpression> productions = root.productions();
 		if (productions.isEmpty()) {
 			return sb.toString();
 		}
-		final int len = productions.size();
+		final List<Map.Entry<BNFNonTerminal, BNFExpression>> orderedProductions = productions.entrySet().stream()
+				.sorted(Comparator.comparing(a -> a.getKey().name()))
+				.toList();
+		final int len = orderedProductions.size();
 		for (int i = 0; i < len - 1; i++) {
-			final BNFProduction p = productions.get(i);
-			prettyPrintList(sb, "production", List.of(p.start(), p.result()), getJointIndent(""), getLineIndent(""));
+			final Map.Entry<BNFNonTerminal, BNFExpression> e = orderedProductions.get(i);
+			prettyPrintList(sb, "production", List.of(e.getKey(), e.getValue()), getJointIndent(""), getLineIndent(""));
 		}
-		final BNFProduction last = productions.getLast();
-		prettyPrintList(sb, "production", List.of(last.start(), last.result()), getJointIndent(""), getLineIndent(""));
+		final Map.Entry<BNFNonTerminal, BNFExpression> last = orderedProductions.getLast();
+		prettyPrintList(
+				sb, "production", List.of(last.getKey(), last.getValue()), getAngleIndent(""), getEmptyIndent(""));
 		return sb.toString();
 	}
 
 	private static void prettyPrint(
 			final StringBuilder sb, final BNFExpression n, final String indent, final String continuationIndent) {
 		switch (n) {
-			case BNFTerminal t ->
-				sb.append(indent)
-						.append("terminal '")
-						.append(BNFUtils.getEscapedString(t.literal()))
-						.append("'\n");
+			case BNFTerminal t -> {
+				sb.append(indent);
+				if (t == BNFTerminal.EPSILON) {
+					sb.append("epsilon\n");
+				} else {
+					sb.append("terminal '")
+							.append(BNFUtils.getEscapedString(t.literal()))
+							.append("'\n");
+				}
+			}
 			case BNFNonTerminal nt ->
 				sb.append(indent).append("non_terminal '").append(nt.name()).append("'\n");
-			case BNFAlternation or -> prettyPrintList(sb, "or", or.nodes(), indent, continuationIndent);
+			case BNFAlternation or -> prettyPrintList(sb, "alternation", or.nodes(), indent, continuationIndent);
 			case BNFSequence s -> prettyPrintList(sb, "sequence", s.nodes(), indent, continuationIndent);
 			default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'.", n));
 		}

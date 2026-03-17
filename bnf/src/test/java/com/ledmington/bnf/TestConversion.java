@@ -19,7 +19,13 @@ package com.ledmington.bnf;
 
 import static com.ledmington.bnf.TestingUtilities.bnf;
 import static com.ledmington.bnf.TestingUtilities.ebnf;
+import static com.ledmington.bnf.TestingUtilities.nt;
+import static com.ledmington.bnf.TestingUtilities.one_or_more;
+import static com.ledmington.bnf.TestingUtilities.or;
+import static com.ledmington.bnf.TestingUtilities.seq;
 import static com.ledmington.bnf.TestingUtilities.t;
+import static com.ledmington.bnf.TestingUtilities.zero_or_more;
+import static com.ledmington.bnf.TestingUtilities.zero_or_one;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
@@ -35,9 +41,36 @@ import com.ledmington.ebnf.Utils;
 public final class TestConversion {
 
 	private static Stream<Arguments> testCases() {
-		return Stream.of(Arguments.of(
-				ebnf(Map.ofEntries(Map.entry("start", t("a")))),
-				bnf(Map.ofEntries(Map.entry("start", new BNFTerminal("a"))))));
+		return Stream.of(
+				Arguments.of(
+						ebnf(Map.ofEntries(Map.entry("start", t("a")))),
+						bnf(Map.ofEntries(Map.entry("start", new BNFTerminal("a"))))),
+				Arguments.of(
+						ebnf(Map.ofEntries(Map.entry("start", nt("A")), Map.entry("A", t("a")))),
+						bnf(Map.ofEntries(
+								Map.entry("start", new BNFNonTerminal("A")), Map.entry("A", new BNFTerminal("a"))))),
+				Arguments.of(
+						ebnf(Map.ofEntries(Map.entry("start", zero_or_one(t("a"))))),
+						bnf(Map.ofEntries(
+								Map.entry("start", new BNFAlternation(new BNFTerminal("a"), BNFTerminal.EPSILON))))),
+				Arguments.of(
+						ebnf(Map.ofEntries(Map.entry("start", zero_or_more(t("a"))))),
+						bnf(Map.ofEntries(Map.entry(
+								"start",
+								new BNFAlternation(
+										new BNFTerminal("a"), new BNFNonTerminal("start"), BNFTerminal.EPSILON))))),
+				Arguments.of(
+						ebnf(Map.ofEntries(Map.entry("start", one_or_more(t("a"))))),
+						bnf(Map.ofEntries(Map.entry(
+								"start", new BNFAlternation(new BNFTerminal("a"), new BNFNonTerminal("start")))))),
+				Arguments.of(
+						ebnf(Map.ofEntries(Map.entry("start", seq(t("a"), t("b"))))),
+						bnf(Map.ofEntries(
+								Map.entry("start", new BNFSequence(new BNFTerminal("a"), new BNFTerminal("b")))))),
+				Arguments.of(
+						ebnf(Map.ofEntries(Map.entry("start", or(t("a"), t("b"))))),
+						bnf(Map.ofEntries(
+								Map.entry("start", new BNFAlternation(new BNFTerminal("a"), new BNFTerminal("b")))))));
 	}
 
 	@ParameterizedTest

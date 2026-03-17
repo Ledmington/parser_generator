@@ -17,17 +17,17 @@
  */
 package com.ledmington.bnf;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 /** An object representing all the productions and symbols of an EBNF grammar. */
-public record BNFGrammar(List<BNFProduction> productions) {
-	public BNFGrammar(final List<BNFProduction> productions) {
-		Objects.requireNonNull(productions, "Null production list.");
+public record BNFGrammar(Map<BNFNonTerminal, BNFExpression> productions) {
+	public BNFGrammar(final Map<BNFNonTerminal, BNFExpression> productions) {
+		Objects.requireNonNull(productions, "Null productions.");
 		if (productions.isEmpty()) {
-			throw new IllegalArgumentException("Empty production list.");
+			throw new IllegalArgumentException("Empty productions.");
 		}
-		this.productions = new ArrayList<>(productions);
+		this.productions = new HashMap<>(productions);
 	}
 }
