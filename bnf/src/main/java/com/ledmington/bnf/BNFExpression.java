@@ -17,17 +17,4 @@
  */
 package com.ledmington.bnf;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-
-/** An object representing all the productions and symbols of an EBNF grammar. */
-public record BNFGrammar(List<BNFProduction> productions) {
-	public BNFGrammar(final List<BNFProduction> productions) {
-		Objects.requireNonNull(productions, "Null production list.");
-		if (productions.isEmpty()) {
-			throw new IllegalArgumentException("Empty production list.");
-		}
-		this.productions = new ArrayList<>(productions);
-	}
-}
+public interface BNFExpression {}

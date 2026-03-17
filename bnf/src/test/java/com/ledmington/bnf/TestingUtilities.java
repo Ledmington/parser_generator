@@ -17,35 +17,35 @@
  */
 package com.ledmington.bnf;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
+import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
+import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Terminal;
 
-/** A class to convert and EBNF grammar into a BNF grammar. */
-public final class Converter {
+public final class TestingUtilities {
 
-	private Converter() {}
+	private TestingUtilities() {}
 
-	/**
-	 * Converts the given EBNF grammar into a BNF one.
-	 *
-	 * @param g The EBNF grammar to be converted.
-	 * @return The converted BNF grammar.
-	 */
-	public static BNFGrammar convertToBnf(final Grammar g) {
-		final List<BNFProduction> productions = new ArrayList<>();
-		for (final Production p : g.getProductions().keySet()) {
-			final BNFExpression exp =
-					switch (p.result()) {
-						case Terminal t -> new BNFTerminal(t.literal());
-						default ->
-							throw new IllegalArgumentException(String.format("Unknown EBNF node '%s'.", p.result()));
-					};
-			productions.add(new BNFProduction(new BNFNonTerminal(p.start().name()), exp));
+	public static Grammar ebnf(final Map<String, Expression> productions) {
+		final Map<Production, Integer> p = new HashMap<>();
+		int index = 0;
+		for (final Map.Entry<String, Expression> e : productions.entrySet()) {
+			p.put(new Production(new NonTerminal(e.getKey()), e.getValue()), index++);
 		}
-		return new BNFGrammar(productions);
+		return new Grammar(p);
+	}
+
+	public static BNFGrammar bnf(final Map<String, BNFExpression> productions) {
+		return new BNFGrammar(productions.entrySet().stream()
+				.map(e -> new BNFProduction(new BNFNonTerminal(e.getKey()), e.getValue()))
+				.toList());
+	}
+
+	public static Terminal t(final String literal) {
+		return new Terminal(literal);
 	}
 }

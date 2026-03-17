@@ -17,8 +17,12 @@
  */
 package com.ledmington.bnf;
 
+import static com.ledmington.bnf.TestingUtilities.bnf;
+import static com.ledmington.bnf.TestingUtilities.ebnf;
+import static com.ledmington.bnf.TestingUtilities.t;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.Map;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.params.ParameterizedTest;
@@ -29,8 +33,11 @@ import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.Utils;
 
 public final class TestConversion {
+
 	private static Stream<Arguments> testCases() {
-		return Stream.of();
+		return Stream.of(Arguments.of(
+				ebnf(Map.ofEntries(Map.entry("start", t("a")))),
+				bnf(Map.ofEntries(Map.entry("start", new BNFTerminal("a"))))));
 	}
 
 	@ParameterizedTest
@@ -42,6 +49,6 @@ public final class TestConversion {
 				actual,
 				() -> String.format(
 						" --- INPUT EBNF GRAMMAR --- %n%s%n --- EXPECTED BNF GRAMMAR --- %n%s%n --- ACTUAL BNF OUTPUT --- %n%s%n",
-						Utils.prettyPrint(input), Utils.prettyPrint(expected), Utils.prettyPrint(actual)));
+						Utils.prettyPrint(input), BNFUtils.prettyPrint(expected), BNFUtils.prettyPrint(actual)));
 	}
 }
