@@ -141,6 +141,7 @@ spotless {
     java {
         target fileTree('.') {
             include path('cli', '**', '*.java')
+            include path('bnf', '**', '*.java')
             include path('ebnf', '**', '*.java')
             include path('automata', '**', '*.java')
             include path('generator', '**', '*.java')
