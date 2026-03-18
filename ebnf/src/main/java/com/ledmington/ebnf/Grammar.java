@@ -318,9 +318,9 @@ public final class Grammar {
 			// A possible start symbol is a non-terminal symbol which can reach all other symbols (meaning, except
 			// itself): it does not matter whether it can reach itself.
 			final boolean canReachEverybody = visited.size() == graph.size();
-			final boolean canReacheEverybodyExceptItself =
+			final boolean canReachEverybodyExceptItself =
 					visited.size() == (graph.size() - 1) && !visited.contains(possibleStartSymbol);
-			if (canReachEverybody || canReacheEverybodyExceptItself) {
+			if (canReachEverybody || canReachEverybodyExceptItself) {
 				possibleStartSymbols.add(possibleStartSymbol);
 			}
 		}
