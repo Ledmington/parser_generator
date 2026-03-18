@@ -17,4 +17,5 @@
  */
 package com.ledmington.bnf;
 
+/** A common type for all elements which can be found only on the right-hand side of a BNF grammar production. */
 public interface BNFExpression {}

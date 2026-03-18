@@ -43,7 +43,7 @@ public final class Grammar {
 	private final List<Production> lexerProductions; // pre-computed
 
 	/**
-	 * Creates a new Grammar with the given Map of productions.
+	 * Creates a new EBNF Grammar with the given Map of productions.
 	 *
 	 * @param productions The productions which map to their corresponding priority.
 	 */

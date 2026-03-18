@@ -74,8 +74,8 @@ public final class BNFUtils {
 			}
 			case BNFNonTerminal nt ->
 				sb.append(indent).append("non_terminal '").append(nt.name()).append("'\n");
-			case BNFAlternation or -> prettyPrintList(sb, "alternation", or.nodes(), indent, continuationIndent);
-			case BNFSequence s -> prettyPrintList(sb, "sequence", s.nodes(), indent, continuationIndent);
+			case BNFAlternation or -> prettyPrintList(sb, "alternation", or.expressions(), indent, continuationIndent);
+			case BNFSequence s -> prettyPrintList(sb, "sequence", s.expressions(), indent, continuationIndent);
 			default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'.", n));
 		}
 	}

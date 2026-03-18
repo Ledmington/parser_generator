@@ -21,8 +21,19 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-/** An object representing all the productions and symbols of an EBNF grammar. */
+/**
+ * An object representing all the productions and symbols of an EBNF grammar.
+ *
+ * @param productions The productions of this grammar represented as an unordered map from a non-terminal symbol to an
+ *     expression.
+ */
 public record BNFGrammar(Map<BNFNonTerminal, BNFExpression> productions) {
+
+	/**
+	 * Creates a new BNF Grammar with the given Map of productions.
+	 *
+	 * @param productions The productions of the grammar.
+	 */
 	public BNFGrammar(final Map<BNFNonTerminal, BNFExpression> productions) {
 		Objects.requireNonNull(productions, "Null productions.");
 		if (productions.isEmpty()) {

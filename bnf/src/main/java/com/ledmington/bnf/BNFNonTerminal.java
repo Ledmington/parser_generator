@@ -19,7 +19,18 @@ package com.ledmington.bnf;
 
 import java.util.Objects;
 
+/**
+ * An element of the BNF grammar which represents a symbol which can be expanded into other symbols.
+ *
+ * @param name The name used in the grammar to refer to this non-terminal symbol.
+ */
 public record BNFNonTerminal(String name) implements BNFExpression {
+
+	/**
+	 * Creates a new NonTerminal with the given name.
+	 *
+	 * @param name The name of the non-terminal symbol.
+	 */
 	public BNFNonTerminal {
 		Objects.requireNonNull(name);
 		if (name.isBlank()) {

@@ -19,10 +19,16 @@ package com.ledmington.bnf;
 
 import java.util.Objects;
 
+/**
+ * An element of the BNF grammar which represents a symbol which cannot be expanded into other symbols.
+ *
+ * @param literal The content of the terminal symbol.
+ */
 public record BNFTerminal(String literal) implements BNFExpression {
 
 	public static BNFTerminal EPSILON = new BNFTerminal("ε");
 
+	/** Creates a new BNF Terminal symbol. */
 	public BNFTerminal {
 		Objects.requireNonNull(literal);
 		if (literal.isEmpty()) {

@@ -31,6 +31,7 @@ import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.ZeroOrMore;
 import com.ledmington.ebnf.ZeroOrOne;
 
+@SuppressWarnings("PMD.TestClassWithoutTestCases")
 public final class TestingUtilities {
 
 	private TestingUtilities() {}

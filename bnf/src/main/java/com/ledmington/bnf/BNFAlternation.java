@@ -19,8 +19,19 @@ package com.ledmington.bnf;
 
 import java.util.List;
 
-public record BNFAlternation(List<BNFExpression> nodes) implements BNFExpression {
-	public BNFAlternation(final BNFExpression... nodes) {
-		this(List.of(nodes));
+/**
+ * An element of a BNF grammar which represents different possibilities of expressions.
+ *
+ * @param expressions The alternated expressions.
+ */
+public record BNFAlternation(List<BNFExpression> expressions) implements BNFExpression {
+
+	/**
+	 * Creates a new BNFAlternation with the given expressions.
+	 *
+	 * @param expressions The expressions to be alternated.
+	 */
+	public BNFAlternation(final BNFExpression... expressions) {
+		this(List.of(expressions));
 	}
 }

@@ -40,6 +40,7 @@ import com.ledmington.ebnf.Utils;
 
 public final class TestConversion {
 
+	@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 	private static Stream<Arguments> testCases() {
 		return Stream.of(
 				Arguments.of(

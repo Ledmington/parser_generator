@@ -19,8 +19,19 @@ package com.ledmington.bnf;
 
 import java.util.List;
 
-public record BNFSequence(List<BNFExpression> nodes) implements BNFExpression {
-	public BNFSequence(final BNFExpression... nodes) {
-		this(List.of(nodes));
+/**
+ * An element of a BNF grammar which represents an ordered sequence of expressions.
+ *
+ * @param expressions The ordered sequence of expressions.
+ */
+public record BNFSequence(List<BNFExpression> expressions) implements BNFExpression {
+
+	/**
+	 * Creates a new BNF Sequence with given expressions.
+	 *
+	 * @param expressions The sequence of expressions.
+	 */
+	public BNFSequence(final BNFExpression... expressions) {
+		this(List.of(expressions));
 	}
 }
