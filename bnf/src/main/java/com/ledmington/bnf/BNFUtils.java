@@ -15,33 +15,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.ebnf;
+package com.ledmington.bnf;
 
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Map;
 
 /** A collection of various utilities. */
-// TODO: move to an external module
-public final class Utils {
+// TODO: move to an external module or merge with com.ledmington.ebnf.Utils
+public final class BNFUtils {
 
 	private static final char VERTICAL_LINE = '│';
 	private static final char HORIZONTAL_LINE = '─';
 	private static final char JOINT = '├';
 	private static final char ANGLE = '└';
 
-	private Utils() {}
-
-	/**
-	 * Returns a String representing the given tree with the given level of indentation.
-	 *
-	 * @param root The root of the tree to be serialized.
-	 * @return An indented String representation of the tree.
-	 */
-	public static String prettyPrint(final Node root) {
-		final StringBuilder sb = new StringBuilder();
-		prettyPrint(sb, root, "", "");
-		return sb.toString();
-	}
+	private BNFUtils() {}
 
 	/**
 	 * Returns a String representing the given grammar with the given level of indentation.
@@ -49,41 +38,44 @@ public final class Utils {
 	 * @param root The grammar to be serialized.
 	 * @return An indented String representation of the grammar.
 	 */
-	public static String prettyPrint(final Grammar root) {
+	public static String prettyPrint(final BNFGrammar root) {
 		final StringBuilder sb = new StringBuilder();
 		sb.append("grammar\n");
-		if (root.getProductions().isEmpty()) {
+		final Map<BNFNonTerminal, BNFExpression> productions = root.productions();
+		if (productions.isEmpty()) {
 			return sb.toString();
 		}
-		final List<Production> productions = root.getProductions().entrySet().stream()
-				.sorted(Entry.comparingByValue())
-				.map(Entry::getKey)
+		final List<Map.Entry<BNFNonTerminal, BNFExpression>> orderedProductions = productions.entrySet().stream()
+				.sorted(Comparator.comparing(a -> a.getKey().name()))
 				.toList();
-		final int len = productions.size();
+		final int len = orderedProductions.size();
 		for (int i = 0; i < len - 1; i++) {
-			prettyPrint(sb, productions.get(i), getJointIndent(""), getLineIndent(""));
+			final Map.Entry<BNFNonTerminal, BNFExpression> e = orderedProductions.get(i);
+			prettyPrintList(sb, "production", List.of(e.getKey(), e.getValue()), getJointIndent(""), getLineIndent(""));
 		}
-		prettyPrint(sb, productions.getLast(), getAngleIndent(""), getEmptyIndent(""));
+		final Map.Entry<BNFNonTerminal, BNFExpression> last = orderedProductions.getLast();
+		prettyPrintList(
+				sb, "production", List.of(last.getKey(), last.getValue()), getAngleIndent(""), getEmptyIndent(""));
 		return sb.toString();
 	}
 
 	private static void prettyPrint(
-			final StringBuilder sb, final Node n, final String indent, final String continuationIndent) {
+			final StringBuilder sb, final BNFExpression n, final String indent, final String continuationIndent) {
 		switch (n) {
-			case Production p ->
-				prettyPrintList(sb, "production", List.of(p.start(), p.result()), indent, continuationIndent);
-			case Terminal t ->
-				sb.append(indent)
-						.append("terminal '")
-						.append(Utils.getEscapedString(t.literal()))
-						.append("'\n");
-			case NonTerminal nt ->
+			case BNFTerminal t -> {
+				sb.append(indent);
+				if (t == BNFTerminal.EPSILON) {
+					sb.append("epsilon\n");
+				} else {
+					sb.append("terminal '")
+							.append(BNFUtils.getEscapedString(t.literal()))
+							.append("'\n");
+				}
+			}
+			case BNFNonTerminal nt ->
 				sb.append(indent).append("non_terminal '").append(nt.name()).append("'\n");
-			case Or or -> prettyPrintList(sb, "or", or.nodes(), indent, continuationIndent);
-			case Sequence s -> prettyPrintList(sb, "sequence", s.nodes(), indent, continuationIndent);
-			case ZeroOrOne zoo -> prettyPrintContainer(sb, "zero_or_one", zoo.inner(), indent, continuationIndent);
-			case ZeroOrMore zom -> prettyPrintContainer(sb, "zero_or_more", zom.inner(), indent, continuationIndent);
-			case OneOrMore oom -> prettyPrintContainer(sb, "one_or_more", oom.inner(), indent, continuationIndent);
+			case BNFAlternation or -> prettyPrintList(sb, "alternation", or.expressions(), indent, continuationIndent);
+			case BNFSequence s -> prettyPrintList(sb, "sequence", s.expressions(), indent, continuationIndent);
 			default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'.", n));
 		}
 	}
@@ -99,7 +91,7 @@ public final class Utils {
 	private static void prettyPrintContainer(
 			final StringBuilder sb,
 			final String nodeName,
-			final Expression inner,
+			final BNFExpression inner,
 			final String indentString,
 			final String indent) {
 		prettyPrintList(sb, nodeName, List.of(inner), indentString, indent);
@@ -108,7 +100,7 @@ public final class Utils {
 	private static void prettyPrintList(
 			final StringBuilder sb,
 			final String nodeName,
-			final List<Expression> nodes,
+			final List<BNFExpression> nodes,
 			final String indent,
 			final String continuationIndent) {
 		sb.append(indent).append(nodeName).append('\n');
