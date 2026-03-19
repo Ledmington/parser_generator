@@ -53,17 +53,38 @@ public final class TestConversion {
 				Arguments.of(
 						ebnf(Map.ofEntries(Map.entry("start", zero_or_one(t("a"))))),
 						bnf(Map.ofEntries(
-								Map.entry("start", new BNFAlternation(new BNFTerminal("a"), BNFTerminal.EPSILON))))),
+								Map.entry(
+										"start",
+										new BNFAlternation(new BNFNonTerminal("non_terminal_0"), BNFTerminal.EPSILON)),
+								Map.entry("non_terminal_0", new BNFTerminal("a"))))),
 				Arguments.of(
 						ebnf(Map.ofEntries(Map.entry("start", zero_or_more(t("a"))))),
-						bnf(Map.ofEntries(Map.entry(
-								"start",
-								new BNFAlternation(
-										new BNFTerminal("a"), new BNFNonTerminal("start"), BNFTerminal.EPSILON))))),
+						bnf(Map.ofEntries(
+								Map.entry("start", new BNFNonTerminal("start_tail")),
+								Map.entry(
+										"start_tail",
+										new BNFAlternation(
+												new BNFSequence(
+														new BNFNonTerminal("non_terminal_0"),
+														new BNFNonTerminal("start_tail")),
+												BNFTerminal.EPSILON)),
+								Map.entry("non_terminal_0", new BNFTerminal("a"))))),
 				Arguments.of(
 						ebnf(Map.ofEntries(Map.entry("start", one_or_more(t("a"))))),
-						bnf(Map.ofEntries(Map.entry(
-								"start", new BNFAlternation(new BNFTerminal("a"), new BNFNonTerminal("start")))))),
+						bnf(Map.ofEntries(
+								Map.entry(
+										"start",
+										new BNFSequence(
+												new BNFNonTerminal("non_terminal_0"),
+												new BNFNonTerminal("start_tail"))),
+								Map.entry(
+										"start_tail",
+										new BNFAlternation(
+												new BNFSequence(
+														new BNFNonTerminal("non_terminal_0"),
+														new BNFNonTerminal("start_tail")),
+												BNFTerminal.EPSILON)),
+								Map.entry("non_terminal_0", new BNFTerminal("a"))))),
 				Arguments.of(
 						ebnf(Map.ofEntries(Map.entry("start", seq(t("a"), t("b"))))),
 						bnf(Map.ofEntries(

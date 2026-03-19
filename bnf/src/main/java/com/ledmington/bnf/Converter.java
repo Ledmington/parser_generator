@@ -17,7 +17,9 @@
  */
 package com.ledmington.bnf;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.ledmington.ebnf.Expression;
@@ -34,6 +36,8 @@ import com.ledmington.ebnf.ZeroOrOne;
 /** A class to convert and EBNF grammar into a BNF grammar. */
 public final class Converter {
 
+	private static int NON_TERMINAL_COUNTER = 0;
+
 	private Converter() {}
 
 	/**
@@ -43,37 +47,105 @@ public final class Converter {
 	 * @return The converted BNF grammar.
 	 */
 	public static BNFGrammar convertToBnf(final Grammar g) {
-		final Map<BNFNonTerminal, BNFExpression> productions = new HashMap<>();
+		NON_TERMINAL_COUNTER = 0;
+		Map<BNFNonTerminal, BNFExpression> productions = new HashMap<>();
 		for (final Production p : g.getProductions().keySet()) {
 			final BNFNonTerminal start = new BNFNonTerminal(p.start().name());
-			final BNFExpression exp = convertToBnfExpression(start, p.result());
-			productions.put(start, exp);
+			final Map<BNFNonTerminal, BNFExpression> prods = convertToBnfProductions(start, p.result());
+			productions = mergeProductions(productions, prods);
 		}
 		return new BNFGrammar(productions);
 	}
 
-	private static BNFExpression convertToBnfExpression(final BNFNonTerminal start, final Expression exp) {
-		return switch (exp) {
-			case Terminal t -> new BNFTerminal(t.literal());
-			case NonTerminal nt -> new BNFNonTerminal(nt.name());
-			case Sequence s ->
-				new BNFSequence(s.nodes().stream()
-						.map(n -> convertToBnfExpression(start, n))
-						.toList());
-			case Or or ->
-				new BNFAlternation(or.nodes().stream()
-						.map(n -> convertToBnfExpression(start, n))
-						.toList());
-			case ZeroOrOne zoo -> new BNFAlternation(convertToBnfExpression(start, zoo.inner()), BNFTerminal.EPSILON);
+	/** NOTE: creates a new Map. */
+	private static Map<BNFNonTerminal, BNFExpression> mergeProductions(
+			final Map<BNFNonTerminal, BNFExpression> productions,
+			final Map<BNFNonTerminal, BNFExpression> newProductions) {
+		final Map<BNFNonTerminal, BNFExpression> result = new HashMap<>(productions);
+		for (final Map.Entry<BNFNonTerminal, BNFExpression> e : newProductions.entrySet()) {
+			if (productions.containsKey(e.getKey())) {
+				throw new IllegalStateException(String.format(
+						"Old productions already contained a production for non-terminal symbol '%s'.",
+						e.getKey().name()));
+			}
+			result.put(e.getKey(), e.getValue());
+		}
+		return result;
+	}
+
+	private static Map<BNFNonTerminal, BNFExpression> convertToBnfProductions(
+			final BNFNonTerminal root, final Expression exp) {
+		Map<BNFNonTerminal, BNFExpression> productions = new HashMap<>();
+		switch (exp) {
+			case Terminal t -> productions.put(root, new BNFTerminal(t.literal()));
+			case NonTerminal nt -> productions.put(root, new BNFNonTerminal(nt.name()));
+			case Or or -> {
+				final List<BNFExpression> expressions = new ArrayList<>();
+				for (final Expression e : or.nodes()) {
+					if (e instanceof NonTerminal(final String name)) {
+						expressions.add(new BNFNonTerminal(name));
+					} else if (e instanceof final Terminal t) {
+						expressions.add(new BNFTerminal(t.literal()));
+					} else {
+						final BNFNonTerminal tmp = getNewNonTerminal();
+						productions = mergeProductions(productions, convertToBnfProductions(tmp, e));
+					}
+				}
+				productions.put(root, new BNFAlternation(expressions));
+			}
+			case Sequence s -> {
+				final List<BNFExpression> expressions = new ArrayList<>();
+				for (final Expression e : s.nodes()) {
+					if (e instanceof NonTerminal(final String name)) {
+						expressions.add(new BNFNonTerminal(name));
+					} else if (e instanceof final Terminal t) {
+						expressions.add(new BNFTerminal(t.literal()));
+					} else {
+						final BNFNonTerminal tmp = getNewNonTerminal();
+						productions = mergeProductions(productions, convertToBnfProductions(tmp, e));
+					}
+				}
+				productions.put(root, new BNFSequence(expressions));
+			}
+			case ZeroOrOne zoo -> {
+				// x -> y?
+				//
+				// x -> y | epsilon
+				final BNFNonTerminal tmp = getNewNonTerminal();
+				final Map<BNFNonTerminal, BNFExpression> converted = convertToBnfProductions(tmp, zoo.inner());
+				productions = mergeProductions(productions, converted);
+				productions.put(root, new BNFAlternation(tmp, BNFTerminal.EPSILON));
+			}
 			case ZeroOrMore zom -> {
-				final BNFExpression e = convertToBnfExpression(start, zom.inner());
-				yield new BNFAlternation(e, start, BNFTerminal.EPSILON);
+				// x -> y*
+				//
+				// x -> x_tail
+				// x_tail -> y x_tail | epsilon
+				final BNFNonTerminal tail = new BNFNonTerminal(root.name() + "_tail");
+				final BNFNonTerminal tmp = getNewNonTerminal();
+				final Map<BNFNonTerminal, BNFExpression> converted = convertToBnfProductions(tmp, zom.inner());
+				productions = mergeProductions(productions, converted);
+				productions.put(root, tail);
+				productions.put(tail, new BNFAlternation(new BNFSequence(tmp, tail), BNFTerminal.EPSILON));
 			}
 			case OneOrMore oom -> {
-				final BNFExpression e = convertToBnfExpression(start, oom.inner());
-				yield new BNFAlternation(e, start);
+				// x -> y+
+				//
+				// x -> y x_tail
+				// x_tail -> y x_tail | epsilon
+				final BNFNonTerminal tail = new BNFNonTerminal(root.name() + "_tail");
+				final BNFNonTerminal tmp = getNewNonTerminal();
+				final Map<BNFNonTerminal, BNFExpression> converted = convertToBnfProductions(tmp, oom.inner());
+				productions = mergeProductions(productions, converted);
+				productions.put(root, new BNFSequence(tmp, tail));
+				productions.put(tail, new BNFAlternation(new BNFSequence(tmp, tail), BNFTerminal.EPSILON));
 			}
 			default -> throw new IllegalArgumentException(String.format("Unknown EBNF node '%s'.", exp));
-		};
+		}
+		return productions;
+	}
+
+	private static BNFNonTerminal getNewNonTerminal() {
+		return new BNFNonTerminal("non_terminal_" + (NON_TERMINAL_COUNTER++));
 	}
 }
