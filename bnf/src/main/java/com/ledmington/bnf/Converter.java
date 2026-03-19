@@ -30,6 +30,7 @@ import com.ledmington.ebnf.Or;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
+import com.ledmington.ebnf.Utils;
 import com.ledmington.ebnf.ZeroOrMore;
 import com.ledmington.ebnf.ZeroOrOne;
 
@@ -47,9 +48,13 @@ public final class Converter {
 	 * @return The converted BNF grammar.
 	 */
 	public static BNFGrammar convertToBnf(final Grammar g) {
+		final List<Production> ebnfProductions = g.getProductions().entrySet().stream()
+				.sorted(Map.Entry.comparingByValue())
+				.map(Map.Entry::getKey)
+				.toList();
 		NON_TERMINAL_COUNTER = 0;
 		Map<BNFNonTerminal, BNFExpression> productions = new HashMap<>();
-		for (final Production p : g.getProductions().keySet()) {
+		for (final Production p : ebnfProductions) {
 			final BNFNonTerminal start = new BNFNonTerminal(p.start().name());
 			final Map<BNFNonTerminal, BNFExpression> prods = convertToBnfProductions(start, p.result());
 			productions = mergeProductions(productions, prods);
@@ -89,6 +94,7 @@ public final class Converter {
 					} else {
 						final BNFNonTerminal tmp = getNewNonTerminal();
 						productions = mergeProductions(productions, convertToBnfProductions(tmp, e));
+						expressions.add(tmp);
 					}
 				}
 				productions.put(root, new BNFAlternation(expressions));
@@ -101,11 +107,25 @@ public final class Converter {
 					} else if (e instanceof final Terminal t) {
 						expressions.add(new BNFTerminal(t.literal()));
 					} else {
-						final BNFNonTerminal tmp = getNewNonTerminal();
+						// The "special case" is a sequence of either a terminal or a non-terminal followed by something
+						// else.
+						// In this specific case, just for readability, the "something else" receives the root name with
+						// "_tail"
+						final boolean isSpecialCase = s.nodes().size() == 2
+								&& (s.nodes().getFirst() instanceof Terminal
+										|| s.nodes().getFirst() instanceof NonTerminal)
+								&& !(s.nodes().get(1) instanceof Terminal
+										|| s.nodes().get(1) instanceof NonTerminal);
+						final BNFNonTerminal tmp =
+								isSpecialCase ? new BNFNonTerminal(root.name() + "_tail") : getNewNonTerminal();
 						productions = mergeProductions(productions, convertToBnfProductions(tmp, e));
+						expressions.add(tmp);
 					}
 				}
 				productions.put(root, new BNFSequence(expressions));
+
+				System.out.printf("Converted:%n%s -> %s", root, Utils.prettyPrint(exp));
+				System.out.printf("Into:%n%s%n", BNFUtils.prettyPrint(new BNFGrammar(productions)));
 			}
 			case ZeroOrOne zoo -> {
 				// x -> y?

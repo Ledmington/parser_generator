@@ -45,6 +45,7 @@ public final class Grammar {
 	 *
 	 * @param productions The productions which map to their corresponding priority.
 	 */
+	// FIXME: replace the map with order with a TreeMap
 	public Grammar(final Map<Production, Integer> productions) {
 		Objects.requireNonNull(productions);
 		if (productions.isEmpty()) {

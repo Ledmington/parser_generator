@@ -41,4 +41,10 @@ public record BNFGrammar(Map<BNFNonTerminal, BNFExpression> productions) {
 		}
 		this.productions = new HashMap<>(productions);
 	}
+
+	// TODO: remove this
+	@Override
+	public String toString() {
+		return BNFUtils.prettyPrint(this);
+	}
 }
