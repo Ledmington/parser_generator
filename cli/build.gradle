@@ -55,6 +55,7 @@ tasks.register('integrationTest', Exec) {
     group = 'verification'
     description = 'Runs the integration tests using the fat JAR and a bash script.'
     dependsOn fatJar
+    environment "JAVA_HOME", System.getProperty("java.home")
     commandLine path("${rootProject.projectDir}", "integration", "run_tests.sh"), fatJarPath
     standardOutput = System.out
     errorOutput = System.err

@@ -1,19 +1,26 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 set -euo pipefail
 
+die() {
+    echo "$*" >&2
+    exit 255
+}
+
 if [[ $# -ne 1 ]] ; then
-  echo "Expected the jar file to run tests against."
-  exit 1
+  die "Expected the jar file to run tests against."
 fi
 
-if ! JAVA=$(which java) ; then
-  echo "Could not find java command"
-  if [[ -v JAVA_HOME ]] ; then
-    JAVA="${JAVA_HOME}/bin/java"
-  else
-    echo "Could not find JAVA_HOME"
-    exit 1
+if [[ -n "${JAVA_HOME}" ]] ; then
+  JAVA=$(realpath "${JAVA_HOME}/bin/java")
+  if [[ ! -e ${JAVA} ]] ; then
+    die "JAVA_HOME was set but could not find 'java' executable."
+  fi
+else
+  echo "JAVA_HOME not set."
+  JAVA=$(realpath "$(which java)")
+  if [[ ! -e ${JAVA} ]] ; then
+    die "Could not find 'java' executable."
   fi
 fi
 
