@@ -22,16 +22,16 @@ import java.util.List;
 /**
  * An element of an EBNF grammar which represents an ordered sequence of expressions.
  *
- * @param nodes The ordered sequence of expressions.
+ * @param expressions The ordered sequence of expressions.
  */
-public record Sequence(List<Expression> nodes) implements Expression {
+public record Sequence(List<Expression> expressions) implements Expression {
 
 	/**
 	 * Creates a new Sequence Node with given expressions.
 	 *
-	 * @param nodes The sequence of expressions.
+	 * @param expressions The sequence of expressions.
 	 */
-	public Sequence(final Expression... nodes) {
-		this(List.of(nodes));
+	public Sequence(final Expression... expressions) {
+		this(List.of(expressions));
 	}
 }

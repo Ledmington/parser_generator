@@ -122,7 +122,7 @@ public final class Grammar {
 						.filter(p -> p.result() instanceof Terminal(final String literal, final boolean ignored)
 								&& t.literal().equals(literal))
 						.findFirst();
-				// Avoid generating fake non-terminal nodes for terminals already present in other productions
+				// Avoid generating fake non-terminal expressions for terminals already present in other productions
 				if (replacement.isPresent()) {
 					yield replacement.orElseThrow().start();
 				} else {
@@ -137,11 +137,11 @@ public final class Grammar {
 			case OneOrMore oom -> new OneOrMore(convertExpression(name, lexerProductions, oom.inner()));
 			case ZeroOrMore zom -> new ZeroOrMore(convertExpression(name, lexerProductions, zom.inner()));
 			case Sequence s ->
-				new Sequence(s.nodes().stream()
+				new Sequence(s.expressions().stream()
 						.map(n -> convertExpression(name, lexerProductions, n))
 						.toList());
 			case Or a ->
-				new Or(a.nodes().stream()
+				new Or(a.expressions().stream()
 						.map(n -> convertExpression(name, lexerProductions, n))
 						.toList());
 			default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", e));
@@ -155,8 +155,8 @@ public final class Grammar {
 			case ZeroOrOne zoo -> containsAtLeastOneTerminal(zoo.inner());
 			case ZeroOrMore zom -> containsAtLeastOneTerminal(zom.inner());
 			case OneOrMore oom -> containsAtLeastOneTerminal(oom.inner());
-			case Sequence s -> s.nodes().stream().anyMatch(Grammar::containsAtLeastOneTerminal);
-			case Or or -> or.nodes().stream().anyMatch(Grammar::containsAtLeastOneTerminal);
+			case Sequence s -> s.expressions().stream().anyMatch(Grammar::containsAtLeastOneTerminal);
+			case Or or -> or.expressions().stream().anyMatch(Grammar::containsAtLeastOneTerminal);
 			default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
 		};
 	}
@@ -213,7 +213,7 @@ public final class Grammar {
 					case NonTerminal nt -> productions.put(start, nt);
 					case Sequence seq -> {
 						final List<Expression> newElems = new ArrayList<>();
-						for (final Expression e : seq.nodes()) {
+						for (final Expression e : seq.expressions()) {
 							if (e instanceof NonTerminal) {
 								newElems.add(e);
 							} else {
@@ -226,7 +226,7 @@ public final class Grammar {
 					}
 					case Or or -> {
 						final List<Expression> newOpts = new ArrayList<>();
-						for (final Expression e : or.nodes()) {
+						for (final Expression e : or.expressions()) {
 							if (e instanceof NonTerminal) {
 								newOpts.add(e);
 							} else {
@@ -288,10 +288,10 @@ public final class Grammar {
 			case ZeroOrOne(final Expression inner) -> inner instanceof NonTerminal || inner instanceof Terminal;
 			case ZeroOrMore(final Expression inner) -> inner instanceof NonTerminal || inner instanceof Terminal;
 			case OneOrMore(final Expression inner) -> inner instanceof NonTerminal || inner instanceof Terminal;
-			case Sequence(final List<Expression> nodes) ->
-				nodes.stream().allMatch(n -> n instanceof NonTerminal || n instanceof Terminal);
-			case Or(final List<Expression> nodes) ->
-				nodes.stream().allMatch(n -> n instanceof NonTerminal || n instanceof Terminal);
+			case Sequence(final List<Expression> expressions) ->
+				expressions.stream().allMatch(n -> n instanceof NonTerminal || n instanceof Terminal);
+			case Or(final List<Expression> expressions) ->
+				expressions.stream().allMatch(n -> n instanceof NonTerminal || n instanceof Terminal);
 			default -> false;
 		};
 	}

@@ -71,7 +71,7 @@ public final class AutomataUtils {
 		for (final State s : allStates) {
 			if (!s.isAccepting() && nfa.neighbors(s).isEmpty()) {
 				// A dead-end node is a non-accepting node with no outgoing edges
-				throw new IllegalArgumentException("The automaton contains dead-end nodes.");
+				throw new IllegalArgumentException("The automaton contains dead-end expressions.");
 			}
 		}
 	}

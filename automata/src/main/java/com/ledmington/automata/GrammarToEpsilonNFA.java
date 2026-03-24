@@ -157,9 +157,9 @@ public final class GrammarToEpsilonNFA {
 	private void convertSequence(final Sequence s, final State start, final State end) {
 		State prev = stateFactory.getNewState();
 		builder.addTransition(start, NFA.EPSILON, prev);
-		for (int i = 0; i < s.nodes().size(); i++) {
+		for (int i = 0; i < s.expressions().size(); i++) {
 			final State tmp = stateFactory.getNewState();
-			convertNode(s.nodes().get(i), prev, tmp);
+			convertNode(s.expressions().get(i), prev, tmp);
 			prev = tmp;
 		}
 		builder.addTransition(prev, NFA.EPSILON, end);
@@ -176,7 +176,7 @@ public final class GrammarToEpsilonNFA {
 	}
 
 	private void convertAlternation(final Or or, final State start, final State end) {
-		for (final Node n : or.nodes()) {
+		for (final Node n : or.expressions()) {
 			final State newStart = stateFactory.getNewState();
 			final State newEnd = stateFactory.getNewState();
 			builder.addTransition(start, NFA.EPSILON, newStart);
