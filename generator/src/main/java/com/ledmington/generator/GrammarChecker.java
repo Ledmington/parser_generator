@@ -73,7 +73,7 @@ public final class GrammarChecker {
 
 		// Check that the start symbol can reach all non-terminal symbols
 		final NonTerminal startSymbol = g.getProductions().getFirst().start();
-		final Set<NonTerminal> reachableSymbols = GraphUtils.bfs(graph, startSymbol);
+		final Set<NonTerminal> reachableSymbols = GraphUtils.bfs(graph::get, startSymbol);
 
 		final boolean allReachable = reachableSymbols.equals(allNonTerminals);
 		final boolean allReachableExceptItself =

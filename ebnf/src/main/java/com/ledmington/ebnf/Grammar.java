@@ -185,11 +185,11 @@ public final class Grammar {
 			public NonTerminal apply(final Node n) {
 				return new NonTerminal(
 						switch (n) {
-							case Sequence ignored -> "sequence_" + (sequenceCounter++);
-							case Or ignored -> "or_" + (orCounter++);
-							case ZeroOrOne ignored -> "zero_or_one_" + (zeroOrOneCounter++);
-							case ZeroOrMore ignored -> "zero_or_more_" + (zeroOrMoreCounter++);
-							case OneOrMore ignored -> "one_or_more_" + (oneOrMoreCounter++);
+							case Sequence _ -> "sequence_" + (sequenceCounter++);
+							case Or _ -> "or_" + (orCounter++);
+							case ZeroOrOne _ -> "zero_or_one_" + (zeroOrOneCounter++);
+							case ZeroOrMore _ -> "zero_or_more_" + (zeroOrMoreCounter++);
+							case OneOrMore _ -> "one_or_more_" + (oneOrMoreCounter++);
 							default -> throw new IllegalStateException(String.format("Unknown node: '%s'.", n));
 						});
 			}

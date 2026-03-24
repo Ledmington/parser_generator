@@ -17,10 +17,12 @@
  */
 package com.ledmington.automata;
 
+import com.ledmington.utils.GraphUtils;
+
+import java.util.ArrayDeque;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
@@ -54,8 +56,6 @@ public final class NFAToDFA {
 	 * @return A new DFA.
 	 */
 	public DFA convert(final NFA nfa) {
-		final Map<Set<State>, State> stateMapping = new HashMap<>();
-		final Queue<Set<State>> queue = new LinkedList<>();
 		final DFABuilder builder = DFA.builder();
 		final Map<String, Integer> priorities = nfa.priorities();
 
@@ -80,7 +80,11 @@ public final class NFAToDFA {
 								.orElseThrow())
 						.tokenName())
 				: stateFactory.getNewState();
+
+		final Map<Set<State>, State> stateMapping = new HashMap<>();
 		stateMapping.put(startSet, dfaStartState);
+
+		final Queue<Set<State>> queue = new ArrayDeque<>();
 		queue.add(startSet);
 
 		while (!queue.isEmpty()) {

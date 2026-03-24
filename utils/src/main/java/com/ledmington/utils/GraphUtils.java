@@ -19,9 +19,9 @@ package com.ledmington.utils;
 
 import java.util.ArrayDeque;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Function;
 
 /** Collection of common utilities and algorithms on graphs. */
 public final class GraphUtils {
@@ -31,12 +31,12 @@ public final class GraphUtils {
 	/**
 	 * Breadth-First Search.
 	 *
-	 * @param graph The graph represented as a map giving the set of neighbors for each node.
+	 * @param neighbors The function to use to obtain the set of neighbors of a given node.
 	 * @param start The starting node.
 	 * @return The set of visited nodes (it always includes the starting node).
 	 * @param <X> The type of a node.
 	 */
-	public static <X> Set<X> bfs(final Map<X, Set<X>> graph, final X start) {
+	public static <X> Set<X> bfs(final Function<X, Set<X>> neighbors, final X start) {
 		final Queue<X> q = new ArrayDeque<>();
 		final Set<X> visited = new HashSet<>();
 		q.add(start);
@@ -46,7 +46,7 @@ public final class GraphUtils {
 				continue;
 			}
 			visited.add(current);
-			q.addAll(graph.get(current));
+			q.addAll(neighbors.apply(current));
 		}
 		return visited;
 	}

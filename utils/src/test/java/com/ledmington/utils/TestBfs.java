@@ -21,9 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("PMD.MissingStaticMethodInNonInstantiatableClass")
 public final class TestBfs {
 
 	private TestBfs() {}
@@ -37,10 +39,12 @@ public final class TestBfs {
 				Map.entry(3, Set.of()),
 				Map.entry(4, Set.of()));
 
-		assertEquals(Set.of(0, 1, 3), GraphUtils.bfs(graph, 0));
-		assertEquals(Set.of(1, 3), GraphUtils.bfs(graph, 1));
-		assertEquals(Set.of(1, 2, 3, 4), GraphUtils.bfs(graph, 2));
-		assertEquals(Set.of(3), GraphUtils.bfs(graph, 3));
-		assertEquals(Set.of(4), GraphUtils.bfs(graph, 4));
+		final Function<Integer, Set<Integer>> neighbors = graph::get;
+
+		assertEquals(Set.of(0, 1, 3), GraphUtils.bfs(neighbors, 0));
+		assertEquals(Set.of(1, 3), GraphUtils.bfs(neighbors, 1));
+		assertEquals(Set.of(1, 2, 3, 4), GraphUtils.bfs(neighbors, 2));
+		assertEquals(Set.of(3), GraphUtils.bfs(neighbors, 3));
+		assertEquals(Set.of(4), GraphUtils.bfs(neighbors, 4));
 	}
 }
