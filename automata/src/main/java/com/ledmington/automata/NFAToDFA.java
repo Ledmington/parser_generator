@@ -74,7 +74,7 @@ public final class NFAToDFA {
 		GraphUtils.bfs(
 				startSet,
 
-				// EXPAND: compute reachable DFA states
+				// compute reachable DFA states
 				currentSet -> {
 					final Set<Set<State>> nextSets = new HashSet<>();
 
@@ -88,7 +88,7 @@ public final class NFAToDFA {
 					return nextSets;
 				},
 
-				// VISIT: build DFA transitions
+				// build DFA transitions
 				currentSet -> {
 					final State fromDFAState = stateMapping.get(currentSet);
 

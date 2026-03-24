@@ -17,12 +17,10 @@
  */
 package com.ledmington.generator;
 
-import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -36,6 +34,7 @@ import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.ZeroOrMore;
 import com.ledmington.ebnf.ZeroOrOne;
+import com.ledmington.utils.GraphUtils;
 
 /** Generates Java code to parse a specified EBNF grammar. */
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
@@ -333,56 +332,46 @@ public final class Generator {
 	}
 
 	private static void generateNames(final List<Production> parserProductions) {
-		final Set<Node> visited = new HashSet<>();
-		final Queue<Node> q = new ArrayDeque<>();
+
+		final Set<Node> roots = new HashSet<>();
 
 		for (final Production p : parserProductions) {
-			q.add(p.start());
-			q.add(p.result());
+			roots.add(p.start());
+			roots.add(p.result());
 			NODE_NAMES.put(p.result(), p.start().name());
 		}
 
-		int zeroOrOneCounter = 0;
-		int sequenceCounter = 0;
-		int zeroOrMoreCounter = 0;
-		int oneOrMoreCounter = 0;
-		int orCounter = 0;
-		while (!q.isEmpty()) {
-			final Node n = q.remove();
-			if (visited.contains(n)) {
-				continue;
-			}
-			visited.add(n);
-			switch (n) {
-				case Terminal ignored -> {}
-				case NonTerminal nt -> NODE_NAMES.put(nt, nt.name());
-				case ZeroOrOne zoo -> {
-					NODE_NAMES.put(zoo, "zero_or_one_" + zeroOrOneCounter);
-					q.add(zoo.inner());
-					zeroOrOneCounter++;
-				}
-				case ZeroOrMore zom -> {
-					NODE_NAMES.put(zom, "zero_or_more_" + zeroOrMoreCounter);
-					zeroOrMoreCounter++;
-					q.add(zom.inner());
-				}
-				case OneOrMore oom -> {
-					NODE_NAMES.put(oom, "one_or_more_" + oneOrMoreCounter);
-					oneOrMoreCounter++;
-					q.add(oom.inner());
-				}
-				case Sequence s -> {
-					NODE_NAMES.put(s, "sequence_" + sequenceCounter);
-					sequenceCounter++;
-					q.addAll(s.expressions());
-				}
-				case Or or -> {
-					NODE_NAMES.put(or, "or_" + orCounter);
-					orCounter++;
-					q.addAll(or.expressions());
-				}
-				default -> throw new IllegalArgumentException(String.format("Unknown Node '%s'.", n));
-			}
-		}
+		final int[] zeroOrOneCounter = {0};
+		final int[] sequenceCounter = {0};
+		final int[] zeroOrMoreCounter = {0};
+		final int[] oneOrMoreCounter = {0};
+		final int[] orCounter = {0};
+
+		GraphUtils.bfs(
+				roots,
+
+				// neighbors
+				n -> switch (n) {
+					case ZeroOrOne zoo -> Set.of(zoo.inner());
+					case ZeroOrMore zom -> Set.of(zom.inner());
+					case OneOrMore oom -> Set.of(oom.inner());
+					case Sequence s -> new HashSet<>(s.expressions());
+					case Or or -> new HashSet<>(or.expressions());
+					default -> Set.of();
+				},
+
+				// visit
+				n -> {
+					switch (n) {
+						case Terminal _ -> {}
+						case NonTerminal nt -> NODE_NAMES.put(nt, nt.name());
+						case ZeroOrOne zoo -> NODE_NAMES.put(zoo, "zero_or_one_" + zeroOrOneCounter[0]++);
+						case ZeroOrMore zom -> NODE_NAMES.put(zom, "zero_or_more_" + zeroOrMoreCounter[0]++);
+						case OneOrMore oom -> NODE_NAMES.put(oom, "one_or_more_" + oneOrMoreCounter[0]++);
+						case Sequence s -> NODE_NAMES.put(s, "sequence_" + sequenceCounter[0]++);
+						case Or or -> NODE_NAMES.put(or, "or_" + orCounter[0]++);
+						default -> throw new IllegalArgumentException(String.format("Unknown Node '%s'.", n));
+					}
+				});
 	}
 }

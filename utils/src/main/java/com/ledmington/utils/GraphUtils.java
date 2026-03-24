@@ -18,6 +18,7 @@
 package com.ledmington.utils;
 
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Queue;
 import java.util.Set;
@@ -51,9 +52,22 @@ public final class GraphUtils {
 	 * @param <X> The type of a node.
 	 */
 	public static <X> Set<X> bfs(final X start, final Function<X, Set<X>> neighbors, final Consumer<X> onVisit) {
-		final Queue<X> q = new ArrayDeque<>();
+		return bfs(Set.of(start), neighbors, onVisit);
+	}
+
+	/**
+	 * Breadth-First Search.
+	 *
+	 * @param startingNodes The starting nodes.
+	 * @param neighbors The function to use to obtain the set of neighbors of a given node.
+	 * @param onVisit The function to be called on each visited node.
+	 * @return The set of visited nodes (it always includes the starting node).
+	 * @param <X> The type of a node.
+	 */
+	private static <X> Set<X> bfs(
+			final Collection<X> startingNodes, final Function<X, Set<X>> neighbors, final Consumer<X> onVisit) {
 		final Set<X> visited = new HashSet<>();
-		q.add(start);
+		final Queue<X> q = new ArrayDeque<>(startingNodes);
 		while (!q.isEmpty()) {
 			final X current = q.remove();
 			if (visited.contains(current)) {
