@@ -3,6 +3,7 @@ plugins {
 }
 
 rootProject.name = 'parser_gen'
+include('utils')
 include('ebnf')
 include('automata')
 include('generator')

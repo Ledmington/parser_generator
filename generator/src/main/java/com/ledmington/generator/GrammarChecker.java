@@ -38,6 +38,7 @@ import com.ledmington.ebnf.UnknownNonTerminalException;
 import com.ledmington.ebnf.UnreachableStatesException;
 import com.ledmington.ebnf.ZeroOrMore;
 import com.ledmington.ebnf.ZeroOrOne;
+import com.ledmington.utils.GraphUtils;
 
 /** A class to check an EBNF grammar for correctness. */
 public final class GrammarChecker {
@@ -74,7 +75,7 @@ public final class GrammarChecker {
 
 		// Check that the start symbol can reach all non-terminal symbols
 		final NonTerminal startSymbol = g.getProductions().getFirst().start();
-		final Set<NonTerminal> reachableSymbols = bfs(graph, startSymbol);
+		final Set<NonTerminal> reachableSymbols = GraphUtils.bfs(graph, startSymbol);
 
 		final boolean allReachable = reachableSymbols.equals(allNonTerminals);
 		final boolean allReachableExceptItself =
@@ -113,20 +114,5 @@ public final class GrammarChecker {
 			}
 		}
 		return nonTerminalNames;
-	}
-
-	private static <X> Set<X> bfs(final Map<X, Set<X>> graph, final X start) {
-		final Queue<X> q = new ArrayDeque<>();
-		final Set<X> visited = new HashSet<>();
-		q.add(start);
-		while (!q.isEmpty()) {
-			final X current = q.remove();
-			if (visited.contains(current)) {
-				continue;
-			}
-			visited.add(current);
-			q.addAll(graph.get(current));
-		}
-		return visited;
 	}
 }
