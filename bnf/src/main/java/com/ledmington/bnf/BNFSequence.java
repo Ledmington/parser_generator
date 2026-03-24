@@ -15,24 +15,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.ebnf;
+package com.ledmington.bnf;
 
-import java.util.Objects;
+import java.util.List;
 
 /**
- * An element of an EBNF grammar which represents the ability to repeat a given expression as many times as needed (even
- * zero).
+ * An element of a BNF grammar which represents an ordered sequence of expressions.
  *
- * @param inner The repeated Expression.
+ * @param expressions The ordered sequence of expressions.
  */
-public record ZeroOrMore(Expression inner) implements Container {
+public record BNFSequence(List<BNFExpression> expressions) implements BNFExpression {
 
 	/**
-	 * Creates a new ZeroOrMore object with the given inner expression.
+	 * Creates a new BNF Sequence with given expressions.
 	 *
-	 * @param inner The repeated expression.
+	 * @param expressions The sequence of expressions.
 	 */
-	public ZeroOrMore {
-		Objects.requireNonNull(inner);
+	public BNFSequence(final BNFExpression... expressions) {
+		this(List.of(expressions));
 	}
 }

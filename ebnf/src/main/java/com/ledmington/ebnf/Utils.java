@@ -18,8 +18,10 @@
 package com.ledmington.ebnf;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 /** A collection of various utilities. */
+// TODO: move to an external module
 public final class Utils {
 
 	private static final char VERTICAL_LINE = '│';
@@ -159,5 +161,89 @@ public final class Utils {
 			case '\f' -> "\\f";
 			default -> String.valueOf(ch);
 		};
+	}
+
+	/**
+	 * Prints the given EBNF grammar as a String with one production per line.
+	 *
+	 * @param g The grammar to be converted.
+	 * @return The EBNF grammar as a String.
+	 */
+	public static String printAsGrammar(final Grammar g) {
+		final StringBuilder sb = new StringBuilder();
+		g.getProductions().forEach(p -> {
+			sb.append(p.start().name()).append(" -> ");
+			printAsGrammar(sb, p.result());
+			sb.append(" ;\n");
+		});
+		return sb.toString();
+	}
+
+	/**
+	 * Prints the given EBNF expression as a String in one line.
+	 *
+	 * @param exp The EBNF expression to be converted.
+	 * @return The EBNF expression as a String.
+	 */
+	public static String printAsGrammar(final Expression exp) {
+		final StringBuilder sb = new StringBuilder();
+		printAsGrammar(sb, exp);
+		return sb.append("\n").toString();
+	}
+
+	private static void printAsGrammar(final StringBuilder sb, final Expression exp) {
+		switch (exp) {
+			case Terminal t -> sb.append("'").append(t.literal()).append("'");
+			case NonTerminal nt -> sb.append(nt.name());
+			case Sequence s -> printAsGrammar(sb, s, " ");
+			case Or or -> printAsGrammar(sb, or, " | ");
+			case ZeroOrOne zoo -> printAsGrammar(sb, zoo, '?');
+			case ZeroOrMore zom -> printAsGrammar(sb, zom, '*');
+			case OneOrMore oom -> printAsGrammar(sb, oom, '+');
+			default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'.", exp));
+		}
+	}
+
+	private static void printAsGrammar(final StringBuilder sb, final Container c, final char symbol) {
+		if (isSymbol(c.inner())) {
+			printAsGrammar(sb, c.inner());
+		} else {
+			sb.append("( ");
+			printAsGrammar(sb, c.inner());
+			sb.append(") ");
+		}
+		sb.append(symbol);
+	}
+
+	private static void printAsGrammar(final StringBuilder sb, final Composite c, final String separator) {
+		if (c.expressions().isEmpty()) {
+			return;
+		}
+
+		final Consumer<Expression> parenthesis = e -> {
+			if (isSymbol(e)) {
+				printAsGrammar(sb, e);
+			} else {
+				sb.append("( ");
+				printAsGrammar(sb, e);
+				sb.append(" )");
+			}
+		};
+
+		parenthesis.accept(c.expressions().getFirst());
+		for (int i = 1; i < c.expressions().size(); i++) {
+			sb.append(separator);
+			parenthesis.accept(c.expressions().get(i));
+		}
+	}
+
+	/**
+	 * Checks whether the given BNF expression is either a terminal or a non-terminal symbol.
+	 *
+	 * @param e expression to check.
+	 * @return {@code true} is the expression is a terminal or non-terminal symbol, {@code false} otherwise.
+	 */
+	public static boolean isSymbol(final Expression e) {
+		return e instanceof Terminal || e instanceof NonTerminal;
 	}
 }

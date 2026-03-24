@@ -15,24 +15,31 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.ebnf;
+package com.ledmington.bnf;
 
 import java.util.Objects;
 
 /**
- * An element of an EBNF grammar which represents the ability to repeat a given expression as many times as needed (even
- * zero).
+ * An element of the BNF grammar which represents a symbol which can be expanded into other symbols.
  *
- * @param inner The repeated Expression.
+ * @param name The name used in the grammar to refer to this non-terminal symbol.
  */
-public record ZeroOrMore(Expression inner) implements Container {
+public record BNFNonTerminal(String name) implements BNFExpression, Comparable<BNFNonTerminal> {
 
 	/**
-	 * Creates a new ZeroOrMore object with the given inner expression.
+	 * Creates a new NonTerminal with the given name.
 	 *
-	 * @param inner The repeated expression.
+	 * @param name The name of the non-terminal symbol.
 	 */
-	public ZeroOrMore {
-		Objects.requireNonNull(inner);
+	public BNFNonTerminal {
+		Objects.requireNonNull(name);
+		if (name.isBlank()) {
+			throw new IllegalArgumentException("Empty non-terminal name.");
+		}
+	}
+
+	@Override
+	public int compareTo(final BNFNonTerminal other) {
+		return this.name.compareTo(other.name);
 	}
 }
