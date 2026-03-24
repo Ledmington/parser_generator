@@ -17,9 +17,21 @@
  */
 package com.ledmington.ebnf;
 
+import java.util.Objects;
+
 /**
  * An EBNF expression which maps to the same expression one or more times.
  *
  * @param inner The inner expression which can be repeated.
  */
-public record OneOrMore(Expression inner) implements Expression {}
+public record OneOrMore(Expression inner) implements Container {
+
+	/**
+	 * Creates a new OneOrMore object with the given inner expression.
+	 *
+	 * @param inner The repeated expression.
+	 */
+	public OneOrMore {
+		Objects.requireNonNull(inner);
+	}
+}

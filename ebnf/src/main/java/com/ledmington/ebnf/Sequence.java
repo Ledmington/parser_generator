@@ -24,7 +24,7 @@ import java.util.List;
  *
  * @param expressions The ordered sequence of expressions.
  */
-public record Sequence(List<Expression> expressions) implements Expression {
+public record Sequence(List<Expression> expressions) implements Composite {
 
 	/**
 	 * Creates a new Sequence Node with given expressions.

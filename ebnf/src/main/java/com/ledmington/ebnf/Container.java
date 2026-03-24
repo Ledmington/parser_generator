@@ -17,21 +17,14 @@
  */
 package com.ledmington.ebnf;
 
-import java.util.List;
-
-/**
- * An element of an EBNF grammar which represents different possibilities of expressions.
- *
- * @param expressions The alternated expressions.
- */
-public record Or(List<Expression> expressions) implements Composite {
+/** Common type for EBNF constructs which can only have one child node. */
+// TODO: find a better name
+public interface Container extends Expression {
 
 	/**
-	 * Creates a new Alternation Node with the given expressions.
+	 * Returns the contained expression.
 	 *
-	 * @param expressions The expressions to be alternated.
+	 * @return The contained expression.
 	 */
-	public Or(final Expression... expressions) {
-		this(List.of(expressions));
-	}
+	Expression inner();
 }
