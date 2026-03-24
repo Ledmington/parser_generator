@@ -146,21 +146,21 @@ public final class Generator {
 		if (atLeastOneSequence) {
 			sb.append("public interface Sequence extends Node {\n")
 					.indent()
-					.append("List<Node> expressions();\n")
+					.append("List<Node> nodes();\n")
 					.deindent()
 					.append("}\n");
 		}
 		if (atLeastOneZeroOrMore) {
 			sb.append("public interface ZeroOrMore extends Node {\n")
 					.indent()
-					.append("List<Node> expressions();\n")
+					.append("List<Node> nodes();\n")
 					.deindent()
 					.append("}\n");
 		}
 		if (atLeastOneOneOrMore) {
 			sb.append("public interface OneOrMore extends Node {\n")
 					.indent()
-					.append("List<Node> expressions();\n")
+					.append("List<Node> nodes();\n")
 					.deindent()
 					.append("}\n");
 		}
@@ -239,7 +239,7 @@ public final class Generator {
 				sb.append("case Sequence s -> {\n")
 						.indent()
 						.append("System.out.println(indent + s.name());\n")
-						.append("final List<Node> children = s.expressions();\n")
+						.append("final List<Node> children = s.nodes();\n")
 						.append("final int len = children.size();\n")
 						.append("for (int i = 0; i < len - 1; i++) {\n")
 						.indent()
@@ -256,7 +256,7 @@ public final class Generator {
 				sb.append("case ZeroOrMore zom -> {\n")
 						.indent()
 						.append("System.out.println(indent + zom.name());\n")
-						.append("final List<Node> children = zom.expressions();\n")
+						.append("final List<Node> children = zom.nodes();\n")
 						.append("final int len = children.size();\n")
 						.append("for (int i = 0; i < len - 1; i++) {\n")
 						.indent()
@@ -273,7 +273,7 @@ public final class Generator {
 				sb.append("case OneOrMore oom -> {\n")
 						.indent()
 						.append("System.out.println(indent + oom.name());\n")
-						.append("final List<Node> children = oom.expressions();\n")
+						.append("final List<Node> children = oom.nodes();\n")
 						.append("final int len = children.size();\n")
 						.append("for (int i = 0; i < len - 1; i++) {\n")
 						.indent()
