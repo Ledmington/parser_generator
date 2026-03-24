@@ -28,9 +28,9 @@ public final class UnknownNonTerminalException extends RuntimeException {
 	/**
 	 * Creates a new instance with a message for the given non-terminal symbol.
 	 *
-	 * @param nonTerminalName The name of the non-terminal symbol which does not have a corresponding production.
+	 * @param nt The non-terminal symbol which does not have a corresponding production.
 	 */
-	public UnknownNonTerminalException(final String nonTerminalName) {
-		super(String.format("The non-terminal '%s' does not have a production.", nonTerminalName));
+	public UnknownNonTerminalException(final NonTerminal nt) {
+		super(String.format("The non-terminal '%s' does not have a production.", nt.name()));
 	}
 }

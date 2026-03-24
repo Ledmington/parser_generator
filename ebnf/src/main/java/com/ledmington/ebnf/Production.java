@@ -41,7 +41,7 @@ public record Production(NonTerminal start, Expression result) implements Node {
 	}
 
 	/**
-	 * Checks where the given production name corresponds to a lexer production.
+	 * Checks whether the given production name corresponds to a lexer production.
 	 *
 	 * @param productionName The name of the production to check.
 	 * @return {@code true} is the given production belongs to a lexer, {@code false} otherwise.
@@ -53,12 +53,21 @@ public record Production(NonTerminal start, Expression result) implements Node {
 	}
 
 	/**
-	 * Checks where the given production name corresponds to a skippable production.
+	 * Checks whether the given production name corresponds to a skippable production.
 	 *
 	 * @param productionName The name of the production to check.
 	 * @return {@code true} is the given production is skippable, {@code false} otherwise.
 	 */
 	public static boolean isSkippable(final String productionName) {
 		return isLexerProduction(productionName) && productionName.charAt(0) == '_';
+	}
+
+	/**
+	 * Checks whether this production is skippable.
+	 *
+	 * @return {@code true} is this production is skippable, {@code false} otherwise.
+	 */
+	public boolean isSkippable() {
+		return isSkippable(this.start.name());
 	}
 }

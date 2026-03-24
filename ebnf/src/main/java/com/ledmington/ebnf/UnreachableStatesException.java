@@ -19,23 +19,21 @@ package com.ledmington.ebnf;
 
 import java.io.Serial;
 
-/** The proper RuntimeException for a case in which there is no clear start symbol in a given grammar. */
-public final class NoUniqueStartSymbolException extends RuntimeException {
+/**
+ * The proper RuntimeException for a case in which the start symbol of a given grammar can not produce ('reach') all
+ * other non-terminal symbols.
+ */
+public final class UnreachableStatesException extends RuntimeException {
 
 	@Serial
 	private static final long serialVersionUID = 5878803702087464360L;
 
-	/** Creates a new instance with a standard message. */
-	public NoUniqueStartSymbolException() {
-		super("No starting symbol found in the grammar.");
-	}
-
 	/**
-	 * Creates a new NoUniqueStartSymbolException with the given message.
+	 * Creates a new NoUniqueStartSymbolException with a pre-defined message.
 	 *
-	 * @param message The message of this exception.
+	 * @param startSymbol The start symbol of the grammar.
 	 */
-	public NoUniqueStartSymbolException(final String message) {
-		super(message);
+	public UnreachableStatesException(final NonTerminal startSymbol) {
+		super(String.format("The start symbol '%s' can not reach all other symbols.", startSymbol.name()));
 	}
 }
