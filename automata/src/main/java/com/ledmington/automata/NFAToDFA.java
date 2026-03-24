@@ -17,8 +17,6 @@
  */
 package com.ledmington.automata;
 
-import com.ledmington.utils.GraphUtils;
-
 import java.util.ArrayDeque;
 import java.util.Comparator;
 import java.util.HashMap;

@@ -19,9 +19,11 @@ package com.ledmington.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Test;
 
@@ -30,21 +32,64 @@ public final class TestBfs {
 
 	private TestBfs() {}
 
+	private static final Map<Integer, Set<Integer>> graph = Map.ofEntries(
+			Map.entry(0, Set.of(1)),
+			Map.entry(1, Set.of(0, 3)),
+			Map.entry(2, Set.of(1, 2, 4)),
+			Map.entry(3, Set.of()),
+			Map.entry(4, Set.of(3)));
+
 	@Test
 	void reachability() {
-		final Map<Integer, Set<Integer>> graph = Map.ofEntries(
-				Map.entry(0, Set.of(1)),
-				Map.entry(1, Set.of(3)),
-				Map.entry(2, Set.of(1, 4)),
-				Map.entry(3, Set.of()),
-				Map.entry(4, Set.of()));
+		assertEquals(Set.of(0, 1, 3), GraphUtils.bfs(0, graph::get));
+		assertEquals(Set.of(0, 1, 3), GraphUtils.bfs(1, graph::get));
+		assertEquals(Set.of(0, 1, 2, 3, 4), GraphUtils.bfs(2, graph::get));
+		assertEquals(Set.of(3), GraphUtils.bfs(3, graph::get));
+		assertEquals(Set.of(3, 4), GraphUtils.bfs(4, graph::get));
+	}
 
-		final Function<Integer, Set<Integer>> neighbors = graph::get;
+	private static final class Visitor<X> implements Consumer<X> {
 
-		assertEquals(Set.of(0, 1, 3), GraphUtils.bfs(neighbors, 0));
-		assertEquals(Set.of(1, 3), GraphUtils.bfs(neighbors, 1));
-		assertEquals(Set.of(1, 2, 3, 4), GraphUtils.bfs(neighbors, 2));
-		assertEquals(Set.of(3), GraphUtils.bfs(neighbors, 3));
-		assertEquals(Set.of(4), GraphUtils.bfs(neighbors, 4));
+		private final List<X> visited = new ArrayList<>();
+
+		public Visitor() {}
+
+		public List<X> getVisited() {
+			return this.visited;
+		}
+
+		public void reset() {
+			this.visited.clear();
+		}
+
+		@Override
+		public void accept(final X x) {
+			this.visited.add(x);
+		}
+	}
+
+	@Test
+	void visitors() {
+		final Visitor<Integer> visitor = new Visitor<>();
+
+		GraphUtils.bfs(0, graph::get, visitor);
+		assertEquals(List.of(0, 1, 3), visitor.getVisited());
+		visitor.reset();
+
+		GraphUtils.bfs(1, graph::get, visitor);
+		assertEquals(List.of(1, 3, 0), visitor.getVisited());
+		visitor.reset();
+
+		GraphUtils.bfs(2, graph::get, visitor);
+		assertEquals(List.of(2, 1, 4, 3, 0), visitor.getVisited());
+		visitor.reset();
+
+		GraphUtils.bfs(3, graph::get, visitor);
+		assertEquals(List.of(3), visitor.getVisited());
+		visitor.reset();
+
+		GraphUtils.bfs(4, graph::get, visitor);
+		assertEquals(List.of(4, 3), visitor.getVisited());
+		visitor.reset();
 	}
 }

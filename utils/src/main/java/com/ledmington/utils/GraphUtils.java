@@ -21,6 +21,7 @@ import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /** Collection of common utilities and algorithms on graphs. */
@@ -31,12 +32,25 @@ public final class GraphUtils {
 	/**
 	 * Breadth-First Search.
 	 *
-	 * @param neighbors The function to use to obtain the set of neighbors of a given node.
 	 * @param start The starting node.
+	 * @param neighbors The function to use to obtain the set of neighbors of a given node.
 	 * @return The set of visited nodes (it always includes the starting node).
 	 * @param <X> The type of a node.
 	 */
-	public static <X> Set<X> bfs(final Function<X, Set<X>> neighbors, final X start) {
+	public static <X> Set<X> bfs(final X start, final Function<X, Set<X>> neighbors) {
+		return bfs(start, neighbors, _ -> {});
+	}
+
+	/**
+	 * Breadth-First Search.
+	 *
+	 * @param start The starting node.
+	 * @param neighbors The function to use to obtain the set of neighbors of a given node.
+	 * @param onVisit The function to be called on each visited node.
+	 * @return The set of visited nodes (it always includes the starting node).
+	 * @param <X> The type of a node.
+	 */
+	public static <X> Set<X> bfs(final X start, final Function<X, Set<X>> neighbors, final Consumer<X> onVisit) {
 		final Queue<X> q = new ArrayDeque<>();
 		final Set<X> visited = new HashSet<>();
 		q.add(start);
@@ -45,6 +59,7 @@ public final class GraphUtils {
 			if (visited.contains(current)) {
 				continue;
 			}
+			onVisit.accept(current);
 			visited.add(current);
 			q.addAll(neighbors.apply(current));
 		}
