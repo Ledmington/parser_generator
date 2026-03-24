@@ -20,10 +20,7 @@ package com.ledmington.ebnf;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
@@ -254,7 +251,7 @@ public final class Parser {
 			throw new AssertionError();
 		}
 		if (v.getFirst() instanceof final Production p) {
-			return new Grammar(new HashMap<>(Map.of(p, 1)));
+			return new Grammar(List.of(p));
 		}
 		if (!(v.getFirst() instanceof final Grammar g)) {
 			throw new ParsingException(
@@ -358,22 +355,15 @@ public final class Parser {
 	}
 
 	private static boolean mergeProductions(final List<Object> v, final int i) {
-		final Map<Production, Integer> productions = new HashMap<>();
-		int priority = 1;
+		final List<Production> productions = new ArrayList<>();
 		int count = 0;
 		int j = i;
 		for (; j < v.size(); j++) {
 			if (v.get(j) instanceof final Grammar g) {
-				final Map<Production, Integer> productions1 = g.getProductions();
-				for (final Production p : productions1.entrySet().stream()
-						.sorted(Entry.comparingByValue())
-						.map(Entry::getKey)
-						.toList()) {
-					productions.put(p, priority++);
-				}
+				productions.addAll(g.getProductions());
 				count++;
 			} else if (v.get(j) instanceof final Production p) {
-				productions.put(p, priority++);
+				productions.add(p);
 				count++;
 			} else {
 				break;

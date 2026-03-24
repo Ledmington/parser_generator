@@ -17,9 +17,7 @@
  */
 package com.ledmington.generator;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.jupiter.params.provider.Arguments;
 
@@ -126,11 +124,7 @@ public final class CorrectGrammars {
 					List.of("", "\\", "\n", "\t", "n", "t")));
 
 	static Grammar g(final Production... productions) {
-		final Map<Production, Integer> p = new HashMap<>();
-		for (int i = 0; i < productions.length; i++) {
-			p.put(productions[i], i + 1);
-		}
-		return new Grammar(p);
+		return new Grammar(List.of(productions));
 	}
 
 	static Production p(final String nonTerminalName, final Expression exp) {

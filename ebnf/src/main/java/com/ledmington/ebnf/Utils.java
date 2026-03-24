@@ -18,7 +18,6 @@
 package com.ledmington.ebnf;
 
 import java.util.List;
-import java.util.Map.Entry;
 
 /** A collection of various utilities. */
 public final class Utils {
@@ -54,10 +53,7 @@ public final class Utils {
 		if (root.getProductions().isEmpty()) {
 			return sb.toString();
 		}
-		final List<Production> productions = root.getProductions().entrySet().stream()
-				.sorted(Entry.comparingByValue())
-				.map(Entry::getKey)
-				.toList();
+		final List<Production> productions = root.getProductions();
 		final int len = productions.size();
 		for (int i = 0; i < len - 1; i++) {
 			prettyPrint(sb, productions.get(i), getJointIndent(""), getLineIndent(""));

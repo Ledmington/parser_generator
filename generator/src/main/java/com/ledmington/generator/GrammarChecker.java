@@ -17,14 +17,27 @@
  */
 package com.ledmington.generator;
 
+import java.util.ArrayDeque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.Set;
 
+import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
+import com.ledmington.ebnf.Node;
+import com.ledmington.ebnf.NonTerminal;
+import com.ledmington.ebnf.OneOrMore;
+import com.ledmington.ebnf.Or;
 import com.ledmington.ebnf.Production;
+import com.ledmington.ebnf.Sequence;
+import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.UnknownNonTerminalException;
+import com.ledmington.ebnf.UnreachableStatesException;
+import com.ledmington.ebnf.ZeroOrMore;
+import com.ledmington.ebnf.ZeroOrOne;
 
 /** A class to check an EBNF grammar for correctness. */
 public final class GrammarChecker {
@@ -39,23 +52,81 @@ public final class GrammarChecker {
 	public static void check(final Grammar g) {
 		Objects.requireNonNull(g);
 
-		// Gather all non-terminals
-		final Set<String> allNonTerminals = new HashSet<>();
-		for (final Map.Entry<Production, Integer> e : g.getProductions().entrySet()) {
-			allNonTerminals.add(e.getKey().start().name());
-			allNonTerminals.addAll(Grammar.findAllNonTerminals(e.getKey().result()));
+		// Build reachability graph
+		final Map<NonTerminal, Set<NonTerminal>> graph = new HashMap<>();
+		final Set<NonTerminal> allNonTerminals = new HashSet<>();
+		for (final Production p : g.getProductions()) {
+			final Set<NonTerminal> neighbors = findAllNonTerminals(p.result());
+			graph.put(p.start(), neighbors);
+
+			allNonTerminals.add(p.start());
+			allNonTerminals.addAll(neighbors);
 		}
 
-		for (final String name : allNonTerminals) {
-			if (g.getProductions().keySet().stream()
-					.noneMatch(nt -> nt.start().name().equals(name))) {
-				throw new UnknownNonTerminalException(name);
+		for (final NonTerminal nt : allNonTerminals) {
+			if (g.getProductions().stream().noneMatch(p -> p.start().equals(nt))) {
+				throw new UnknownNonTerminalException(nt);
 			}
 		}
 
 		// remove all skippable lexer symbols
-		g.getProductions().entrySet().stream()
-				.filter(e -> Production.isSkippable(e.getKey().start().name()))
-				.forEach(e -> allNonTerminals.remove(e.getKey().start().name()));
+		g.getProductions().stream().filter(Production::isSkippable).forEach(p -> allNonTerminals.remove(p.start()));
+
+		// Check that the start symbol can reach all non-terminal symbols
+		final NonTerminal startSymbol = g.getProductions().getFirst().start();
+		final Set<NonTerminal> reachableSymbols = bfs(graph, startSymbol);
+
+		final boolean allReachable = reachableSymbols.equals(allNonTerminals);
+		final boolean allReachableExceptItself =
+				without(reachableSymbols, startSymbol).equals(without(allNonTerminals, startSymbol));
+
+		if (!allReachable && !allReachableExceptItself) {
+			throw new UnreachableStatesException(startSymbol);
+		}
+	}
+
+	private static <X> Set<X> without(final Set<X> s, final X toBeRemoved) {
+		final Set<X> c = new HashSet<>(s);
+		c.remove(toBeRemoved);
+		return c;
+	}
+
+	private static Set<NonTerminal> findAllNonTerminals(final Expression root) {
+		final Set<NonTerminal> nonTerminalNames = new HashSet<>();
+		final Queue<Node> q = new ArrayDeque<>();
+		final Set<Node> visited = new HashSet<>();
+		q.add(root);
+		while (!q.isEmpty()) {
+			final Node n = q.remove();
+			if (!visited.add(n)) {
+				continue;
+			}
+			switch (n) {
+				case NonTerminal nt -> nonTerminalNames.add(nt);
+				case Terminal ignored -> {}
+				case Or or -> q.addAll(or.nodes());
+				case Sequence c -> q.addAll(c.nodes());
+				case ZeroOrMore zom -> q.add(zom.inner());
+				case ZeroOrOne zoo -> q.add(zoo.inner());
+				case OneOrMore oom -> q.add(oom.inner());
+				default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
+			}
+		}
+		return nonTerminalNames;
+	}
+
+	private static <X> Set<X> bfs(final Map<X, Set<X>> graph, final X start) {
+		final Queue<X> q = new ArrayDeque<>();
+		final Set<X> visited = new HashSet<>();
+		q.add(start);
+		while (!q.isEmpty()) {
+			final X current = q.remove();
+			if (visited.contains(current)) {
+				continue;
+			}
+			visited.add(current);
+			q.addAll(graph.get(current));
+		}
+		return visited;
 	}
 }

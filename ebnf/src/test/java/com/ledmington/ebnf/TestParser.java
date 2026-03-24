@@ -24,9 +24,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 
@@ -194,11 +192,7 @@ public final class TestParser {
 	}
 
 	private static Grammar g(final Production... productions) {
-		final Map<Production, Integer> p = new HashMap<>();
-		for (int i = 0; i < productions.length; i++) {
-			p.put(productions[i], i + 1);
-		}
-		return new Grammar(p);
+		return new Grammar(List.of(productions));
 	}
 
 	private static Production p(final String name, final Expression exp) {

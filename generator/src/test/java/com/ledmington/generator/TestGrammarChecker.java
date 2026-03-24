@@ -17,34 +17,25 @@
  */
 package com.ledmington.generator;
 
+import static com.ledmington.generator.CorrectGrammars.g;
+import static com.ledmington.generator.CorrectGrammars.nt;
+import static com.ledmington.generator.CorrectGrammars.p;
+import static com.ledmington.generator.CorrectGrammars.t;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import com.ledmington.ebnf.Grammar;
-import com.ledmington.ebnf.NoUniqueStartSymbolException;
-import com.ledmington.ebnf.NonTerminal;
-import com.ledmington.ebnf.Production;
-import com.ledmington.ebnf.Terminal;
 import com.ledmington.ebnf.UnknownNonTerminalException;
+import com.ledmington.ebnf.UnreachableStatesException;
 
 public final class TestGrammarChecker {
 	@Test
 	void multipleStartSymbols() {
-		assertThrows(
-				NoUniqueStartSymbolException.class,
-				() -> GrammarChecker.check(new Grammar(Map.ofEntries(
-						Map.entry(new Production(new NonTerminal("s"), new Terminal("a")), 1),
-						Map.entry(new Production(new NonTerminal("t"), new Terminal("b")), 1)))));
+		assertThrows(UnreachableStatesException.class, () -> GrammarChecker.check(g(p("s", t("a")), p("t", t("b")))));
 	}
 
 	@Test
 	void unusableNonTerminals() {
-		assertThrows(
-				UnknownNonTerminalException.class,
-				() -> GrammarChecker.check(
-						new Grammar(Map.of(new Production(new NonTerminal("s"), new NonTerminal("t")), 1))));
+		assertThrows(UnknownNonTerminalException.class, () -> GrammarChecker.check(g(p("s", nt("t")))));
 	}
 }
