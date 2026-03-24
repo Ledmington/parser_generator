@@ -202,7 +202,7 @@ public final class Grammar {
 			}
 
 			final Queue<Pair<NonTerminal, Expression>> q = new ArrayDeque<>();
-			q.add(new Pair<>(prod.start(), prod.result()));
+			q.add(Pair.of(prod.start(), prod.result()));
 
 			while (!q.isEmpty()) {
 				final Pair<NonTerminal, Expression> p = q.remove();
@@ -219,7 +219,7 @@ public final class Grammar {
 							} else {
 								final NonTerminal tmp = freshNT.apply(e);
 								newElems.add(tmp);
-								q.add(new Pair<>(tmp, e));
+								q.add(Pair.of(tmp, e));
 							}
 						}
 						productions.put(start, new Sequence(newElems));
@@ -232,7 +232,7 @@ public final class Grammar {
 							} else {
 								final NonTerminal tmp = freshNT.apply(e);
 								newOpts.add(tmp);
-								q.add(new Pair<>(tmp, e));
+								q.add(Pair.of(tmp, e));
 							}
 						}
 						productions.put(start, new Or(newOpts));
@@ -243,7 +243,7 @@ public final class Grammar {
 						} else {
 							final NonTerminal tmp = freshNT.apply(zoo.inner());
 							productions.put(start, new ZeroOrOne(tmp));
-							q.add(new Pair<>(tmp, zoo.inner()));
+							q.add(Pair.of(tmp, zoo.inner()));
 						}
 					}
 					case ZeroOrMore zom -> {
@@ -252,7 +252,7 @@ public final class Grammar {
 						} else {
 							final NonTerminal tmp = freshNT.apply(zom.inner());
 							productions.put(start, new ZeroOrMore(tmp));
-							q.add(new Pair<>(tmp, zom.inner()));
+							q.add(Pair.of(tmp, zom.inner()));
 						}
 					}
 					case OneOrMore oom -> {
@@ -261,7 +261,7 @@ public final class Grammar {
 						} else {
 							final NonTerminal tmp = freshNT.apply(oom.inner());
 							productions.put(start, new OneOrMore(tmp));
-							q.add(new Pair<>(tmp, oom.inner()));
+							q.add(Pair.of(tmp, oom.inner()));
 						}
 					}
 					default -> throw new IllegalArgumentException(String.format("Unknown node: '%s'.", result));

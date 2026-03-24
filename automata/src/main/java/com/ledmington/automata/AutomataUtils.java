@@ -17,12 +17,12 @@
  */
 package com.ledmington.automata;
 
-import java.util.ArrayDeque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import com.ledmington.utils.GraphUtils;
 
 /** A collection of common algorithms on finite-state automata. */
 public final class AutomataUtils {
@@ -44,25 +44,15 @@ public final class AutomataUtils {
 		}
 
 		// Only one strongly connected component
-		final Queue<State> q = new ArrayDeque<>();
-		final Set<State> visited = new HashSet<>();
-		q.add(nfa.startingState());
-
-		while (!q.isEmpty()) {
-			final State s = q.remove();
-			if (visited.contains(s)) {
-				continue;
+		// TODO: refactor this into a function GraphUtils.isOneStronglyConnectedComponent() ?
+		final Set<State> visited = GraphUtils.bfs(nfa.startingState(), s -> {
+			final Map<Character, Set<State>> tmp = nfa.neighbors(s);
+			// TODO: can we remove this check?
+			if (tmp == null) {
+				return Set.of();
 			}
-			visited.add(s);
-
-			final Map<Character, Set<State>> neighbors = nfa.neighbors(s);
-			if (neighbors == null) {
-				continue;
-			}
-			for (final Map.Entry<Character, Set<State>> e : neighbors.entrySet()) {
-				q.addAll(e.getValue());
-			}
-		}
+			return tmp.entrySet().stream().flatMap(e -> e.getValue().stream()).collect(Collectors.toSet());
+		});
 
 		if (!visited.equals(allStates)) {
 			throw new IllegalArgumentException("The automaton is not a single strongly connected component.");

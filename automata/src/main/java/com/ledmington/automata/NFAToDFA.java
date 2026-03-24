@@ -17,16 +17,16 @@
  */
 package com.ledmington.automata;
 
-import java.util.ArrayDeque;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import com.ledmington.utils.GraphUtils;
 
 /** A class to convert an NFA into a DFA. */
 public final class NFAToDFA {
@@ -60,63 +60,68 @@ public final class NFAToDFA {
 		final Set<Character> alphabet = nfa.states().stream()
 				.flatMap(s -> {
 					final Map<Character, Set<State>> m = nfa.neighbors(s);
-					if (m == null) {
-						return Stream.of();
-					}
-					return m.keySet().stream();
+					return m == null ? Stream.of() : m.keySet().stream();
 				})
 				.collect(Collectors.toUnmodifiableSet());
 
-		final Set<State> startSet = new HashSet<>();
-		startSet.add(nfa.startingState());
-		final boolean isAccepting = startSet.stream().anyMatch(State::isAccepting);
-		final State dfaStartState = isAccepting
-				? stateFactory.getNewAcceptingState(((AcceptingState) startSet.stream()
-								.filter(State::isAccepting)
-								.min(Comparator.comparing(s ->
-										priorities.getOrDefault(((AcceptingState) s).tokenName(), Integer.MAX_VALUE)))
-								.orElseThrow())
-						.tokenName())
-				: stateFactory.getNewState();
+		final Set<State> startSet = Set.of(nfa.startingState());
+
+		final State dfaStartState = createDFAState(startSet, priorities);
 
 		final Map<Set<State>, State> stateMapping = new HashMap<>();
 		stateMapping.put(startSet, dfaStartState);
 
-		final Queue<Set<State>> queue = new ArrayDeque<>();
-		queue.add(startSet);
+		GraphUtils.bfs(
+				startSet,
 
-		while (!queue.isEmpty()) {
-			final Set<State> currentSet = queue.remove();
-			final State fromDFAState = stateMapping.get(currentSet);
+				// EXPAND: compute reachable DFA states
+				currentSet -> {
+					final Set<Set<State>> nextSets = new HashSet<>();
 
-			for (final char symbol : alphabet) {
-				final Set<State> moveSet = move(currentSet, symbol, nfa);
-				if (moveSet.isEmpty()) {
-					continue;
-				}
+					for (final char symbol : alphabet) {
+						final Set<State> moveSet = move(currentSet, symbol, nfa);
+						if (!moveSet.isEmpty()) {
+							nextSets.add(moveSet);
+						}
+					}
 
-				final State toDFAState;
-				if (stateMapping.containsKey(moveSet)) {
-					toDFAState = stateMapping.get(moveSet);
-				} else {
-					final boolean accept = moveSet.stream().anyMatch(State::isAccepting);
-					toDFAState = accept
-							? stateFactory.getNewAcceptingState(((AcceptingState) moveSet.stream()
-											.filter(State::isAccepting)
-											.min(Comparator.comparing(s -> priorities.getOrDefault(
-													((AcceptingState) s).tokenName(), Integer.MAX_VALUE)))
-											.orElseThrow())
-									.tokenName())
-							: stateFactory.getNewState();
-					stateMapping.put(moveSet, toDFAState);
-					queue.add(moveSet);
-				}
+					return nextSets;
+				},
 
-				builder.addTransition(fromDFAState, symbol, toDFAState);
-			}
-		}
+				// VISIT: build DFA transitions
+				currentSet -> {
+					final State fromDFAState = stateMapping.get(currentSet);
+
+					for (final char symbol : alphabet) {
+						final Set<State> moveSet = move(currentSet, symbol, nfa);
+						if (moveSet.isEmpty()) {
+							continue;
+						}
+
+						final State toDFAState =
+								stateMapping.computeIfAbsent(moveSet, s -> createDFAState(s, priorities));
+
+						builder.addTransition(fromDFAState, symbol, toDFAState);
+					}
+				});
 
 		return builder.start(dfaStartState).build();
+	}
+
+	private State createDFAState(final Set<State> states, final Map<String, Integer> priorities) {
+		final boolean accept = states.stream().anyMatch(State::isAccepting);
+
+		if (!accept) {
+			return stateFactory.getNewState();
+		}
+
+		final AcceptingState best = (AcceptingState) states.stream()
+				.filter(State::isAccepting)
+				.min(Comparator.comparing(
+						s -> priorities.getOrDefault(((AcceptingState) s).tokenName(), Integer.MAX_VALUE)))
+				.orElseThrow();
+
+		return stateFactory.getNewAcceptingState(best.tokenName());
 	}
 
 	private Set<State> move(final Set<State> states, final char symbol, final NFA nfa) {

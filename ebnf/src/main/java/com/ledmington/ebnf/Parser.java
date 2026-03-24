@@ -276,7 +276,7 @@ public final class Parser {
 			if (v.get(i).equals(Symbols.LEFT_PARENTHESIS)) {
 				leftBracketPosition = i;
 			} else if (v.get(i).equals(Symbols.RIGHT_PARENTHESIS)) {
-				return Optional.of(new Pair<>(leftBracketPosition, i));
+				return Optional.of(Pair.of(leftBracketPosition, i));
 			}
 		}
 		throw new ParsingException("No matching pair of brackets was found.");
