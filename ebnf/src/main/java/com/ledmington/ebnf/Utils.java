@@ -74,8 +74,8 @@ public final class Utils {
 						.append("'\n");
 			case NonTerminal nt ->
 				sb.append(indent).append("non_terminal '").append(nt.name()).append("'\n");
-			case Or or -> prettyPrintList(sb, "or", or.nodes(), indent, continuationIndent);
-			case Sequence s -> prettyPrintList(sb, "sequence", s.nodes(), indent, continuationIndent);
+			case Or or -> prettyPrintList(sb, "or", or.expressions(), indent, continuationIndent);
+			case Sequence s -> prettyPrintList(sb, "sequence", s.expressions(), indent, continuationIndent);
 			case ZeroOrOne zoo -> prettyPrintContainer(sb, "zero_or_one", zoo.inner(), indent, continuationIndent);
 			case ZeroOrMore zom -> prettyPrintContainer(sb, "zero_or_more", zom.inner(), indent, continuationIndent);
 			case OneOrMore oom -> prettyPrintContainer(sb, "one_or_more", oom.inner(), indent, continuationIndent);
@@ -103,17 +103,17 @@ public final class Utils {
 	private static void prettyPrintList(
 			final StringBuilder sb,
 			final String nodeName,
-			final List<Expression> nodes,
+			final List<Expression> expressions,
 			final String indent,
 			final String continuationIndent) {
 		sb.append(indent).append(nodeName).append('\n');
-		if (nodes.isEmpty()) {
+		if (expressions.isEmpty()) {
 			return;
 		}
-		for (int i = 0; i < nodes.size() - 1; i++) {
-			prettyPrint(sb, nodes.get(i), getJointIndent(continuationIndent), getLineIndent(continuationIndent));
+		for (int i = 0; i < expressions.size() - 1; i++) {
+			prettyPrint(sb, expressions.get(i), getJointIndent(continuationIndent), getLineIndent(continuationIndent));
 		}
-		prettyPrint(sb, nodes.getLast(), getAngleIndent(continuationIndent), getEmptyIndent(continuationIndent));
+		prettyPrint(sb, expressions.getLast(), getAngleIndent(continuationIndent), getEmptyIndent(continuationIndent));
 	}
 
 	private static String getJointIndent(final String s) {

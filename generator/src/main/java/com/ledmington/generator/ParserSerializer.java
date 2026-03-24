@@ -111,9 +111,9 @@ public final class ParserSerializer {
 							.append("}\n")
 							.deindent()
 							.append("}\n");
-				case Sequence(final List<Expression> nodes) -> {
+				case Sequence(final List<Expression> expressions) -> {
 					final Map<String, Integer> typeCounts = new HashMap<>();
-					for (final Expression exp : nodes) {
+					for (final Expression exp : expressions) {
 						final String typeName = resolveTypeName(exp);
 						final String nodeName = globalNodeNames.get(exp);
 						final String fullName = typeName + " " + nodeName;
@@ -121,7 +121,7 @@ public final class ParserSerializer {
 					}
 					final Map<String, Integer> nameCounter = new HashMap<>();
 					final List<String> nodeNames = new ArrayList<>();
-					for (final Expression exp : nodes) {
+					for (final Expression exp : expressions) {
 						final String typeName = resolveTypeName(exp);
 						final String nodeName = globalNodeNames.get(exp);
 						final String fullName = typeName + " " + nodeName;
@@ -136,8 +136,8 @@ public final class ParserSerializer {
 					sb.append("public record ")
 							.append(newNodeName)
 							.append('(')
-							.append(IntStream.range(0, nodes.size())
-									.mapToObj(i -> resolveTypeName(nodes.get(i)) + " " + nodeNames.get(i))
+							.append(IntStream.range(0, expressions.size())
+									.mapToObj(i -> resolveTypeName(expressions.get(i)) + " " + nodeNames.get(i))
 									.collect(Collectors.joining(", ")))
 							.append(") implements Sequence {\n")
 							.indent()
@@ -150,10 +150,10 @@ public final class ParserSerializer {
 							.deindent()
 							.append("}\n")
 							.append("@Override\n")
-							.append("public List<Node> nodes() {\n")
+							.append("public List<Node> expressions() {\n")
 							.indent()
 							.append("return List.of(")
-							.append(IntStream.range(0, nodes.size())
+							.append(IntStream.range(0, expressions.size())
 									.mapToObj(nodeNames::get)
 									.collect(Collectors.joining(", ")))
 							.append(");\n")
@@ -217,7 +217,7 @@ public final class ParserSerializer {
 							.deindent()
 							.append("}\n")
 							.append("@Override\n")
-							.append("public List<Node> nodes() {\n")
+							.append("public List<Node> expressions() {\n")
 							.indent()
 							.append("return ")
 							.append(globalNodeNames.get(inner))
@@ -244,7 +244,7 @@ public final class ParserSerializer {
 							.deindent()
 							.append("}\n")
 							.append("@Override\n")
-							.append("public List<Node> nodes() {\n")
+							.append("public List<Node> expressions() {\n")
 							.indent()
 							.append("return ")
 							.append(globalNodeNames.get(inner))
@@ -302,9 +302,9 @@ public final class ParserSerializer {
 	private void generateOr(final String productionName, final Or or) {
 		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
 				.indent();
-		final List<Expression> nodes = or.nodes();
-		for (int i = 0; i < nodes.size(); i++) {
-			final Expression exp = nodes.get(i);
+		final List<Expression> expressions = or.expressions();
+		for (int i = 0; i < expressions.size(); i++) {
+			final Expression exp = expressions.get(i);
 			final String nodeName = "n_" + i;
 			generateParseCall(exp, nodeName);
 			sb.append("if (" + nodeName + " != null) {\n")
@@ -324,7 +324,7 @@ public final class ParserSerializer {
 
 		sb.append("private " + productionName + " parse_" + productionName + "() {\n")
 				.indent()
-				.append("final List<" + innerTypeName + "> nodes = new ArrayList<>();\n")
+				.append("final List<" + innerTypeName + "> expressions = new ArrayList<>();\n")
 				.append("while (true) {\n")
 				.indent();
 		generateParseCall(inner, "n");
@@ -335,12 +335,12 @@ public final class ParserSerializer {
 					.deindent()
 					.append("}\n");
 		}
-		sb.append("nodes.add(n);\n")
+		sb.append("expressions.add(n);\n")
 				.deindent()
 				.append("}\n")
 				.append("return new ")
 				.append(productionName)
-				.append("(nodes);\n")
+				.append("(expressions);\n")
 				.deindent()
 				.append("}\n");
 	}
@@ -359,8 +359,8 @@ public final class ParserSerializer {
 					.deindent()
 					.append("}\n");
 		}
-		sb.append("final List<" + innerTypeName + "> nodes = new ArrayList<>();\n")
-				.append("nodes.add(n_0);\n")
+		sb.append("final List<" + innerTypeName + "> expressions = new ArrayList<>();\n")
+				.append("expressions.add(n_0);\n")
 				.append("while (true) {\n")
 				.indent();
 		generateParseCall(inner, "n");
@@ -371,10 +371,10 @@ public final class ParserSerializer {
 					.deindent()
 					.append("}\n");
 		}
-		sb.append("nodes.add(n);\n")
+		sb.append("expressions.add(n);\n")
 				.deindent()
 				.append("}\n")
-				.append("return new " + productionName + "(nodes);\n")
+				.append("return new " + productionName + "(expressions);\n")
 				.deindent()
 				.append("}\n");
 	}
@@ -384,7 +384,7 @@ public final class ParserSerializer {
 				.indent()
 				.append("stack.push(this.pos);\n");
 
-		final List<Expression> seq = s.nodes();
+		final List<Expression> seq = s.expressions();
 		for (int i = 0; i < seq.size(); i++) {
 			final Expression exp = seq.get(i);
 			final String nodeName = "n_" + i;

@@ -95,8 +95,9 @@ public final class GrammarUtils {
 				}
 			}
 			case Sequence s ->
-				firstSet.addAll(computeFirstSet(parserProductions, s.nodes().getFirst()));
-			case Or or -> or.nodes().forEach(e -> firstSet.addAll(computeFirstSet(parserProductions, e)));
+				firstSet.addAll(
+						computeFirstSet(parserProductions, s.expressions().getFirst()));
+			case Or or -> or.expressions().forEach(e -> firstSet.addAll(computeFirstSet(parserProductions, e)));
 			case OneOrMore oom -> firstSet.addAll(computeFirstSet(parserProductions, oom.inner()));
 			case ZeroOrOne zoo -> {
 				firstSet.add(EMPTY_TERMINAL);
@@ -210,9 +211,9 @@ public final class GrammarUtils {
 			}
 			case Sequence seq -> {
 				// A -> B C D ;
-				final List<Expression> nodes = seq.nodes();
-				for (int i = 0; i < nodes.size(); i++) {
-					final Expression current = nodes.get(i);
+				final List<Expression> expressions = seq.expressions();
+				for (int i = 0; i < expressions.size(); i++) {
+					final Expression current = expressions.get(i);
 					if (!(current instanceof final NonTerminal nt)) {
 						continue;
 					}
@@ -221,8 +222,8 @@ public final class GrammarUtils {
 					}
 
 					// If there is a next symbol
-					if (i + 1 < nodes.size()) {
-						final Expression next = nodes.get(i + 1);
+					if (i + 1 < expressions.size()) {
+						final Expression next = expressions.get(i + 1);
 						final Set<Terminal> firstNext = computeFirstSet(g.getParserProductions(), next);
 
 						followSets.get(nt).addAll(withoutEpsilon(firstNext));
@@ -237,8 +238,8 @@ public final class GrammarUtils {
 			}
 			case Or or -> {
 				// A -> B | C | D ;
-				final List<Expression> nodes = or.nodes();
-				for (final Expression current : nodes) {
+				final List<Expression> expressions = or.expressions();
+				for (final Expression current : expressions) {
 					if (!(current instanceof final NonTerminal nt)) {
 						continue;
 					}

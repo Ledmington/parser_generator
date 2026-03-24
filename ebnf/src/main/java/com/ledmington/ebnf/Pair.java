@@ -20,9 +20,23 @@ package com.ledmington.ebnf;
 /**
  * Utility class to group together two objects of different types.
  *
- * @param <X> The type of the first element
- * @param <Y> The type of the second element
- * @param first The first element of the pair
- * @param second The second element of the pair
+ * @param <X> The type of the first element.
+ * @param <Y> The type of the second element.
+ * @param first The first element of the pair.
+ * @param second The second element of the pair.
  */
-public record Pair<X, Y>(X first, Y second) {}
+public record Pair<X, Y>(X first, Y second) {
+
+	/**
+	 * Utility method to create a Pair.
+	 *
+	 * @param first The first element.
+	 * @param second The second element.
+	 * @return A new Pair with the given elements.
+	 * @param <A> The type of the first element.
+	 * @param <B> The type of the second element.
+	 */
+	public static <A, B> Pair<A, B> of(final A first, final B second) {
+		return new Pair<>(first, second);
+	}
+}

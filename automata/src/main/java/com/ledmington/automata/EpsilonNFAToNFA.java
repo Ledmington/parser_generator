@@ -17,13 +17,14 @@
  */
 package com.ledmington.automata;
 
-import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Queue;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import com.ledmington.utils.GraphUtils;
 
 /** A class to convert an epsilon NFA into an NFA without epsilon transitions. */
 public final class EpsilonNFAToNFA {
@@ -100,24 +101,14 @@ public final class EpsilonNFAToNFA {
 		final State newStartingState = stateMapping.get(epsilonNFA.startingState());
 
 		// Explicit removing all states that are not reachable from the starting state
-		final Queue<State> q = new ArrayDeque<>();
-		final Set<State> visited = new HashSet<>();
-		q.add(newStartingState);
-		while (!q.isEmpty()) {
-			final State s = q.remove();
-			if (visited.contains(s)) {
-				continue;
-			}
-			visited.add(s);
-
+		final Set<State> visited = GraphUtils.bfs(newStartingState, s -> {
 			final Map<Character, Set<State>> neighbors = builder.neighbors(s);
 			if (neighbors == null) {
-				continue;
+				// TODO: can we remove this check?
+				return Set.of();
 			}
-			for (final Map.Entry<Character, Set<State>> e : neighbors.entrySet()) {
-				q.addAll(e.getValue());
-			}
-		}
+			return neighbors.values().stream().flatMap(Set::stream).collect(Collectors.toSet());
+		});
 
 		final Set<State> unreachableStates = new HashSet<>();
 		for (final State newState : stateMapping.values()) {
@@ -136,25 +127,13 @@ public final class EpsilonNFAToNFA {
 	}
 
 	private Set<State> epsilonClosure(final State state, final NFA nfa) {
-		final Queue<State> q = new ArrayDeque<>();
-		final Set<State> closure = new HashSet<>();
-		final Set<State> visited = new HashSet<>();
-		q.add(state);
-
-		while (!q.isEmpty()) {
-			final State s = q.remove();
-			if (visited.contains(s)) {
-				continue;
-			}
-			visited.add(s);
-			closure.add(s);
-
+		return GraphUtils.bfs(state, s -> {
 			final Map<Character, Set<State>> neighbors = nfa.neighbors(s);
-			if (neighbors != null && neighbors.containsKey(NFA.EPSILON)) {
-				q.addAll(neighbors.get(NFA.EPSILON));
+			if (neighbors == null) {
+				// TODO: can we remove this check?
+				return Set.of();
 			}
-		}
-
-		return closure;
+			return neighbors.getOrDefault(NFA.EPSILON, Set.of());
+		});
 	}
 }

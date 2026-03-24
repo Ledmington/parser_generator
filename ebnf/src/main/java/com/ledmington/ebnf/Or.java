@@ -22,16 +22,16 @@ import java.util.List;
 /**
  * An element of an EBNF grammar which represents different possibilities of expressions.
  *
- * @param nodes The alternated expressions.
+ * @param expressions The alternated expressions.
  */
-public record Or(List<Expression> nodes) implements Expression {
+public record Or(List<Expression> expressions) implements Expression {
 
 	/**
 	 * Creates a new Alternation Node with the given expressions.
 	 *
-	 * @param nodes The expressions to be alternated.
+	 * @param expressions The expressions to be alternated.
 	 */
-	public Or(final Expression... nodes) {
-		this(List.of(nodes));
+	public Or(final Expression... expressions) {
+		this(List.of(expressions));
 	}
 }

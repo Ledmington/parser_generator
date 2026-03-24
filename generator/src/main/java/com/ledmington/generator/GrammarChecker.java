@@ -17,17 +17,15 @@
  */
 package com.ledmington.generator;
 
-import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Queue;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
-import com.ledmington.ebnf.Node;
 import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.OneOrMore;
 import com.ledmington.ebnf.Or;
@@ -38,6 +36,7 @@ import com.ledmington.ebnf.UnknownNonTerminalException;
 import com.ledmington.ebnf.UnreachableStatesException;
 import com.ledmington.ebnf.ZeroOrMore;
 import com.ledmington.ebnf.ZeroOrOne;
+import com.ledmington.utils.GraphUtils;
 
 /** A class to check an EBNF grammar for correctness. */
 public final class GrammarChecker {
@@ -74,7 +73,7 @@ public final class GrammarChecker {
 
 		// Check that the start symbol can reach all non-terminal symbols
 		final NonTerminal startSymbol = g.getProductions().getFirst().start();
-		final Set<NonTerminal> reachableSymbols = bfs(graph, startSymbol);
+		final Set<NonTerminal> reachableSymbols = GraphUtils.bfs(startSymbol, graph::get);
 
 		final boolean allReachable = reachableSymbols.equals(allNonTerminals);
 		final boolean allReachableExceptItself =
@@ -91,42 +90,22 @@ public final class GrammarChecker {
 		return c;
 	}
 
-	private static Set<NonTerminal> findAllNonTerminals(final Expression root) {
-		final Set<NonTerminal> nonTerminalNames = new HashSet<>();
-		final Queue<Node> q = new ArrayDeque<>();
-		final Set<Node> visited = new HashSet<>();
-		q.add(root);
-		while (!q.isEmpty()) {
-			final Node n = q.remove();
-			if (!visited.add(n)) {
-				continue;
-			}
-			switch (n) {
-				case NonTerminal nt -> nonTerminalNames.add(nt);
-				case Terminal ignored -> {}
-				case Or or -> q.addAll(or.nodes());
-				case Sequence c -> q.addAll(c.nodes());
-				case ZeroOrMore zom -> q.add(zom.inner());
-				case ZeroOrOne zoo -> q.add(zoo.inner());
-				case OneOrMore oom -> q.add(oom.inner());
-				default -> throw new IllegalArgumentException(String.format("Unknown node '%s'.", n));
-			}
-		}
-		return nonTerminalNames;
-	}
-
-	private static <X> Set<X> bfs(final Map<X, Set<X>> graph, final X start) {
-		final Queue<X> q = new ArrayDeque<>();
-		final Set<X> visited = new HashSet<>();
-		q.add(start);
-		while (!q.isEmpty()) {
-			final X current = q.remove();
-			if (visited.contains(current)) {
-				continue;
-			}
-			visited.add(current);
-			q.addAll(graph.get(current));
-		}
-		return visited;
+	private static Set<NonTerminal> findAllNonTerminals(final Expression exp) {
+		return switch (exp) {
+			case Terminal _ -> Set.of();
+			case NonTerminal nt -> Set.of(nt);
+			case Or or ->
+				or.expressions().stream()
+						.flatMap(x -> findAllNonTerminals(x).stream())
+						.collect(Collectors.toSet());
+			case Sequence s ->
+				s.expressions().stream()
+						.flatMap(x -> findAllNonTerminals(x).stream())
+						.collect(Collectors.toSet());
+			case ZeroOrMore zom -> findAllNonTerminals(zom.inner());
+			case ZeroOrOne zoo -> findAllNonTerminals(zoo.inner());
+			case OneOrMore oom -> findAllNonTerminals(oom.inner());
+			default -> throw new IllegalArgumentException(String.format("Unknown EBNF expression '%s'.", exp));
+		};
 	}
 }

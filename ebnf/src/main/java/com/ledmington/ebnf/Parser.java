@@ -276,7 +276,7 @@ public final class Parser {
 			if (v.get(i).equals(Symbols.LEFT_PARENTHESIS)) {
 				leftBracketPosition = i;
 			} else if (v.get(i).equals(Symbols.RIGHT_PARENTHESIS)) {
-				return Optional.of(new Pair<>(leftBracketPosition, i));
+				return Optional.of(Pair.of(leftBracketPosition, i));
 			}
 		}
 		throw new ParsingException("No matching pair of brackets was found.");
@@ -414,8 +414,8 @@ public final class Parser {
 		int j = i;
 		for (; j < v.size(); j++) {
 			final Object obj = v.get(j);
-			if (obj instanceof Sequence(final List<Expression> nodes)) {
-				expressions.addAll(nodes);
+			if (obj instanceof Sequence(final List<Expression> exp)) {
+				expressions.addAll(exp);
 				count++;
 			} else if (obj instanceof final Expression exp /*&& !(obj instanceof Or)*/) {
 				expressions.add(exp);
@@ -443,8 +443,8 @@ public final class Parser {
 		int count = 0;
 		int j = i + 1;
 		for (; j < v.size() - 1; j++) {
-			if (v.get(j).equals(Symbols.VERTICAL_LINE) && v.get(j + 1) instanceof Or(final List<Expression> nodes)) {
-				expressions.addAll(nodes);
+			if (v.get(j).equals(Symbols.VERTICAL_LINE) && v.get(j + 1) instanceof Or(final List<Expression> exp)) {
+				expressions.addAll(exp);
 				count++;
 				j++;
 			} else if (v.get(j).equals(Symbols.VERTICAL_LINE) && v.get(j + 1) instanceof final Expression exp) {
