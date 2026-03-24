@@ -18,14 +18,19 @@
 package com.ledmington.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 @SuppressWarnings("PMD.MissingStaticMethodInNonInstantiatableClass")
 public final class TestBfs {
@@ -77,11 +82,13 @@ public final class TestBfs {
 		visitor.reset();
 
 		GraphUtils.bfs(1, graph::get, visitor);
-		assertEquals(List.of(1, 3, 0), visitor.getVisited());
+		assertTrue(Set.of(List.of(1, 3, 0), List.of(1, 0, 3)).contains(visitor.getVisited()));
 		visitor.reset();
 
 		GraphUtils.bfs(2, graph::get, visitor);
-		assertEquals(List.of(2, 1, 4, 3, 0), visitor.getVisited());
+		assertTrue(
+				Set.of(List.of(2, 1, 4, 3, 0), List.of(2, 4, 1, 3, 0), List.of(2, 1, 4, 0, 3), List.of(2, 4, 1, 0, 3))
+						.contains(visitor.getVisited()));
 		visitor.reset();
 
 		GraphUtils.bfs(3, graph::get, visitor);
@@ -91,5 +98,17 @@ public final class TestBfs {
 		GraphUtils.bfs(4, graph::get, visitor);
 		assertEquals(List.of(4, 3), visitor.getVisited());
 		visitor.reset();
+	}
+
+	private static Stream<Arguments> nodes() {
+		return graph.keySet().stream().map(Arguments::of);
+	}
+
+	@ParameterizedTest
+	@MethodSource("nodes")
+	void determinism(final int root) {
+		final Set<Integer> result1 = GraphUtils.bfs(root, graph::get);
+		final Set<Integer> result2 = GraphUtils.bfs(root, graph::get);
+		assertEquals(result1, result2);
 	}
 }

@@ -18,8 +18,8 @@
 package com.ledmington.utils;
 
 import java.util.ArrayDeque;
-import java.util.Collection;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -33,41 +33,32 @@ public final class GraphUtils {
 	/**
 	 * Breadth-First Search.
 	 *
-	 * @param start The starting node.
+	 * @param startingNode The starting node.
 	 * @param neighbors The function to use to obtain the set of neighbors of a given node.
 	 * @return The set of visited nodes (it always includes the starting node).
 	 * @param <X> The type of a node.
 	 */
-	public static <X> Set<X> bfs(final X start, final Function<X, Set<X>> neighbors) {
-		return bfs(start, neighbors, _ -> {});
+	public static <X> Set<X> bfs(final X startingNode, final Function<X, Set<X>> neighbors) {
+		return bfs(startingNode, neighbors, _ -> {});
 	}
 
 	/**
 	 * Breadth-First Search.
 	 *
-	 * @param start The starting node.
+	 * @param startingNode The starting node.
 	 * @param neighbors The function to use to obtain the set of neighbors of a given node.
 	 * @param onVisit The function to be called on each visited node.
 	 * @return The set of visited nodes (it always includes the starting node).
 	 * @param <X> The type of a node.
 	 */
-	public static <X> Set<X> bfs(final X start, final Function<X, Set<X>> neighbors, final Consumer<X> onVisit) {
-		return bfs(Set.of(start), neighbors, onVisit);
-	}
+	public static <X> Set<X> bfs(final X startingNode, final Function<X, Set<X>> neighbors, final Consumer<X> onVisit) {
+		Objects.requireNonNull(startingNode, "Null starting nodes.");
+		Objects.requireNonNull(neighbors, "Null neighbors function.");
+		Objects.requireNonNull(onVisit, "Null onVisit consumer.");
 
-	/**
-	 * Breadth-First Search.
-	 *
-	 * @param startingNodes The starting nodes.
-	 * @param neighbors The function to use to obtain the set of neighbors of a given node.
-	 * @param onVisit The function to be called on each visited node.
-	 * @return The set of visited nodes (it always includes the starting node).
-	 * @param <X> The type of a node.
-	 */
-	private static <X> Set<X> bfs(
-			final Collection<X> startingNodes, final Function<X, Set<X>> neighbors, final Consumer<X> onVisit) {
 		final Set<X> visited = new HashSet<>();
-		final Queue<X> q = new ArrayDeque<>(startingNodes);
+		final Queue<X> q = new ArrayDeque<>();
+		q.add(startingNode);
 		while (!q.isEmpty()) {
 			final X current = q.remove();
 			if (visited.contains(current)) {
