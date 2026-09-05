@@ -18,8 +18,10 @@
 package com.ledmington.bnf;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import com.ledmington.ebnf.Expression;
 import com.ledmington.ebnf.Grammar;
@@ -29,14 +31,14 @@ import com.ledmington.ebnf.Or;
 import com.ledmington.ebnf.Production;
 import com.ledmington.ebnf.Sequence;
 import com.ledmington.ebnf.Terminal;
-import com.ledmington.ebnf.Utils;
 import com.ledmington.ebnf.ZeroOrMore;
 import com.ledmington.ebnf.ZeroOrOne;
 
 /** A class to convert and EBNF grammar into a BNF grammar. */
 public final class Converter {
 
-	private static int NON_TERMINAL_COUNTER = 0;
+	private static int nonTerminalCounter = 0;
+	private static final Set<String> USED_NAMES = new HashSet<>();
 
 	private Converter() {}
 
@@ -48,7 +50,12 @@ public final class Converter {
 	 */
 	public static BNFGrammar convertToBnf(final Grammar g) {
 		final List<Production> ebnfProductions = g.getProductions();
-		NON_TERMINAL_COUNTER = 0;
+		nonTerminalCounter = 0;
+		USED_NAMES.clear();
+		for (final Production p : ebnfProductions) {
+			USED_NAMES.add(p.start().name());
+		}
+
 		List<BNFProduction> productions = new ArrayList<>();
 		for (final Production p : ebnfProductions) {
 			final BNFNonTerminal start = new BNFNonTerminal(p.start().name());
@@ -78,88 +85,189 @@ public final class Converter {
 	}
 
 	private static List<BNFProduction> convertToBnfProductions(final BNFNonTerminal root, final Expression exp) {
-		List<BNFProduction> productions = new ArrayList<>();
+		final List<BNFProduction> productions = new ArrayList<>();
 		switch (exp) {
 			case Terminal t -> productions.add(new BNFProduction(root, new BNFTerminal(t.literal())));
 			case NonTerminal nt -> productions.add(new BNFProduction(root, new BNFNonTerminal(nt.name())));
 			case Or or -> {
-				final List<BNFExpression> expressions = new ArrayList<>();
+				final List<BNFExpression> alternatives = new ArrayList<>();
 				for (final Expression e : or.expressions()) {
-					if (e instanceof NonTerminal(final String name)) {
-						expressions.add(new BNFNonTerminal(name));
-					} else if (e instanceof final Terminal t) {
-						expressions.add(new BNFTerminal(t.literal()));
-					} else {
-						final BNFNonTerminal tmp = getNewNonTerminal();
-						productions = mergeProductions(productions, convertToBnfProductions(tmp, e));
-						expressions.add(tmp);
-					}
+					alternatives.add(embedOrSynthesize(e, productions));
 				}
-				// The production for 'root' must stay first: BNFGrammar (like ebnf.Grammar) treats the first
-				// production in the list as the start symbol.
-				productions.addFirst(new BNFProduction(root, new BNFAlternation(expressions)));
+				productions.addFirst(new BNFProduction(root, new BNFAlternation(alternatives)));
 			}
 			case Sequence s -> {
-				final List<BNFExpression> expressions = new ArrayList<>();
+				final List<BNFExpression> elements = new ArrayList<>();
 				for (final Expression e : s.expressions()) {
-					if (e instanceof NonTerminal(final String name)) {
-						expressions.add(new BNFNonTerminal(name));
-					} else if (e instanceof final Terminal t) {
-						expressions.add(new BNFTerminal(t.literal()));
-					} else {
-						// The "special case" is a sequence of either a terminal or a non-terminal followed by something
-						// else.
-						// In this specific case, just for readability, the "something else" receives the root name with
-						// "_tail"
-						final boolean isSpecialCase = s.expressions().size() == 2
-								&& Utils.isSymbol(s.expressions().getFirst())
-								&& !Utils.isSymbol(s.expressions().get(1));
-						final BNFNonTerminal tmp =
-								isSpecialCase ? new BNFNonTerminal(root.name() + "_tail") : getNewNonTerminal();
-						productions = mergeProductions(productions, convertToBnfProductions(tmp, e));
-						expressions.add(tmp);
-					}
+					elements.add(convertSequenceElement(root, e, productions));
 				}
-				productions.addFirst(new BNFProduction(root, new BNFSequence(expressions)));
+				productions.addFirst(new BNFProduction(root, new BNFSequence(elements)));
 			}
 			case ZeroOrOne zoo -> {
-				// x -> y?
-				//
-				// x -> y | epsilon
-				final BNFNonTerminal tmp = getNewNonTerminal();
-				productions.add(new BNFProduction(root, new BNFAlternation(tmp, BNFTerminal.EPSILON)));
-				productions = mergeProductions(productions, convertToBnfProductions(tmp, zoo.inner()));
+				final BNFExpression inner = embedInlineOrSynthesize(zoo.inner(), productions);
+				productions.addFirst(new BNFProduction(root, new BNFAlternation(inner, BNFTerminal.EPSILON)));
 			}
 			case ZeroOrMore zom -> {
-				// x -> y*
-				//
-				// x -> x_tail
-				// x_tail -> y x_tail | epsilon
-				final BNFNonTerminal tail = new BNFNonTerminal(root.name() + "_tail");
-				final BNFNonTerminal tmp = getNewNonTerminal();
-				productions.add(new BNFProduction(root, tail));
-				productions.add(
-						new BNFProduction(tail, new BNFAlternation(new BNFSequence(tmp, tail), BNFTerminal.EPSILON)));
-				productions = mergeProductions(productions, convertToBnfProductions(tmp, zom.inner()));
+				final List<List<BNFExpression>> branches = flattenRepetitionBranches(zom.inner(), productions);
+				final List<BNFExpression> alternatives = new ArrayList<>();
+				for (final List<BNFExpression> branch : branches) {
+					final List<BNFExpression> full = new ArrayList<>(branch);
+					full.add(root);
+					alternatives.add(new BNFSequence(full));
+				}
+				alternatives.add(BNFTerminal.EPSILON);
+				productions.addFirst(new BNFProduction(root, new BNFAlternation(alternatives)));
 			}
 			case OneOrMore oom -> {
-				// x -> y+
-				//
-				// x -> y x_tail
-				// x_tail -> y x_tail | epsilon
-				final BNFNonTerminal tail = new BNFNonTerminal(root.name() + "_tail");
-				final BNFNonTerminal tmp = getNewNonTerminal();
-				productions.add(new BNFProduction(root, new BNFSequence(tmp, tail)));
-				productions.add(
-						new BNFProduction(tail, new BNFAlternation(new BNFSequence(tmp, tail), BNFTerminal.EPSILON)));
-				productions = mergeProductions(productions, convertToBnfProductions(tmp, oom.inner()));
+				final BNFNonTerminal tail = uniqueName(root.name() + "_tail");
+				final List<List<BNFExpression>> branches = flattenRepetitionBranches(oom.inner(), productions);
+
+				final List<BNFExpression> firstOccurrence = new ArrayList<>();
+				for (final List<BNFExpression> branch : branches) {
+					final List<BNFExpression> full = new ArrayList<>(branch);
+					full.add(tail);
+					firstOccurrence.add(new BNFSequence(full));
+				}
+				final BNFExpression rootBody =
+						firstOccurrence.size() == 1 ? firstOccurrence.getFirst() : new BNFAlternation(firstOccurrence);
+
+				final List<BNFExpression> repeated = new ArrayList<>();
+				for (final List<BNFExpression> branch : branches) {
+					final List<BNFExpression> full = new ArrayList<>(branch);
+					full.add(tail);
+					repeated.add(new BNFSequence(full));
+				}
+				repeated.add(BNFTerminal.EPSILON);
+
+				productions.addFirst(new BNFProduction(tail, new BNFAlternation(repeated)));
+				productions.addFirst(new BNFProduction(root, rootBody));
 			}
 			default -> throw new IllegalArgumentException(String.format("Unknown EBNF node '%s'.", exp));
 		}
 		return productions;
 	}
 
+	/**
+	 * Converts a single element of an EBNF Sequence into the BNF expression which is going to be used inside the
+	 * corresponding BNFSequence, creating and accumulating (into {@code productions}) any auxiliary production needed
+	 * to represent it.
+	 */
+	private static BNFExpression convertSequenceElement(
+			final BNFNonTerminal root, final Expression e, final List<BNFProduction> productions) {
+		if (e instanceof NonTerminal(final String name)) {
+			return new BNFNonTerminal(name);
+		}
+		if (e instanceof final Terminal t) {
+			return new BNFTerminal(t.literal());
+		}
+		if (e instanceof final ZeroOrOne zoo && zoo.inner() instanceof NonTerminal(final String name)) {
+			// x = ... y? ... ; -> a synthetic 'opt_y' non-terminal, since its meaning is unambiguous.
+			final BNFNonTerminal opt = uniqueName("opt_" + name);
+			productions.addAll(convertToBnfProductions(opt, e));
+			return opt;
+		}
+		if (e instanceof ZeroOrMore || e instanceof OneOrMore) {
+			// A repetition appearing inside a sequence is always the "tail" of the production it belongs to.
+			final BNFNonTerminal tail = uniqueName(root.name() + "_tail");
+			productions.addAll(convertToBnfProductions(tail, e));
+			return tail;
+		}
+		final BNFNonTerminal tmp = getNewNonTerminal();
+		productions.addAll(convertToBnfProductions(tmp, e));
+		return tmp;
+	}
+
+	/**
+	 * Converts the given expression into a single BNFExpression, embedding it directly whenever it is already an atomic
+	 * terminal/non-terminal symbol or a plain sequence of such symbols (both of which BNFAlternation can hold directly
+	 * as one of its branches), and otherwise creating (and accumulating into {@code productions}) a new synthetic
+	 * production for it.
+	 */
+	private static BNFExpression embedInlineOrSynthesize(final Expression e, final List<BNFProduction> productions) {
+		if (e instanceof NonTerminal(final String name)) {
+			return new BNFNonTerminal(name);
+		}
+		if (e instanceof final Terminal t) {
+			return new BNFTerminal(t.literal());
+		}
+		if (e instanceof final Sequence seq) {
+			final List<BNFExpression> elements = new ArrayList<>();
+			for (final Expression sub : seq.expressions()) {
+				elements.add(embedOrSynthesize(sub, productions));
+			}
+			return new BNFSequence(elements);
+		}
+		return embedOrSynthesize(e, productions);
+	}
+
+	/**
+	 * Converts the given expression into a single atomic BNFExpression: a terminal/non-terminal symbol is embedded
+	 * directly, anything else is extracted into a new synthetic production (accumulated into {@code productions}).
+	 */
+	private static BNFExpression embedOrSynthesize(final Expression e, final List<BNFProduction> productions) {
+		if (e instanceof NonTerminal(final String name)) {
+			return new BNFNonTerminal(name);
+		}
+		if (e instanceof final Terminal t) {
+			return new BNFTerminal(t.literal());
+		}
+		final BNFNonTerminal tmp = getNewNonTerminal();
+		productions.addAll(convertToBnfProductions(tmp, e));
+		return tmp;
+	}
+
+	/**
+	 * Flattens the body of a repetition (the inner expression of a ZeroOrMore/OneOrMore) into the list of "branches"
+	 * (each branch being the ordered list of symbols making up one repeated occurrence). A plain sequence is flattened
+	 * one level so its own elements end up directly in the tail production instead of behind an extra synthetic
+	 * non-terminal, and any Or found while flattening is distributed across multiple branches instead of being
+	 * extracted into its own production.
+	 */
+	private static List<List<BNFExpression>> flattenRepetitionBranches(
+			final Expression inner, final List<BNFProduction> productions) {
+		final List<Expression> subExpressions =
+				(inner instanceof final Sequence seq) ? seq.expressions() : List.of(inner);
+
+		List<List<BNFExpression>> branches = new ArrayList<>();
+		branches.add(new ArrayList<>());
+		for (final Expression e : subExpressions) {
+			if (e instanceof final Or or) {
+				final List<List<BNFExpression>> newBranches = new ArrayList<>();
+				for (final List<BNFExpression> existing : branches) {
+					for (final Expression choice : or.expressions()) {
+						final List<BNFExpression> extended = new ArrayList<>(existing);
+						extended.add(embedOrSynthesize(choice, productions));
+						newBranches.add(extended);
+					}
+				}
+				branches = newBranches;
+			} else {
+				final BNFExpression embedded = embedOrSynthesize(e, productions);
+				for (final List<BNFExpression> existing : branches) {
+					existing.add(embedded);
+				}
+			}
+		}
+		return branches;
+	}
+
 	private static BNFNonTerminal getNewNonTerminal() {
-		return new BNFNonTerminal("non_terminal_" + (NON_TERMINAL_COUNTER++));
+		String candidate;
+		do {
+			candidate = "non_terminal_" + (nonTerminalCounter++);
+		} while (USED_NAMES.contains(candidate));
+		USED_NAMES.add(candidate);
+		return new BNFNonTerminal(candidate);
+	}
+
+	private static BNFNonTerminal uniqueName(final String base) {
+		if (USED_NAMES.add(base)) {
+			return new BNFNonTerminal(base);
+		}
+		int suffix = 2;
+		while (!USED_NAMES.add(base + "_" + suffix)) {
+			suffix++;
+		}
+		return new BNFNonTerminal(base + "_" + suffix);
 	}
 }

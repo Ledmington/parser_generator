@@ -51,39 +51,23 @@ public final class TestConversion {
 						bnf(List.of(p("start", new BNFNonTerminal("A")), p("A", new BNFTerminal("a"))))),
 				Arguments.of(
 						ebnf(List.of(p("start", zero_or_one(t("a"))))),
-						bnf(List.of(
-								p(
-										"start",
-										new BNFAlternation(new BNFNonTerminal("non_terminal_0"), BNFTerminal.EPSILON)),
-								p("non_terminal_0", new BNFTerminal("a"))))),
+						bnf(List.of(p("start", new BNFAlternation(new BNFTerminal("a"), BNFTerminal.EPSILON))))),
 				Arguments.of(
 						ebnf(List.of(p("start", zero_or_more(t("a"))))),
-						bnf(List.of(
-								p("start", new BNFNonTerminal("start_tail")),
-								p(
-										"start_tail",
-										new BNFAlternation(
-												new BNFSequence(
-														new BNFNonTerminal("non_terminal_0"),
-														new BNFNonTerminal("start_tail")),
-												BNFTerminal.EPSILON)),
-								p("non_terminal_0", new BNFTerminal("a"))))),
+						bnf(List.of(p(
+								"start",
+								new BNFAlternation(
+										new BNFSequence(new BNFTerminal("a"), new BNFNonTerminal("start")),
+										BNFTerminal.EPSILON))))),
 				Arguments.of(
 						ebnf(List.of(p("start", one_or_more(t("a"))))),
 						bnf(List.of(
-								p(
-										"start",
-										new BNFSequence(
-												new BNFNonTerminal("non_terminal_0"),
-												new BNFNonTerminal("start_tail"))),
+								p("start", new BNFSequence(new BNFTerminal("a"), new BNFNonTerminal("start_tail"))),
 								p(
 										"start_tail",
 										new BNFAlternation(
-												new BNFSequence(
-														new BNFNonTerminal("non_terminal_0"),
-														new BNFNonTerminal("start_tail")),
-												BNFTerminal.EPSILON)),
-								p("non_terminal_0", new BNFTerminal("a"))))),
+												new BNFSequence(new BNFTerminal("a"), new BNFNonTerminal("start_tail")),
+												BNFTerminal.EPSILON))))),
 				Arguments.of(
 						ebnf(List.of(p("start", seq(t("a"), t("b"))))),
 						bnf(List.of(p("start", new BNFSequence(new BNFTerminal("a"), new BNFTerminal("b")))))),
@@ -107,11 +91,14 @@ public final class TestConversion {
 										"expr_tail",
 										new BNFAlternation(
 												new BNFSequence(
-														new BNFNonTerminal("non_terminal_4"),
+														new BNFTerminal("+"),
+														new BNFNonTerminal("term"),
+														new BNFNonTerminal("expr_tail")),
+												new BNFSequence(
+														new BNFTerminal("-"),
 														new BNFNonTerminal("term"),
 														new BNFNonTerminal("expr_tail")),
 												BNFTerminal.EPSILON)),
-								p("non_terminal_4", new BNFAlternation(new BNFTerminal("+"), new BNFTerminal("-"))),
 								p(
 										"term",
 										new BNFSequence(new BNFNonTerminal("factor"), new BNFNonTerminal("term_tail"))),
@@ -130,9 +117,9 @@ public final class TestConversion {
 								p(
 										"factor",
 										new BNFAlternation(
-												new BNFNonTerminal("number"), new BNFNonTerminal("non_terminal_1"))),
+												new BNFNonTerminal("number"), new BNFNonTerminal("non_terminal_0"))),
 								p(
-										"non_terminal_1",
+										"non_terminal_0",
 										new BNFSequence(
 												new BNFTerminal("("),
 												new BNFNonTerminal("expr"),
@@ -180,9 +167,9 @@ public final class TestConversion {
 												new BNFNonTerminal("expr"),
 												new BNFTerminal("then"),
 												new BNFNonTerminal("stmt"),
-												new BNFNonTerminal("else_part"))),
+												new BNFNonTerminal("non_terminal_0"))),
 								p(
-										"else_part",
+										"non_terminal_0",
 										new BNFAlternation(
 												new BNFSequence(new BNFTerminal("else"), new BNFNonTerminal("stmt")),
 												BNFTerminal.EPSILON)),
@@ -243,15 +230,13 @@ public final class TestConversion {
 										"group",
 										new BNFSequence(
 												new BNFTerminal("("),
-												new BNFNonTerminal("group_content"),
+												new BNFNonTerminal("group_tail"),
 												new BNFTerminal(")"))),
 								p(
-										"group_content",
+										"group_tail",
 										new BNFAlternation(
-												new BNFSequence(
-														new BNFTerminal("a"), new BNFNonTerminal("group_content")),
-												new BNFSequence(
-														new BNFTerminal("b"), new BNFNonTerminal("group_content")),
+												new BNFSequence(new BNFTerminal("a"), new BNFNonTerminal("group_tail")),
+												new BNFSequence(new BNFTerminal("b"), new BNFNonTerminal("group_tail")),
 												BNFTerminal.EPSILON))))),
 				Arguments.of(
 						ebnf(List.of(
@@ -279,15 +264,9 @@ public final class TestConversion {
 								p("expr", new BNFAlternation(new BNFTerminal("a"), new BNFTerminal("1")))))),
 				Arguments.of(
 						ebnf(List.of(
-								p("word", one_or_more(t("a"))),
-								p("sentence", seq(nt("word"), zero_or_more(seq(t(" "), nt("word"))), t("."))))),
+								p("sentence", seq(nt("word"), zero_or_more(seq(t(" "), nt("word"))), t("."))),
+								p("word", one_or_more(t("a"))))),
 						bnf(List.of(
-								p("word", new BNFSequence(new BNFTerminal("a"), new BNFNonTerminal("word_tail"))),
-								p(
-										"word_tail",
-										new BNFAlternation(
-												new BNFSequence(new BNFTerminal("a"), new BNFNonTerminal("word_tail")),
-												BNFTerminal.EPSILON)),
 								p(
 										"sentence",
 										new BNFSequence(
@@ -299,8 +278,14 @@ public final class TestConversion {
 										new BNFAlternation(
 												new BNFSequence(
 														new BNFTerminal(" "),
-														new BNFTerminal("a"),
+														new BNFNonTerminal("word"),
 														new BNFNonTerminal("sentence_tail")),
+												BNFTerminal.EPSILON)),
+								p("word", new BNFSequence(new BNFTerminal("a"), new BNFNonTerminal("word_tail"))),
+								p(
+										"word_tail",
+										new BNFAlternation(
+												new BNFSequence(new BNFTerminal("a"), new BNFNonTerminal("word_tail")),
 												BNFTerminal.EPSILON))))),
 				Arguments.of(
 						ebnf(List.of(p(
@@ -320,19 +305,22 @@ public final class TestConversion {
 										new BNFAlternation(
 												new BNFTerminal("int"),
 												new BNFTerminal("float"),
-												new BNFSequence(
-														new BNFTerminal("array"),
-														new BNFTerminal("<"),
-														new BNFNonTerminal("type"),
-														new BNFNonTerminal("type_list_tail"),
-														new BNFTerminal(">")))),
+												new BNFNonTerminal("non_terminal_0"))),
 								p(
-										"type_list_tail",
+										"non_terminal_0",
+										new BNFSequence(
+												new BNFTerminal("array"),
+												new BNFTerminal("<"),
+												new BNFNonTerminal("type"),
+												new BNFNonTerminal("non_terminal_0_tail"),
+												new BNFTerminal(">"))),
+								p(
+										"non_terminal_0_tail",
 										new BNFAlternation(
 												new BNFSequence(
 														new BNFTerminal(","),
 														new BNFNonTerminal("type"),
-														new BNFNonTerminal("type_list_tail")),
+														new BNFNonTerminal("non_terminal_0_tail")),
 												BNFTerminal.EPSILON))))),
 				Arguments.of(
 						ebnf(List.of(p(
@@ -348,10 +336,10 @@ public final class TestConversion {
 										new BNFSequence(
 												new BNFTerminal("var"),
 												new BNFTerminal("a"),
-												new BNFNonTerminal("opt_init"),
+												new BNFNonTerminal("non_terminal_0"),
 												new BNFNonTerminal("decl_tail"))),
 								p(
-										"opt_init",
+										"non_terminal_0",
 										new BNFAlternation(
 												new BNFSequence(new BNFTerminal("="), new BNFTerminal("expr")),
 												BNFTerminal.EPSILON)),
@@ -361,8 +349,13 @@ public final class TestConversion {
 												new BNFSequence(
 														new BNFTerminal(","),
 														new BNFTerminal("a"),
-														new BNFNonTerminal("opt_init"),
+														new BNFNonTerminal("non_terminal_1"),
 														new BNFNonTerminal("decl_tail")),
+												BNFTerminal.EPSILON)),
+								p(
+										"non_terminal_1",
+										new BNFAlternation(
+												new BNFSequence(new BNFTerminal("="), new BNFTerminal("expr")),
 												BNFTerminal.EPSILON))))));
 	}
 
