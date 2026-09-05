@@ -17,4 +17,11 @@
  */
 package com.ledmington.bnf;
 
+/**
+ * A BNF production, mapping a non-terminal symbol to the expression it can be replaced with.
+ *
+ * @param start The non-terminal symbol which can be substituted with the expression on the right-hand side of this
+ *     production.
+ * @param result The expression which the symbol maps to.
+ */
 public record BNFProduction(BNFNonTerminal start, BNFExpression result) {}

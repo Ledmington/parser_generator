@@ -95,7 +95,9 @@ public final class Converter {
 						expressions.add(tmp);
 					}
 				}
-				productions.add(new BNFProduction(root, new BNFAlternation(expressions)));
+				// The production for 'root' must stay first: BNFGrammar (like ebnf.Grammar) treats the first
+				// production in the list as the start symbol.
+				productions.addFirst(new BNFProduction(root, new BNFAlternation(expressions)));
 			}
 			case Sequence s -> {
 				final List<BNFExpression> expressions = new ArrayList<>();
@@ -118,19 +120,15 @@ public final class Converter {
 						expressions.add(tmp);
 					}
 				}
-				productions.add(new BNFProduction(root, new BNFSequence(expressions)));
-
-				System.out.printf("Converted:%n%s -> %s", root, Utils.printAsGrammar(exp));
-				System.out.printf("Into:%n%s%n", BNFUtils.printAsGrammar(new BNFGrammar(productions)));
+				productions.addFirst(new BNFProduction(root, new BNFSequence(expressions)));
 			}
 			case ZeroOrOne zoo -> {
 				// x -> y?
 				//
 				// x -> y | epsilon
 				final BNFNonTerminal tmp = getNewNonTerminal();
-				final List<BNFProduction> converted = convertToBnfProductions(tmp, zoo.inner());
-				productions = mergeProductions(productions, converted);
 				productions.add(new BNFProduction(root, new BNFAlternation(tmp, BNFTerminal.EPSILON)));
+				productions = mergeProductions(productions, convertToBnfProductions(tmp, zoo.inner()));
 			}
 			case ZeroOrMore zom -> {
 				// x -> y*
@@ -139,11 +137,10 @@ public final class Converter {
 				// x_tail -> y x_tail | epsilon
 				final BNFNonTerminal tail = new BNFNonTerminal(root.name() + "_tail");
 				final BNFNonTerminal tmp = getNewNonTerminal();
-				final List<BNFProduction> converted = convertToBnfProductions(tmp, zom.inner());
-				productions = mergeProductions(productions, converted);
 				productions.add(new BNFProduction(root, tail));
 				productions.add(
 						new BNFProduction(tail, new BNFAlternation(new BNFSequence(tmp, tail), BNFTerminal.EPSILON)));
+				productions = mergeProductions(productions, convertToBnfProductions(tmp, zom.inner()));
 			}
 			case OneOrMore oom -> {
 				// x -> y+
@@ -152,11 +149,10 @@ public final class Converter {
 				// x_tail -> y x_tail | epsilon
 				final BNFNonTerminal tail = new BNFNonTerminal(root.name() + "_tail");
 				final BNFNonTerminal tmp = getNewNonTerminal();
-				final List<BNFProduction> converted = convertToBnfProductions(tmp, oom.inner());
-				productions = mergeProductions(productions, converted);
 				productions.add(new BNFProduction(root, new BNFSequence(tmp, tail)));
 				productions.add(
 						new BNFProduction(tail, new BNFAlternation(new BNFSequence(tmp, tail), BNFTerminal.EPSILON)));
+				productions = mergeProductions(productions, convertToBnfProductions(tmp, oom.inner()));
 			}
 			default -> throw new IllegalArgumentException(String.format("Unknown EBNF node '%s'.", exp));
 		}
