@@ -24,7 +24,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import com.ledmington.ebnf.Expression;
-import com.ledmington.ebnf.Grammar;
 import com.ledmington.ebnf.NonTerminal;
 import com.ledmington.ebnf.OneOrMore;
 import com.ledmington.ebnf.Or;
@@ -43,13 +42,12 @@ public final class Converter {
 	private Converter() {}
 
 	/**
-	 * Converts the given EBNF grammar into a BNF one.
+	 * Converts the given EBNF parser productions into a BNF grammar.
 	 *
-	 * @param g The EBNF grammar to be converted.
+	 * @param ebnfProductions The EBNF parser productions to be converted.
 	 * @return The converted BNF grammar.
 	 */
-	public static BNFGrammar convertToBnf(final Grammar g) {
-		final List<Production> ebnfProductions = g.getProductions();
+	public static BNFGrammar convertToBnf(final List<Production> ebnfProductions) {
 		nonTerminalCounter = 0;
 		USED_NAMES.clear();
 		for (final Production p : ebnfProductions) {

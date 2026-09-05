@@ -370,7 +370,7 @@ public final class TestConversion {
 	@ParameterizedTest
 	@MethodSource("testCases")
 	void conversion(final Grammar input, final BNFGrammar expected) {
-		final BNFGrammar actual = Converter.convertToBnf(input);
+		final BNFGrammar actual = Converter.convertToBnf(input.getProductions());
 		assertEquals(
 				expected,
 				actual,
@@ -382,8 +382,8 @@ public final class TestConversion {
 	@ParameterizedTest
 	@MethodSource("onlyEBNF")
 	void determinism(final Grammar input) {
-		final BNFGrammar actual1 = Converter.convertToBnf(input);
-		final BNFGrammar actual2 = Converter.convertToBnf(input);
+		final BNFGrammar actual1 = Converter.convertToBnf(input.getProductions());
+		final BNFGrammar actual2 = Converter.convertToBnf(input.getProductions());
 		assertEquals(actual1, actual2);
 	}
 
@@ -396,7 +396,7 @@ public final class TestConversion {
 	@ParameterizedTest
 	@MethodSource("onlyEBNF")
 	void checkOutput(final Grammar input) {
-		final BNFGrammar g = Converter.convertToBnf(input);
+		final BNFGrammar g = Converter.convertToBnf(input.getProductions());
 		assertDoesNotThrow(() -> BNFGrammarChecker.check(g));
 	}
 }

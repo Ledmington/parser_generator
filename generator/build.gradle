@@ -6,6 +6,7 @@ plugins {
 dependencies {
     implementation project(':utils')
     implementation project(':ebnf')
+    implementation project(':bnf')
     implementation project(':automata')
 }
 

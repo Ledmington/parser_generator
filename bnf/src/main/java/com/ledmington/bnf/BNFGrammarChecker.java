@@ -26,36 +26,63 @@ import java.util.stream.Stream;
 
 import com.ledmington.utils.GraphUtils;
 
-// TODO: move this into production code
+/** A class to check a BNF grammar for correctness. */
 public final class BNFGrammarChecker {
 
 	private BNFGrammarChecker() {}
 
+	/**
+	 * Checks the given BNF grammar for correctness. Throws a RuntimeException in case it's not.
+	 *
+	 * @param g The grammar to be checked.
+	 */
 	public static void check(final BNFGrammar g) {
-		// Build the graph of possible productions (linking each symbol to all symbols which it can produce)
-		final Map<BNFNonTerminal, Set<BNFNonTerminal>> graph = new HashMap<>();
+		check(g, Set.of());
+	}
+
+	/**
+	 * Checks the given BNF grammar for correctness, treating references to any of the given names as valid leaf symbols
+	 * even though they have no production of their own in {@code g} (e.g. lexer/token names, which this BNF grammar
+	 * does not define but is still allowed to reference). Throws a RuntimeException in case it's not.
+	 *
+	 * @param g The grammar to be checked.
+	 * @param externalNames The names which are allowed to be referenced without a corresponding production.
+	 */
+	public static void check(final BNFGrammar g, final Set<String> externalNames) {
+		final Map<BNFNonTerminal, Set<BNFNonTerminal>> neighbors = new HashMap<>();
+		final Set<BNFNonTerminal> allNonTerminals = new HashSet<>();
 		for (final BNFProduction p : g.productions()) {
-			graph.put(p.start(), new HashSet<>());
-		}
-		for (final BNFProduction p : g.productions()) {
-			graph.get(p.start()).addAll(findAllNonTerminals(p.result()));
+			final Set<BNFNonTerminal> referenced = findAllNonTerminals(p.result());
+			neighbors.put(p.start(), referenced);
+
+			allNonTerminals.add(p.start());
+			allNonTerminals.addAll(referenced);
 		}
 
-		final Set<BNFNonTerminal> allNonTerminals = graph.entrySet().stream()
-				.flatMap(e -> Stream.concat(Stream.of(e.getKey()), e.getValue().stream()))
-				.collect(Collectors.toSet());
+		// Ensure every referenced non-terminal has a corresponding production (or is a known external name),
+		// before building the reachability graph: otherwise a dangling reference would only surface as a
+		// NullPointerException deep inside the BFS.
+		for (final BNFNonTerminal nt : allNonTerminals) {
+			if (externalNames.contains(nt.name())) {
+				// an external (e.g. lexer/token) leaf symbol: reachable, but has no production/outgoing edges
+				neighbors.putIfAbsent(nt, Set.of());
+				continue;
+			}
+			if (g.productions().stream().noneMatch(p -> p.start().equals(nt))) {
+				throw new UnknownNonTerminalException(nt);
+			}
+		}
 
 		// Ensure all symbols are reachable from the starting symbol
 		final BNFNonTerminal startSymbol = g.productions().getFirst().start();
-		final Set<BNFNonTerminal> reachableSymbols = GraphUtils.bfs(startSymbol, graph::get);
+		final Set<BNFNonTerminal> reachableSymbols = GraphUtils.bfs(startSymbol, neighbors::get);
 
 		final boolean allReachable = reachableSymbols.equals(allNonTerminals);
 		final boolean allReachableExceptItself =
 				without(reachableSymbols, startSymbol).equals(without(allNonTerminals, startSymbol));
 
 		if (!allReachable && !allReachableExceptItself) {
-			throw new IllegalArgumentException(
-					String.format("The start symbol '%s' cannot reach all other symbols.", startSymbol.name()));
+			throw new UnreachableStatesException(startSymbol);
 		}
 	}
 
