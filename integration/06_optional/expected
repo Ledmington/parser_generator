@@ -1,5 +1,5 @@
 start
  ├─Terminal 'a'
- ├─zero_or_one_0
+ ├─opt_terminal_1
  │  └─null
  └─Terminal 'c'

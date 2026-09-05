@@ -3,47 +3,51 @@ start
     ├─term
     │  ├─factor
     │  │  └─Terminal '1'
-    │  └─zero_or_more_1
+    │  └─term_tail
     │     └─null
-    └─zero_or_more_0
-       ├─sequence_0
-       │  ├─or_0
-       │  │  └─Terminal '+'
-       │  └─term
-       │     ├─factor
-       │     │  └─Terminal '2'
-       │     └─zero_or_more_1
-       │        └─sequence_2
-       │           ├─or_1
-       │           │  └─Terminal '*'
-       │           └─factor
-       │              └─Terminal '3'
-       └─sequence_0
-          ├─or_0
-          │  └─Terminal '-'
-          └─term
-             ├─factor
-             │  └─sequence_1
-             │     ├─Terminal '('
-             │     ├─expression
-             │     │  ├─term
-             │     │  │  ├─factor
-             │     │  │  │  └─Terminal '4'
-             │     │  │  └─zero_or_more_1
-             │     │  │     └─sequence_2
-             │     │  │        ├─or_1
-             │     │  │        │  └─Terminal '/'
-             │     │  │        └─factor
-             │     │  │           └─Terminal '5'
-             │     │  └─zero_or_more_0
-             │     │     └─sequence_0
-             │     │        ├─or_0
-             │     │        │  └─Terminal '+'
-             │     │        └─term
-             │     │           ├─factor
-             │     │           │  └─Terminal '6'
-             │     │           └─zero_or_more_1
-             │     │              └─null
-             │     └─Terminal ')'
-             └─zero_or_more_1
-                └─null
+    └─expression_tail
+       └─expression_tail_branch0
+          ├─Terminal '+'
+          ├─term
+          │  ├─factor
+          │  │  └─Terminal '2'
+          │  └─term_tail
+          │     └─term_tail_branch0
+          │        ├─Terminal '*'
+          │        ├─factor
+          │        │  └─Terminal '3'
+          │        └─term_tail
+          │           └─null
+          └─expression_tail
+             └─expression_tail_branch1
+                ├─Terminal '-'
+                ├─term
+                │  ├─factor
+                │  │  └─non_terminal_0
+                │  │     ├─Terminal '('
+                │  │     ├─expression
+                │  │     │  ├─term
+                │  │     │  │  ├─factor
+                │  │     │  │  │  └─Terminal '4'
+                │  │     │  │  └─term_tail
+                │  │     │  │     └─term_tail_branch1
+                │  │     │  │        ├─Terminal '/'
+                │  │     │  │        ├─factor
+                │  │     │  │        │  └─Terminal '5'
+                │  │     │  │        └─term_tail
+                │  │     │  │           └─null
+                │  │     │  └─expression_tail
+                │  │     │     └─expression_tail_branch0
+                │  │     │        ├─Terminal '+'
+                │  │     │        ├─term
+                │  │     │        │  ├─factor
+                │  │     │        │  │  └─Terminal '6'
+                │  │     │        │  └─term_tail
+                │  │     │        │     └─null
+                │  │     │        └─expression_tail
+                │  │     │           └─null
+                │  │     └─Terminal ')'
+                │  └─term_tail
+                │     └─null
+                └─expression_tail
+                   └─null
