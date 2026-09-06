@@ -15,24 +15,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.ebnf;
+package com.ledmington.bnf;
 
-import java.util.Objects;
+import java.io.Serial;
 
-/**
- * An element of an EBNF grammar which represents the ability to repeat a given expression as many times as needed (even
- * zero).
- *
- * @param inner The repeated Expression.
- */
-public record ZeroOrMore(Expression inner) implements Container {
+/** The proper RuntimeException for a grammar which has non-terminal symbols without a corresponding production. */
+public final class UnknownNonTerminalException extends RuntimeException {
+
+	@Serial
+	private static final long serialVersionUID = 3697132726542915148L;
 
 	/**
-	 * Creates a new ZeroOrMore object with the given inner expression.
+	 * Creates a new instance with a message for the given non-terminal symbol.
 	 *
-	 * @param inner The repeated expression.
+	 * @param nt The non-terminal symbol which does not have a corresponding production.
 	 */
-	public ZeroOrMore {
-		Objects.requireNonNull(inner);
+	public UnknownNonTerminalException(final BNFNonTerminal nt) {
+		super(String.format("The non-terminal '%s' does not have a production.", nt.name()));
 	}
 }

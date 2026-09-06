@@ -36,11 +36,12 @@ public final class Grammar {
 
 	private final String startSymbol;
 	private final List<Production> productions;
+	private final List<Production> splitParserProductions; // pre-computed
 	private final List<Production> parserProductions; // pre-computed
 	private final List<Production> lexerProductions; // pre-computed
 
 	/**
-	 * Creates a new Grammar with the given List of productions.
+	 * Creates a new EBNF Grammar with the given List of productions.
 	 *
 	 * @param productions The productions ordered by priority.
 	 */
@@ -67,6 +68,7 @@ public final class Grammar {
 		final List<Production> tmp = new ArrayList<>();
 		this.lexerProductions = new ArrayList<>();
 		splitProductions(productions, lexerProductions, tmp);
+		this.splitParserProductions = List.copyOf(tmp);
 		this.parserProductions = simplifyProductions(tmp);
 	}
 
@@ -321,6 +323,17 @@ public final class Grammar {
 	 */
 	public List<Production> getParserProductions() {
 		return parserProductions;
+	}
+
+	/**
+	 * Returns the sorted list of parser productions, already split from the lexer ones and with every terminal literal
+	 * hoisted into a synthetic lexer production, but not yet flattened to depth &lt;= 2 (unlike
+	 * {@link #getParserProductions()}).
+	 *
+	 * @return The sorted list of split, terminal-hoisted, un-simplified parser productions.
+	 */
+	public List<Production> getSplitParserProductions() {
+		return splitParserProductions;
 	}
 
 	/**

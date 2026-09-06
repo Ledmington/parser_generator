@@ -15,24 +15,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.ebnf;
-
-import java.util.Objects;
+package com.ledmington.bnf;
 
 /**
- * An element of an EBNF grammar which represents the ability to repeat a given expression as many times as needed (even
- * zero).
+ * A BNF production, mapping a non-terminal symbol to the expression it can be replaced with.
  *
- * @param inner The repeated Expression.
+ * @param start The non-terminal symbol which can be substituted with the expression on the right-hand side of this
+ *     production.
+ * @param result The expression which the symbol maps to.
  */
-public record ZeroOrMore(Expression inner) implements Container {
-
-	/**
-	 * Creates a new ZeroOrMore object with the given inner expression.
-	 *
-	 * @param inner The repeated expression.
-	 */
-	public ZeroOrMore {
-		Objects.requireNonNull(inner);
-	}
-}
+public record BNFProduction(BNFNonTerminal start, BNFExpression result) {}

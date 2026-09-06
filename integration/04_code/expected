@@ -1,21 +1,31 @@
 start
  ├─declaration
- │  └─sequence_0
+ │  └─non_terminal_0
  │     ├─Terminal 'int'
  │     ├─id
- │     │  └─Terminal 'a'
+ │     │  ├─Terminal 'a'
+ │     │  └─id_tail
+ │     │     └─null
  │     ├─Terminal '='
  │     ├─number
- │     │  └─Terminal '5'
+ │     │  ├─Terminal '5'
+ │     │  └─number_tail
+ │     │     └─null
  │     └─Terminal ';'
- └─declaration
-    └─sequence_1
-       ├─Terminal 'char'
-       ├─id
-       │  └─Terminal 'x'
-       ├─Terminal '='
-       ├─character_literal
-       │  ├─Terminal '''
-       │  ├─Terminal 'z'
-       │  └─Terminal '''
-       └─Terminal ';'
+ └─start_tail
+    └─start_tail_branch0
+       ├─declaration
+       │  └─non_terminal_1
+       │     ├─Terminal 'char'
+       │     ├─id
+       │     │  ├─Terminal 'x'
+       │     │  └─id_tail
+       │     │     └─null
+       │     ├─Terminal '='
+       │     ├─character_literal
+       │     │  ├─Terminal '''
+       │     │  ├─Terminal 'z'
+       │     │  └─Terminal '''
+       │     └─Terminal ';'
+       └─start_tail
+          └─null

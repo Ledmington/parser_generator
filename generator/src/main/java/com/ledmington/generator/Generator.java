@@ -17,31 +17,22 @@
  */
 package com.ledmington.generator;
 
-import java.util.ArrayDeque;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.ledmington.bnf.BNFGrammar;
+import com.ledmington.bnf.BNFGrammarChecker;
+import com.ledmington.bnf.BNFSequence;
+import com.ledmington.bnf.BnfNormalizer;
+import com.ledmington.bnf.Converter;
 import com.ledmington.ebnf.Grammar;
-import com.ledmington.ebnf.Node;
-import com.ledmington.ebnf.NonTerminal;
-import com.ledmington.ebnf.OneOrMore;
-import com.ledmington.ebnf.Or;
 import com.ledmington.ebnf.Production;
-import com.ledmington.ebnf.Sequence;
-import com.ledmington.ebnf.Terminal;
-import com.ledmington.ebnf.ZeroOrMore;
-import com.ledmington.ebnf.ZeroOrOne;
 
 /** Generates Java code to parse a specified EBNF grammar. */
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public final class Generator {
-
-	private static final Map<Node, String> NODE_NAMES = new HashMap<>();
 
 	private Generator() {}
 
@@ -62,26 +53,32 @@ public final class Generator {
 			final String packageName,
 			final String indent,
 			final boolean generateMainMethod) {
-		NODE_NAMES.clear();
-
 		GrammarChecker.check(g);
 
 		final String startSymbol = g.getStartSymbol();
 
-		generateNames(g.getParserProductions());
-
 		final Set<String> tokenNames =
 				g.getLexerProductions().stream().map(p -> p.start().name()).collect(Collectors.toUnmodifiableSet());
 
-		final boolean atLeastOneSequence =
-				g.getParserProductions().stream().anyMatch(p -> p.result() instanceof Sequence);
-		final boolean atLeastOneZeroOrOne =
-				g.getParserProductions().stream().anyMatch(p -> p.result() instanceof ZeroOrOne);
-		final boolean atLeastOneZeroOrMore =
-				g.getParserProductions().stream().anyMatch(p -> p.result() instanceof ZeroOrMore);
-		final boolean atLeastOneOneOrMore =
-				g.getParserProductions().stream().anyMatch(p -> p.result() instanceof OneOrMore);
-		final boolean atLeastOneOr = g.getParserProductions().stream().anyMatch(p -> p.result() instanceof Or);
+		// ebnf.Grammar.splitProductions sorts its output alphabetically by name, so the start symbol's production
+		// is not necessarily first any more: Converter.convertToBnf (and BNFGrammar itself) need it to be, so it
+		// is moved back to the front here before conversion.
+		final List<Production> orderedForBnf =
+				new ArrayList<>(g.getSplitParserProductions().size());
+		g.getSplitParserProductions().stream()
+				.filter(p -> p.start().name().equals(startSymbol))
+				.forEach(orderedForBnf::add);
+		g.getSplitParserProductions().stream()
+				.filter(p -> !p.start().name().equals(startSymbol))
+				.forEach(orderedForBnf::add);
+
+		final BNFGrammar rawBnf = Converter.convertToBnf(orderedForBnf);
+		BNFGrammarChecker.check(rawBnf, tokenNames);
+		final BNFGrammar bnf = BnfNormalizer.normalize(rawBnf);
+
+		final boolean atLeastOneSequence = bnf.productions().stream().anyMatch(p -> p.result() instanceof BNFSequence);
+		final boolean atLeastOneAlternation =
+				bnf.productions().stream().anyMatch(p -> !(p.result() instanceof BNFSequence));
 
 		final IndentedStringBuilder sb = new IndentedStringBuilder(indent);
 		sb.append("/*\n")
@@ -104,7 +101,7 @@ public final class Generator {
 		if (atLeastOneSequence) {
 			sb.append("import java.util.Stack;\n");
 		}
-		if (atLeastOneSequence || atLeastOneZeroOrMore || generateMainMethod) {
+		if (atLeastOneSequence || generateMainMethod) {
 			sb.append('\n');
 		}
 		sb.append("public final class ")
@@ -130,14 +127,9 @@ public final class Generator {
 				.deindent()
 				.append("}\n")
 				.deindent()
-				.append("}\n")
-				.append("public interface NonTerminal extends Node {\n")
-				.indent()
-				.append("Node match();\n")
-				.deindent()
 				.append("}\n");
-		if (atLeastOneZeroOrOne) {
-			sb.append("public interface ZeroOrOne extends Node {\n")
+		if (atLeastOneAlternation) {
+			sb.append("public interface Alternation extends Node {\n")
 					.indent()
 					.append("Node match();\n")
 					.deindent()
@@ -150,30 +142,9 @@ public final class Generator {
 					.deindent()
 					.append("}\n");
 		}
-		if (atLeastOneZeroOrMore) {
-			sb.append("public interface ZeroOrMore extends Node {\n")
-					.indent()
-					.append("List<Node> nodes();\n")
-					.deindent()
-					.append("}\n");
-		}
-		if (atLeastOneOneOrMore) {
-			sb.append("public interface OneOrMore extends Node {\n")
-					.indent()
-					.append("List<Node> nodes();\n")
-					.deindent()
-					.append("}\n");
-		}
-		if (atLeastOneOr) {
-			sb.append("public interface Or extends Node {\n")
-					.indent()
-					.append("Node match();\n")
-					.deindent()
-					.append("}\n");
-		}
 
-		final ParserSerializer ps = new ParserSerializer(sb, tokenNames, NODE_NAMES);
-		ps.generateParser(g);
+		final BnfParserSerializer ps = new BnfParserSerializer(sb, tokenNames);
+		ps.generateParser(bnf);
 
 		final String lexerName = parserName + "_Lexer";
 		DFASerializer.generateLexer(sb, lexerName, g.getLexerProductions());
@@ -218,20 +189,13 @@ public final class Generator {
 					.append("final char angle = '└';\n")
 					.append("switch (n) {\n")
 					.indent()
-					.append("case Terminal t -> System.out.println(indent + \"Terminal '\" + t.literal() + \"'\");\n")
-					.append("case NonTerminal nt -> {\n")
-					.indent()
-					.append("System.out.println(indent + nt.name());\n")
-					.append(
-							"printNode(nt.match(), continuationIndent + \" \" + angle + horizontalLine, continuationIndent + \"   \");\n")
-					.deindent()
-					.append("}\n");
-			if (atLeastOneOr) {
-				sb.append("case Or or -> {\n")
+					.append("case Terminal t -> System.out.println(indent + \"Terminal '\" + t.literal() + \"'\");\n");
+			if (atLeastOneAlternation) {
+				sb.append("case Alternation a -> {\n")
 						.indent()
-						.append("System.out.println(indent + or.name());\n")
+						.append("System.out.println(indent + a.name());\n")
 						.append(
-								"printNode(or.match(), continuationIndent + \" \" + angle + horizontalLine, continuationIndent + \"   \");\n")
+								"printNode(a.match(), continuationIndent + \" \" + angle + horizontalLine, continuationIndent + \"   \");\n")
 						.deindent()
 						.append("}\n");
 			}
@@ -249,49 +213,6 @@ public final class Generator {
 						.append("}\n")
 						.append(
 								"printNode(children.getLast(), continuationIndent + \" \" + angle + horizontalLine, continuationIndent + \"   \");\n")
-						.deindent()
-						.append("}\n");
-			}
-			if (atLeastOneZeroOrMore) {
-				sb.append("case ZeroOrMore zom -> {\n")
-						.indent()
-						.append("System.out.println(indent + zom.name());\n")
-						.append("final List<Node> children = zom.nodes();\n")
-						.append("final int len = children.size();\n")
-						.append("for (int i = 0; i < len - 1; i++) {\n")
-						.indent()
-						.append(
-								"printNode(children.get(i), continuationIndent + \" \" + joint + horizontalLine, continuationIndent + ' ' + verticalLine + ' ');\n")
-						.deindent()
-						.append("}\n")
-						.append(
-								"printNode(len == 0 ? null : children.getLast(), continuationIndent + \" \" + angle + horizontalLine, continuationIndent + \"   \");\n")
-						.deindent()
-						.append("}\n");
-			}
-			if (atLeastOneOneOrMore) {
-				sb.append("case OneOrMore oom -> {\n")
-						.indent()
-						.append("System.out.println(indent + oom.name());\n")
-						.append("final List<Node> children = oom.nodes();\n")
-						.append("final int len = children.size();\n")
-						.append("for (int i = 0; i < len - 1; i++) {\n")
-						.indent()
-						.append(
-								"printNode(children.get(i), continuationIndent + \" \" + joint + horizontalLine, continuationIndent + ' ' + verticalLine + ' ');\n")
-						.deindent()
-						.append("}\n")
-						.append(
-								"printNode(children.getLast(), continuationIndent + \" \" + angle + horizontalLine, continuationIndent + \"   \");\n")
-						.deindent()
-						.append("}\n");
-			}
-			if (atLeastOneZeroOrOne) {
-				sb.append("case ZeroOrOne zoo -> {\n")
-						.indent()
-						.append("System.out.println(indent + zoo.name());\n")
-						.append(
-								"printNode(zoo.match(), continuationIndent + \" \" + angle + horizontalLine, continuationIndent + \"   \");\n")
 						.deindent()
 						.append("}\n");
 			}
@@ -330,59 +251,5 @@ public final class Generator {
 		}
 
 		return sb.deindent().append("}").toString();
-	}
-
-	private static void generateNames(final List<Production> parserProductions) {
-		final Set<Node> visited = new HashSet<>();
-		final Queue<Node> q = new ArrayDeque<>();
-
-		for (final Production p : parserProductions) {
-			q.add(p.start());
-			q.add(p.result());
-			NODE_NAMES.put(p.result(), p.start().name());
-		}
-
-		int zeroOrOneCounter = 0;
-		int sequenceCounter = 0;
-		int zeroOrMoreCounter = 0;
-		int oneOrMoreCounter = 0;
-		int orCounter = 0;
-		while (!q.isEmpty()) {
-			final Node n = q.remove();
-			if (visited.contains(n)) {
-				continue;
-			}
-			visited.add(n);
-			switch (n) {
-				case Terminal ignored -> {}
-				case NonTerminal nt -> NODE_NAMES.put(nt, nt.name());
-				case ZeroOrOne zoo -> {
-					NODE_NAMES.put(zoo, "zero_or_one_" + zeroOrOneCounter);
-					q.add(zoo.inner());
-					zeroOrOneCounter++;
-				}
-				case ZeroOrMore zom -> {
-					NODE_NAMES.put(zom, "zero_or_more_" + zeroOrMoreCounter);
-					zeroOrMoreCounter++;
-					q.add(zom.inner());
-				}
-				case OneOrMore oom -> {
-					NODE_NAMES.put(oom, "one_or_more_" + oneOrMoreCounter);
-					oneOrMoreCounter++;
-					q.add(oom.inner());
-				}
-				case Sequence s -> {
-					NODE_NAMES.put(s, "sequence_" + sequenceCounter);
-					sequenceCounter++;
-					q.addAll(s.expressions());
-				}
-				case Or or -> {
-					NODE_NAMES.put(or, "or_" + orCounter);
-					orCounter++;
-					q.addAll(or.expressions());
-				}
-				default -> throw new IllegalArgumentException(String.format("Unknown Node '%s'.", n));
-			}
-		}
 	}
 }

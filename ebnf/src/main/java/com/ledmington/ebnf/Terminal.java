@@ -26,6 +26,7 @@ import java.util.Objects;
  * @param isSynthetic {@code true} if the literal of this terminal symbol does not actually appear in the grammar. Used
  *     for 'epsilon' and '$'.
  */
+// TODO: remove isSynthetic and handle it with a new SyntheticTerminal class
 public record Terminal(String literal, boolean isSynthetic) implements Expression {
 
 	/** Creates a new Terminal symbol. */

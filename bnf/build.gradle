@@ -6,13 +6,11 @@ plugins {
 dependencies {
     implementation project(':utils')
     implementation project(':ebnf')
-    implementation project(':bnf')
-    implementation project(':automata')
 }
 
 pitest {
-    targetClasses.set(['com.ledmington.generator.*'])
-    targetTests.set(['com.ledmington.generator.*'])
+    targetClasses.set(['com.ledmington.bnf.*'])
+    targetTests.set(['com.ledmington.bnf.*'])
     pitestVersion = '1.19.5'
     junit5PluginVersion = '1.2.2'
     threads = 4

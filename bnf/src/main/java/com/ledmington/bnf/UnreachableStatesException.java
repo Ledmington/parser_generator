@@ -15,24 +15,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.ledmington.ebnf;
+package com.ledmington.bnf;
 
-import java.util.Objects;
+import java.io.Serial;
 
 /**
- * An element of an EBNF grammar which represents the ability to repeat a given expression as many times as needed (even
- * zero).
- *
- * @param inner The repeated Expression.
+ * The proper RuntimeException for a case in which the start symbol of a given grammar can not produce ('reach') all
+ * other non-terminal symbols.
  */
-public record ZeroOrMore(Expression inner) implements Container {
+public final class UnreachableStatesException extends RuntimeException {
+
+	@Serial
+	private static final long serialVersionUID = 8143650245287905337L;
 
 	/**
-	 * Creates a new ZeroOrMore object with the given inner expression.
+	 * Creates a new UnreachableStatesException with a pre-defined message.
 	 *
-	 * @param inner The repeated expression.
+	 * @param startSymbol The start symbol of the grammar.
 	 */
-	public ZeroOrMore {
-		Objects.requireNonNull(inner);
+	public UnreachableStatesException(final BNFNonTerminal startSymbol) {
+		super(String.format("The start symbol '%s' can not reach all other symbols.", startSymbol.name()));
 	}
 }
