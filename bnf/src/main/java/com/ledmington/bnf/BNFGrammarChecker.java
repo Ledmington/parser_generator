@@ -99,13 +99,15 @@ public final class BNFGrammarChecker {
 			case BNFSequence s ->
 				s.expressions().stream()
 						.map(BNFGrammarChecker::findAllNonTerminals)
-						.reduce(Set.of(), (a, b) -> Stream.concat(a.stream(), b.stream())
-								.collect(Collectors.toSet()));
+						.reduce(
+								Set.of(),
+								(a, b) -> Stream.concat(a.stream(), b.stream()).collect(Collectors.toSet()));
 			case BNFAlternation or ->
 				or.expressions().stream()
 						.map(BNFGrammarChecker::findAllNonTerminals)
-						.reduce(Set.of(), (a, b) -> Stream.concat(a.stream(), b.stream())
-								.collect(Collectors.toSet()));
+						.reduce(
+								Set.of(),
+								(a, b) -> Stream.concat(a.stream(), b.stream()).collect(Collectors.toSet()));
 			default -> throw new IllegalArgumentException(String.format("Unknown BNF expression: '%s'.", exp));
 		};
 	}
