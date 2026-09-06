@@ -74,7 +74,8 @@ public final class Parser {
 			} else if (inString) {
 				sb.append(c);
 				if (c == '\\' && i + 1 < n) {
-					sb.append(input.charAt(++i));
+					i++;
+					sb.append(input.charAt(i));
 				} else if (c == '"') {
 					inString = false;
 				}
@@ -218,7 +219,8 @@ public final class Parser {
 			throw new ParsingException("No tokens.");
 		}
 
-		// ugly method: the alternative is to manually convert the EBNF grammar for EBNF grammars to be left-recursive
+		// ugly method: the alternative is to manually convert the EBNF grammar for EBNF
+		// grammars to be left-recursive
 		// and then implement it that way
 		final List<Object> v = new ArrayList<>(tokens);
 
@@ -417,7 +419,7 @@ public final class Parser {
 			if (obj instanceof Sequence(final List<Expression> exp)) {
 				expressions.addAll(exp);
 				count++;
-			} else if (obj instanceof final Expression exp /*&& !(obj instanceof Or)*/) {
+			} else if (obj instanceof final Expression exp /* && !(obj instanceof Or) */) {
 				expressions.add(exp);
 				count++;
 			} else {

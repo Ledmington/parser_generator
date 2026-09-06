@@ -34,7 +34,9 @@ public final class StateFactory {
 	 * @return a new regular state with a unique name
 	 */
 	public State getNewState() {
-		return new State("S" + (stateID++));
+		final String newStateName = "S" + stateID;
+		stateID++;
+		return new State(newStateName);
 	}
 
 	/**
@@ -44,6 +46,8 @@ public final class StateFactory {
 	 * @return a new accepting state with a unique name and the provided production name
 	 */
 	public AcceptingState getNewAcceptingState(final String productionName) {
-		return new AcceptingState("S" + (stateID++), productionName);
+		final String newStateName = "S" + stateID;
+		stateID++;
+		return new AcceptingState(newStateName, productionName);
 	}
 }

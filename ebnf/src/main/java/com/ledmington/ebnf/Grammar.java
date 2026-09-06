@@ -97,7 +97,9 @@ public final class Grammar {
 
 			@Override
 			public String get() {
-				return "terminal_" + (id++);
+				final String newName = "terminal_" + id;
+				id++;
+				return newName;
 			}
 		};
 		for (int i = 0; i < parserProductions.size(); i++) {
@@ -177,21 +179,41 @@ public final class Grammar {
 
 		final Function<Node, NonTerminal> freshNT = new Function<>() {
 
-			int sequenceCounter = 0;
-			int orCounter = 0;
-			int zeroOrOneCounter = 0;
-			int zeroOrMoreCounter = 0;
-			int oneOrMoreCounter = 0;
+			private int sequenceCounter = 0;
+			private int orCounter = 0;
+			private int zeroOrOneCounter = 0;
+			private int zeroOrMoreCounter = 0;
+			private int oneOrMoreCounter = 0;
 
 			@Override
 			public NonTerminal apply(final Node n) {
 				return new NonTerminal(
 						switch (n) {
-							case Sequence _ -> "sequence_" + (sequenceCounter++);
-							case Or _ -> "or_" + (orCounter++);
-							case ZeroOrOne _ -> "zero_or_one_" + (zeroOrOneCounter++);
-							case ZeroOrMore _ -> "zero_or_more_" + (zeroOrMoreCounter++);
-							case OneOrMore _ -> "one_or_more_" + (oneOrMoreCounter++);
+							case Sequence _ -> {
+								final String newName = "sequence_" + sequenceCounter;
+								sequenceCounter++;
+								yield newName;
+							}
+							case Or _ -> {
+								final String newName = "or_" + orCounter;
+								orCounter++;
+								yield newName;
+							}
+							case ZeroOrOne _ -> {
+								final String newName = "zero_or_one_" + zeroOrOneCounter;
+								zeroOrOneCounter++;
+								yield newName;
+							}
+							case ZeroOrMore _ -> {
+								final String newName = "zero_or_more_" + zeroOrMoreCounter;
+								zeroOrMoreCounter++;
+								yield newName;
+							}
+							case OneOrMore _ -> {
+								final String newName = "one_or_more_" + oneOrMoreCounter;
+								oneOrMoreCounter++;
+								yield newName;
+							}
 							default -> throw new IllegalStateException(String.format("Unknown node: '%s'.", n));
 						});
 			}

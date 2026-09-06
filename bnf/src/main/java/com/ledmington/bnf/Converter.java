@@ -252,7 +252,8 @@ public final class Converter {
 	private static BNFNonTerminal getNewNonTerminal() {
 		String candidate;
 		do {
-			candidate = "non_terminal_" + (nonTerminalCounter++);
+			candidate = "non_terminal_" + nonTerminalCounter;
+			nonTerminalCounter++;
 		} while (USED_NAMES.contains(candidate));
 		USED_NAMES.add(candidate);
 		return new BNFNonTerminal(candidate);

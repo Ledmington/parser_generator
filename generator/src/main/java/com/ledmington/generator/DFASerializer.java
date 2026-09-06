@@ -217,7 +217,8 @@ public final class DFASerializer {
 						.append("\";\n");
 			}
 			// encode last chunk "manually"
-			final String lastChunkName = "chunk_" + (chunkIndex++);
+			final String lastChunkName = "chunk_" + chunkIndex;
+			chunkIndex++;
 			sb.append("String ")
 					.append(lastChunkName)
 					.append(" = \"")
