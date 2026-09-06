@@ -53,10 +53,4 @@ public record BNFGrammar(List<BNFProduction> productions) {
 		}
 		this.productions = List.copyOf(productions);
 	}
-
-	// TODO: remove this
-	@Override
-	public String toString() {
-		return BNFUtils.prettyPrint(this);
-	}
 }
